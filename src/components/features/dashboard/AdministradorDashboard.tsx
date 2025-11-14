@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import AgregarUsuarioModal from '@/components/features/admin/AgregarUsuarioModal';
+import { CambiarRolModal } from '@/components/features/admin/CambiarRolModal';
 
 interface Usuario {
   id_usuario: string;
@@ -55,6 +56,8 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [filtroRol, setFiltroRol] = useState<string>('todos');
 
   useEffect(() => {
@@ -404,7 +407,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2">
-                          {user.rol === 'administrador' ? (
+                          {user.rol === 'administrador' || user.id_usuario === usuario?.id_usuario ? (
                             <span className="text-xs text-gray-400 italic">{t('sinAcciones')}</span>
                           ) : (
                             <>
@@ -431,6 +434,16 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                                   )}
                                 </button>
                               )}
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowRoleModal(true);
+                                }}
+                                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                                title={t('cambiarRol')}
+                              >
+                                <Edit className="w-5 h-5 text-blue-600" />
+                              </button>
                               <button
                                 onClick={() => deleteUser(user.id_usuario)}
                                 className="p-2 hover:bg-red-50 rounded-lg transition-colors"
@@ -463,6 +476,17 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
       {showAddUserModal && (
         <AgregarUsuarioModal
           onClose={() => setShowAddUserModal(false)}
+          onSuccess={loadData}
+        />
+      )}
+      
+      {showRoleModal && selectedUser && (
+        <CambiarRolModal
+          user={selectedUser}
+          onClose={() => {
+            setShowRoleModal(false);
+            setSelectedUser(null);
+          }}
           onSuccess={loadData}
         />
       )}

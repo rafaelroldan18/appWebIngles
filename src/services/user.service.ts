@@ -32,6 +32,15 @@ export class UserService {
     if (error) throw error;
   }
 
+  static async updateRole(userId: string, role: UserRole) {
+    const { error } = await supabase
+      .from('usuarios')
+      .update({ rol: role })
+      .eq('id_usuario', userId);
+
+    if (error) throw error;
+  }
+
   static async delete(userId: string) {
     const { error } = await supabase.rpc('delete_user_completely', { user_id: userId });
     if (error) throw error;
