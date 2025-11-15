@@ -1,53 +1,78 @@
-import { supabase } from '@/lib/supabase';
-import type { UserRole, Usuario } from '@/types';
+// ============================================================================
+// AUTH SERVICE
+// Servicio para manejar autenticación mediante API Routes
+// ============================================================================
+
+import type { LoginRequest, RegisterRequest, AuthResponse, AuthSession } from '@/types/auth.types';
 
 export class AuthService {
-  static async signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  private static baseUrl = '/api/auth';
+
+  static async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await fetch(`${this.baseUrl}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Error al registrar usuario');
+    }
+
+    return result;
   }
 
-  static async signUp(
-    email: string,
-    password: string,
-    nombre: string,
-    apellido: string,
-    rol: UserRole
-  ) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+  static async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await fetch(`${this.baseUrl}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
 
-    if (data.user) {
-      const { error: dbError } = await supabase.from('usuarios').insert({
-        auth_user_id: data.user.id,
-        nombre,
-        apellido,
-        correo_electronico: email,
-        rol,
-        estado_cuenta: 'pendiente',
-      });
+    const result = await response.json();
 
-      if (dbError) throw dbError;
-      await supabase.auth.signOut();
+    if (!response.ok) {
+      throw new Error(result.error || 'Error al iniciar sesión');
+    }
+
+    return result;
+  }
+
+  static async logout(): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || 'Error al cerrar sesión');
     }
   }
 
-  static async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-  }
+  static async getCurrentUser(): Promise<AuthSession | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-  static async getCurrentUser(): Promise<Usuario | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+      if (!response.ok) return null;
 
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('auth_user_id', user.id)
-      .maybeSingle();
+      const result = await response.json();
+      
+      if (!result.success) return null;
 
-    if (error || !data) return null;
-    return data;
+      return {
+        user: result.user,
+        usuario: result.usuario,
+      };
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
   }
 }

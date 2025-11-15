@@ -5,24 +5,24 @@ export default function CuentaDeshabilitada() {
   const { signOut } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#4DB6E8]/30 via-white to-[#4DB6E8]/30 flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 text-center">
-        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <XCircle className="w-12 h-12 text-red-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center px-4 sm:px-6">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8 text-center">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+          <XCircle className="w-10 h-10 sm:w-12 sm:h-12 text-red-600" />
         </div>
         
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-3 sm:mb-4">
           Cuenta Deshabilitada
         </h1>
         
-        <p className="text-gray-600 mb-6 leading-relaxed">
+        <p className="text-sm sm:text-base text-slate-600 mb-4 sm:mb-6 leading-relaxed">
           Tu cuenta ha sido deshabilitada temporalmente. No puedes acceder a las funcionalidades del sistema en este momento.
         </p>
         
-        <div className="bg-blue-50 rounded-2xl p-4 mb-6">
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-4 sm:mb-6">
           <div className="flex items-start gap-3">
-            <Mail className="w-5 h-5 text-[#4DB6E8] mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-gray-700 text-left">
+            <Mail className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-slate-700 text-left">
               Si crees que esto es un error, por favor contacta al administrador del sistema para más información.
             </p>
           </div>
@@ -30,7 +30,7 @@ export default function CuentaDeshabilitada() {
         
         <button
           onClick={() => signOut()}
-          className="w-full bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold shadow-sm hover:shadow transition-all active:scale-98"
         >
           Cerrar Sesión
         </button>

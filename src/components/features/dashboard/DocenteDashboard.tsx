@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { ActivityService } from '@/services/activity.service';
+import { UserService } from '@/services/user.service';
 import {
   BookOpen,
   Users,
   BarChart3,
-  LogOut,
   PlusCircle,
   FileText,
   MessageSquare,
-  Settings,
+  Eye,
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
+import EstudianteDashboard from './EstudianteDashboard';
+import SettingsPage from '@/components/features/settings/SettingsPage';
+import ProfilePage from '@/components/features/profile/ProfilePage';
+import { UserMenu } from '@/components/layout/UserMenu';
+import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonWarningClasses } from '@/config/colors';
 
 interface Actividad {
   id_actividad: string;
@@ -27,16 +32,6 @@ interface Estadisticas {
   totalActividades: number;
   totalEstudiantes: number;
   actividadesAsignadas: number;
-}
-
-interface Usuario {
-  id_usuario: string;
-  nombre: string;
-  apellido: string;
-  correo_electronico: string;
-  rol: string;
-  estado_cuenta: string;
-  fecha_registro: string;
 }
 
 interface DocenteDashboardProps {
@@ -55,170 +50,208 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [showStudents, setShowStudents] = useState(false);
-  const [estudiantes, setEstudiantes] = useState<Usuario[]>([]);
+  const [isStudentView, setIsStudentView] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showTeacherNotification, setShowTeacherNotification] = useState(false);
+  const [notificationFading, setNotificationFading] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
 
   useEffect(() => {
-    loadData();
-  }, [usuario]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showSettingsMenu) {
-        setShowSettingsMenu(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showSettingsMenu]);
+    if (!isStudentView && usuario) {
+      loadData();
+    }
+  }, [usuario, isStudentView]);
 
   const loadData = async () => {
-    if (!usuario) return;
-
-    const { data: actividadesData } = await supabase
-      .from('actividades')
-      .select('*')
-      .eq('creado_por', usuario.id_usuario)
-      .order('fecha_creacion', { ascending: false })
-      .limit(5);
-
-    if (actividadesData) {
-      setActividades(actividadesData);
+    if (!usuario) {
+      return;
     }
 
-    const { count: totalActividades } = await supabase
-      .from('actividades')
-      .select('*', { count: 'exact', head: true })
-      .eq('creado_por', usuario.id_usuario);
+    try {
+      setLoading(true);
+      
+      const estudiantes = await UserService.getByRole('estudiante');
 
-    const { count: totalEstudiantes } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true })
-      .eq('rol', 'estudiante');
-
-    const { count: actividadesAsignadas } = await supabase
-      .from('asignaciones_actividad')
-      .select('*', { count: 'exact', head: true })
-      .in(
-        'id_actividad',
-        actividadesData?.map((a) => a.id_actividad) || []
-      );
-
-    setEstadisticas({
-      totalActividades: totalActividades || 0,
-      totalEstudiantes: totalEstudiantes || 0,
-      actividadesAsignadas: actividadesAsignadas || 0,
-    });
-
-    setLoading(false);
+      setEstadisticas(prev => ({
+        ...prev,
+        totalEstudiantes: estudiantes.length
+      }));
+      
+      try {
+        const [actividadesData, stats] = await Promise.all([
+          ActivityService.getByCreator(usuario.id_usuario, 5),
+          ActivityService.getCreatorStats(usuario.id_usuario)
+        ]);
+        setActividades(actividadesData);
+        setEstadisticas({
+          totalActividades: stats.totalActividades,
+          totalEstudiantes: estudiantes.length,
+          actividadesAsignadas: stats.actividadesAsignadas,
+        });
+      } catch (actError) {
+        console.error('Error con actividades:', actError);
+        setActividades([]);
+        setEstadisticas({
+          totalActividades: 0,
+          totalEstudiantes: estudiantes.length,
+          actividadesAsignadas: 0,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDificultadColor = (nivel: string) => {
     switch (nivel) {
       case 'alto':
-        return 'text-red-600 bg-red-50';
+        return `border-l-red-500 dark:border-l-red-400 ${colors.status.error.bg}`;
       case 'medio':
-        return 'text-orange-600 bg-orange-50';
+        return `border-l-amber-500 dark:border-l-amber-400 ${colors.status.warning.bg}`;
       default:
-        return 'text-green-600 bg-green-50';
+        return `border-l-green-500 dark:border-l-green-400 ${colors.status.success.bg}`;
     }
   };
 
+  const handleExitPreview = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsStudentView(false);
+      setIsTransitioning(false);
+      setShowTeacherNotification(true);
+      setTimeout(() => {
+        setNotificationFading(true);
+        setTimeout(() => {
+          setShowTeacherNotification(false);
+          setNotificationFading(false);
+        }, 300);
+      }, 2500);
+    }, 300);
+  };
+
+  if (isStudentView) {
+    return (
+      <div className={`relative transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+        <EstudianteDashboard onLogout={onLogout} />
+        <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
+          <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white rounded-2xl shadow-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="pr-1 sm:pr-2">
+              <p className="font-bold text-xs sm:text-sm">Vista Previa</p>
+              <p className="text-[10px] sm:text-xs text-blue-100">Modo Estudiante</p>
+            </div>
+            <button
+              onClick={handleExitPreview}
+              disabled={isTransitioning}
+              className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50"
+            >
+              Salir
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5FAFD] via-white to-[#E3F2FD]">
-      <nav className="bg-white shadow-md border-b-4 border-[#4DB6E8]">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className={`min-h-screen ${colors.background.base} transition-opacity duration-300 ${
+      isTransitioning ? 'opacity-0' : 'opacity-100'
+    }`}>
+      <nav className={`${colors.background.card} shadow-sm border-b-2 ${colors.border.light}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <img 
               src="/images/logo.jpg" 
-              alt="Unidad Educativa" 
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              alt="Logo" 
+              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 object-contain rounded-lg"
             />
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-[#0288D1]">English27</h1>
-              <p className="hidden sm:block text-sm text-gray-600">{t('panelDocente')}</p>
+              <h1 className={`text-base sm:text-lg lg:text-xl font-bold ${colors.text.primary}`}>English27</h1>
+              <p className={`hidden sm:block text-xs lg:text-sm ${colors.text.secondary}`}>{t.panelDocente}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 relative">
-            <span className="hidden md:inline text-sm text-gray-700 font-semibold">{usuario?.nombre}</span>
-            <div className="w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {usuario?.nombre.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettingsMenu(!showSettingsMenu);
-              }}
-              className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
-            >
-              <Settings className="w-5 h-5 text-gray-600" />
-            </button>
-            {showSettingsMenu && (
-              <div className="absolute top-14 right-0 bg-white rounded-xl shadow-lg border border-gray-200 py-2 w-48 z-50">
-                <button
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowLogoutModal(true);
-                  }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-red-600"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t('cerrarSesion')}
-                </button>
-              </div>
-            )}
-          </div>
+          <UserMenu 
+            usuario={usuario!}
+            onSettings={(view) => setCurrentView(view)}
+            onLogout={() => setShowLogoutModal(true)}
+            onViewAsStudent={() => {
+              setIsTransitioning(true);
+              setTimeout(() => {
+                setIsStudentView(true);
+                setIsTransitioning(false);
+              }, 300);
+            }}
+          />
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+      {currentView === 'profile' ? (
+        <ProfilePage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'settings' ? (
+        <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : (
+      <>
+      {showTeacherNotification && (
+        <div className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 transition-all duration-300 ${
+          notificationFading ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
+        }`}>
+          <div className={`${colors.background.card} px-4 py-2 rounded-lg shadow-lg border ${colors.border.light}`}>
+            <p className={`text-sm font-semibold ${colors.text.secondary}`}>Modo Docente</p>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Bienvenida */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#0288D1] mb-2">
-            {t('bienvenidoProfesor')} {usuario?.nombre}! 👨‍🏫
+          <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.primary} mb-1 sm:mb-2`}>
+            {t.bienvenidoProfesor} {usuario?.nombre}!
           </h2>
-          <p className="text-sm sm:text-base text-gray-600">{t('gestionaActividadesEstudiantes')}</p>
+          <p className={`text-sm sm:text-base ${colors.text.secondary}`}>{t.gestionaActividadesEstudiantes}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-[#4DB6E8]">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-xl sm:rounded-2xl flex items-center justify-center">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        {/* Métricas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
+          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 font-semibold">{t('actividadesCreadas')}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#0288D1]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.actividadesCreadas}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.totalActividades}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-[#58C47C]">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#58C47C] to-[#4CAF50] rounded-xl sm:rounded-2xl flex items-center justify-center">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 font-semibold">{t('estudiantes')}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#58C47C]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.estudiantes}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.totalEstudiantes}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-[#FFD54F]">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-xl sm:rounded-2xl flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.accent.warning.gradient} ${colors.accent.warning.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 font-semibold">{t('asignaciones')}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#FFC107]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.asignaciones}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.actividadesAsignadas}
                 </p>
               </div>
@@ -226,98 +259,94 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <button className="bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+        {/* Acciones Rápidas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-6 sm:mb-8">
+          <button className={`${getButtonPrimaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <PlusCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-bold">{t('crearActividad')}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t('nuevaActividadGamificada')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.crearActividad}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.nuevaActividadGamificada}</p>
               </div>
             </div>
           </button>
 
-          <button onClick={() => setShowStudentsModal(true)} className="bg-gradient-to-r from-[#58C47C] to-[#4CAF50] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+          <button onClick={() => setShowStudentsModal(true)} className={`${getButtonSecondaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <Users className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-bold">{t('gestionarEstudiantes')}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t('verAdministrarEstudiantes')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.gestionarEstudiantes}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.verAdministrarEstudiantes}</p>
               </div>
             </div>
           </button>
 
-          <button className="bg-gradient-to-r from-[#FFD54F] to-[#FFC107] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+          <button className={`${getButtonWarningClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <FileText className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-bold">{t('generarReportes')}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t('reportesAcademicos')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.generarReportes}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.reportesAcademicos}</p>
               </div>
             </div>
           </button>
 
-          <button className="bg-gradient-to-r from-purple-400 to-purple-600 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+          <button className={`${getButtonPrimaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-bold">{t('mensajes')}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t('comunicacionEstudiantes')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.mensajes}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.comunicacionEstudiantes}</p>
               </div>
             </div>
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-            <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-[#4DB6E8]" />
-            <h3 className="text-xl sm:text-2xl font-bold text-[#0288D1]">{t('actividadesRecientes')}</h3>
+        {/* Actividades Recientes */}
+        <div className={`${getCardClasses()} p-5 sm:p-6 lg:p-8`}>
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center`}>
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <h3 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>{t.actividadesRecientes}</h3>
           </div>
 
           {actividades.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">{t('noActividadesCreadas')}</p>
-              <p className="text-gray-400 text-sm mt-2">
-                {t('comenzarPrimeraActividad')}
-              </p>
+            <div className="text-center py-12 sm:py-16">
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <BookOpen className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.muted}`} />
+              </div>
+              <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>{t.noActividadesCreadas}</p>
+              <p className={`${colors.text.muted} text-sm`}>{t.comenzarPrimeraActividad}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {actividades.map((actividad) => (
                 <div
                   key={actividad.id_actividad}
-                  className="border-2 border-gray-200 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-[#4DB6E8] hover:shadow-md transition-all"
+                  className={`border-l-4 ${getDificultadColor(actividad.nivel_dificultad)} rounded-xl p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="text-base sm:text-lg font-bold text-gray-800 mb-2">
-                        {actividad.titulo}
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getDificultadColor(
-                            actividad.nivel_dificultad
-                          )}`}
-                        >
-                          {actividad.nivel_dificultad.toUpperCase()}
-                        </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-600">
-                          {actividad.tipo.toUpperCase()}
-                        </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
-                          {new Date(actividad.fecha_creacion).toLocaleDateString('es-ES')}
-                        </span>
-                      </div>
-                    </div>
+                  <h4 className={`text-sm sm:text-base font-bold ${colors.text.primary} mb-2`}>
+                    {actividad.titulo}
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.neutral.bg} ${colors.status.neutral.text}`}>
+                      {actividad.nivel_dificultad.toUpperCase()}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.info.bg} ${colors.status.info.text}`}>
+                      {actividad.tipo.toUpperCase()}
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.neutral.bg} ${colors.text.secondary}`}>
+                      📅 {new Date(actividad.fecha_creacion).toLocaleDateString('es-ES')}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -325,6 +354,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
           )}
         </div>
       </div>
+      </>
+      )}
       
       <LogoutModal
         isOpen={showLogoutModal}

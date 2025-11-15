@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { AuthService } from '@/services/auth.service';
 
 interface AgregarUsuarioModalProps {
   onClose: () => void;
@@ -24,28 +24,16 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
     setError('');
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      await AuthService.register({
         email: formData.correo_electronico,
         password: formData.password,
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        rol: formData.rol as any
       });
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { error: dbError } = await supabase.from('usuarios').insert({
-          auth_user_id: authData.user.id,
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          correo_electronico: formData.correo_electronico,
-          rol: formData.rol,
-          estado_cuenta: 'activo',
-        });
-
-        if (dbError) throw dbError;
-
-        onSuccess();
-        onClose();
-      }
+      onSuccess();
+      onClose();
     } catch (err: any) {
       setError(err.message || 'Error al crear usuario');
     } finally {
@@ -54,11 +42,13 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full">
-        <div className="bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] p-6 flex items-center justify-between rounded-t-3xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-gray-700">
+        <div className="bg-blue-600 p-5 flex items-center justify-between rounded-t-2xl">
           <div className="flex items-center gap-3">
-            <UserPlus className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-white" />
+            </div>
             <h2 className="text-xl font-bold text-white">Agregar Usuario</h2>
           </div>
           <button
@@ -71,13 +61,13 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
               Nombre
             </label>
             <input
@@ -85,12 +75,12 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               required
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-[#4DB6E8] focus:outline-none"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
               Apellido
             </label>
             <input
@@ -98,12 +88,12 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               required
               value={formData.apellido}
               onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-[#4DB6E8] focus:outline-none"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
               Correo Electrónico
             </label>
             <input
@@ -111,12 +101,12 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               required
               value={formData.correo_electronico}
               onChange={(e) => setFormData({ ...formData, correo_electronico: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-[#4DB6E8] focus:outline-none"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
               Contraseña
             </label>
             <input
@@ -125,36 +115,36 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               minLength={6}
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-[#4DB6E8] focus:outline-none"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
               Rol
             </label>
             <select
               value={formData.rol}
               onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
-              className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-[#4DB6E8] focus:outline-none"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             >
               <option value="estudiante">Estudiante</option>
               <option value="docente">Docente</option>
             </select>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+              className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 active:scale-98"
             >
               {loading ? 'Creando...' : 'Crear Usuario'}
             </button>

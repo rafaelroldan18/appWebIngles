@@ -222,6 +222,7 @@ appWebIngles/
 - [GUIA_MIGRACION.md](./GUIA_MIGRACION.md) - Guía de migración
 - [EJEMPLOS_CODIGO.md](./EJEMPLOS_CODIGO.md) - Ejemplos prácticos
 - [RESUMEN_EJECUTIVO.md](./RESUMEN_EJECUTIVO.md) - Resumen del proyecto
+- [API_REST_ESTANDAR.md](./docs/API_REST_ESTANDAR.md) - ✅ Estándar API REST
 
 ### Documentación de Migración
 - [MIGRACION_NEXTJS.md](./MIGRACION_NEXTJS.md) - Migración a Next.js
@@ -346,10 +347,11 @@ npm run test:e2e
 ### ✅ Fase 1 - Completada
 - [x] Arquitectura base
 - [x] Tipos centralizados
-- [x] Capa de servicios
+- [x] Capa de servicios REST 100% consistente
 - [x] Custom hooks
 - [x] Componentes UI base
 - [x] Dashboard Estudiante
+- [x] Cliente Supabase estandarizado
 
 ### 🚧 Fase 2 - En Progreso
 - [ ] Dashboard Docente refactorizado

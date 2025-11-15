@@ -11,10 +11,4 @@ export const COLORS = {
 
 export const ROUTES = {
   HOME: '/',
-  LOGIN: '/login',
-  DASHBOARD: {
-    ESTUDIANTE: '/dashboard/estudiante',
-    DOCENTE: '/dashboard/docente',
-    ADMIN: '/dashboard/admin',
-  },
 } as const;

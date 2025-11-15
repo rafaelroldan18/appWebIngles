@@ -1,71 +1,70 @@
-'use client'
+// ============================================================================
+// AUTH CONTEXT
+// Contexto global para manejar autenticación
+// ============================================================================
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+'use client';
+
+import { createContext, useContext, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthService } from '@/services/auth.service';
-import type { Usuario, UserRole } from '@/types';
+import type { User, UsuarioDB, UserRole } from '@/types/auth.types';
 
 interface AuthContextType {
   user: User | null;
-  usuario: Usuario | null;
+  usuario: UsuarioDB | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, nombre: string, apellido: string, rol: UserRole) => Promise<void>;
+  signUp: (email: string, password: string, nombre: string, apellido: string, cedula: string, rol: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [usuario, setUsuario] = useState<UsuarioDB | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
+  // Cargar usuario al montar el componente
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      (async () => {
-        if (error) {
-          console.error('Session error:', error);
-        }
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadUsuarioData(session.user.id);
-        }
-        setLoading(false);
-      })();
-    }).catch(() => {
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadUsuarioData(session.user.id);
-        } else {
-          setUsuario(null);
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
+    loadUser();
   }, []);
 
-  const loadUsuarioData = async (authUserId: string) => {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('auth_user_id', authUserId)
-      .maybeSingle();
-
-    if (!error && data) {
-      setUsuario(data);
+  const loadUser = async () => {
+    try {
+      const session = await AuthService.getCurrentUser();
+      
+      if (session) {
+        setUser(session.user);
+        setUsuario(session.usuario);
+      } else {
+        setUser(null);
+        setUsuario(null);
+      }
+    } catch (error) {
+      console.error('Error loading user:', error);
+      setUser(null);
+      setUsuario(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    await AuthService.signIn(email, password);
+    try {
+      await AuthService.login({ email, password });
+      
+      // Recargar usuario después del login
+      await loadUser();
+
+      // Redirigir a home (page.tsx maneja el dashboard según rol)
+      router.push('/');
+    } catch (error) {
+      throw error;
+    }
   };
 
   const signUp = async (
@@ -73,27 +72,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     nombre: string,
     apellido: string,
+    cedula: string,
     rol: UserRole
   ) => {
-    await AuthService.signUp(email, password, nombre, apellido, rol);
+    try {
+      await AuthService.register({
+        email,
+        password,
+        nombre,
+        apellido,
+        cedula,
+        rol,
+      });
+    } catch (error) {
+      throw error;
+    }
   };
 
   const signOut = async () => {
-    await AuthService.signOut();
-    setUsuario(null);
+    try {
+      await AuthService.logout();
+      setUser(null);
+      setUsuario(null);
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, usuario, loading, signIn, signUp, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const refreshUser = async () => {
+    await loadUser();
+  };
+
+  const value = {
+    user,
+    usuario,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    refreshUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
+  
   return context;
 }

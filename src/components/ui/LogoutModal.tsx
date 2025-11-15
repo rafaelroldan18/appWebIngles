@@ -1,4 +1,5 @@
-import Icon from './Icon';
+import { AlertTriangle, X, LogOut } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface LogoutModalProps {
   isOpen: boolean;
@@ -7,35 +8,43 @@ interface LogoutModalProps {
 }
 
 export default function LogoutModal({ isOpen, onClose, onConfirm }: LogoutModalProps) {
+  const { t } = useLanguage();
+  
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-3xl p-8 max-w-md mx-4 shadow-xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl animate-fadeIn">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-[#0288D1]">Cerrar Sesión</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <Icon name="close" className="w-6 h-6" />
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-[#F59E0B]" />
+            <h3 className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-white">{t.logoutTitle}</h3>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#F1F5F9] dark:hover:bg-gray-700 transition-colors"
+          >
+            <X className="w-5 h-5 text-[#64748B] dark:text-gray-400" />
           </button>
         </div>
         
-        <p className="text-gray-600 mb-8">
-          ¿Estás seguro que deseas cerrar sesión?
+        <p className="text-[#64748B] dark:text-gray-400 mb-6 sm:mb-8 text-sm sm:text-base">
+          {t.logoutMessage}
         </p>
         
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-600 rounded-2xl font-semibold hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-3 border-2 border-[#E2E8F0] dark:border-gray-600 text-[#475569] dark:text-gray-300 rounded-xl font-semibold hover:bg-[#F8FAFC] dark:hover:bg-gray-700 transition-all"
           >
-            Cancelar
+            {t.logoutCancel}
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 bg-gradient-to-r from-[#EF4444] to-[#DC2626] text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
           >
-            <Icon name="log-out" className="w-4 h-4" />
-            Salir
+            <LogOut className="w-4 h-4" />
+            {t.logoutConfirm}
           </button>
         </div>
       </div>

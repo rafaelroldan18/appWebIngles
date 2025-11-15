@@ -1,54 +1,42 @@
-import { supabase } from '@/lib/supabase';
 import type { Actividad, Asignacion } from '@/types';
 
 export class ActivityService {
   static async getByCreator(creatorId: string, limit?: number): Promise<Actividad[]> {
-    let query = supabase
-      .from('actividades')
-      .select('*')
-      .eq('creado_por', creatorId)
-      .order('fecha_creacion', { ascending: false });
+    const params = new URLSearchParams({ creatorId });
+    if (limit) params.append('limit', limit.toString());
 
-    if (limit) query = query.limit(limit);
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    const response = await fetch(`/api/activities?${params}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error);
+    }
+    
+    return response.json();
   }
 
   static async getAssignmentsByStudent(studentId: string, limit?: number): Promise<Asignacion[]> {
-    let query = supabase
-      .from('asignaciones_actividad')
-      .select(`
-        *,
-        actividades (
-          titulo,
-          tipo,
-          nivel_dificultad
-        )
-      `)
-      .eq('id_estudiante', studentId)
-      .order('fecha_limite', { ascending: true });
+    const params = new URLSearchParams({ studentId });
+    if (limit) params.append('limit', limit.toString());
 
-    if (limit) query = query.limit(limit);
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data as unknown as Asignacion[];
+    const response = await fetch(`/api/activities/assignments?${params}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error);
+    }
+    
+    return response.json();
   }
 
   static async getCreatorStats(creatorId: string) {
-    const activities = await this.getByCreator(creatorId);
-    const activityIds = activities.map(a => a.id_actividad);
-
-    const { count } = await supabase
-      .from('asignaciones_actividad')
-      .select('*', { count: 'exact', head: true })
-      .in('id_actividad', activityIds);
-
-    return {
-      totalActividades: activities.length,
-      actividadesAsignadas: count || 0,
-    };
+    const response = await fetch(`/api/activities/stats?creatorId=${creatorId}`);
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error);
+    }
+    
+    return response.json();
   }
 }

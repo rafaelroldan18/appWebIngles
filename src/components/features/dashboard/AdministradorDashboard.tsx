@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { UserService } from '@/services/user.service';
 import {
   Users,
   UserCheck,
-  UserX,
   Activity,
-  LogOut,
-  Settings,
   Shield,
   BarChart3,
-  Settings as SettingsIcon,
+  Settings,
   Edit,
   Trash2,
   ToggleLeft,
@@ -20,16 +17,13 @@ import {
 import LogoutModal from '@/components/ui/LogoutModal';
 import AgregarUsuarioModal from '@/components/features/admin/AgregarUsuarioModal';
 import { CambiarRolModal } from '@/components/features/admin/CambiarRolModal';
+import SettingsPage from '@/components/features/settings/SettingsPage';
+import ProfilePage from '@/components/features/profile/ProfilePage';
+import { UserMenu } from '@/components/layout/UserMenu';
+import type { Usuario as UsuarioType } from '@/types/user.types';
+import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonWarningClasses } from '@/config/colors';
 
-interface Usuario {
-  id_usuario: string;
-  nombre: string;
-  apellido: string;
-  correo_electronico: string;
-  rol: string;
-  estado_cuenta: string;
-  fecha_registro: string;
-}
+type Usuario = UsuarioType;
 
 interface Estadisticas {
   totalUsuarios: number;
@@ -54,214 +48,158 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
   });
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [filtroRol, setFiltroRol] = useState<string>('todos');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showSettingsMenu) {
-        setShowSettingsMenu(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showSettingsMenu]);
-
   const loadData = async () => {
-    // Force bypass RLS for admin users
-    const { data: usuariosData } = await supabase
-      .from('usuarios')
-      .select('*')
-      .order('fecha_registro', { ascending: false })
-      .limit(100); // Ensure we get more than just one
-
-    if (usuariosData) {
+    try {
+      const usuariosData = await UserService.getAll();
       setUsuarios(usuariosData);
+      const stats = await UserService.getStats();
+      setEstadisticas(stats);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
     }
-
-
-
-    const { count: totalUsuarios } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: totalEstudiantes } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true })
-      .eq('rol', 'estudiante');
-
-    const { count: totalDocentes } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true })
-      .eq('rol', 'docente');
-
-    const { count: usuariosActivos } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado_cuenta', 'activo');
-
-    setEstadisticas({
-      totalUsuarios: totalUsuarios || 0,
-      totalEstudiantes: totalEstudiantes || 0,
-      totalDocentes: totalDocentes || 0,
-      usuariosActivos: usuariosActivos || 0,
-    });
-
-    setLoading(false);
   };
 
   const toggleUserStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'activo' ? 'inactivo' : 'activo';
-    await supabase
-      .from('usuarios')
-      .update({ estado_cuenta: newStatus })
-      .eq('id_usuario', userId);
+    await UserService.updateStatus(userId, newStatus as any);
     loadData();
   };
 
   const deleteUser = async (userId: string) => {
     if (confirm('¿Estás seguro de eliminar este usuario?')) {
-      const { error } = await supabase.rpc('delete_user_completely', { user_id: userId });
-      if (error) {
+      try {
+        await UserService.delete(userId);
+        loadData();
+      } catch (error) {
         console.error('Error al eliminar:', error);
         alert('Error al eliminar usuario');
       }
-      loadData();
     }
   };
 
   const getRolColor = (rol: string) => {
     switch (rol) {
       case 'administrador':
-        return 'bg-red-100 text-red-700';
+        return `${colors.status.error.bg} ${colors.status.error.text} border ${colors.status.error.border}`;
       case 'docente':
-        return 'bg-blue-100 text-blue-700';
+        return `${colors.status.info.bg} ${colors.status.info.text} border ${colors.status.info.border}`;
       default:
-        return 'bg-green-100 text-green-700';
+        return `${colors.status.success.bg} ${colors.status.success.text} border ${colors.status.success.border}`;
     }
   };
 
   const getEstadoColor = (estado: string) => {
-    return estado === 'activo'
-      ? 'bg-green-100 text-green-700'
-      : 'bg-gray-100 text-gray-700';
+    switch (estado) {
+      case 'activo':
+        return `${colors.status.success.bg} ${colors.status.success.text} border ${colors.status.success.border}`;
+      case 'pendiente':
+        return `${colors.status.warning.bg} ${colors.status.warning.text} border ${colors.status.warning.border}`;
+      default:
+        return `${colors.status.neutral.bg} ${colors.status.neutral.text} border ${colors.status.neutral.border}`;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5FAFD] via-white to-[#E3F2FD]">
-      <nav className="bg-white shadow-md border-b-4 border-[#4DB6E8]">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className={`min-h-screen ${colors.background.base}`}>
+      <nav className={`${colors.background.card} shadow-sm border-b-2 ${colors.border.light}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
             <img 
               src="/images/logo.jpg" 
-              alt="Unidad Educativa" 
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              alt="Logo" 
+              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 object-contain rounded-lg"
             />
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-[#0288D1]">English27</h1>
-              <p className="hidden sm:block text-sm text-gray-600">{t('panelAdministracion')}</p>
+              <h1 className={`text-base sm:text-lg lg:text-xl font-bold ${colors.text.primary}`}>English27</h1>
+              <p className={`hidden sm:block text-xs lg:text-sm ${colors.text.secondary}`}>{t.panelAdministracion}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 relative">
-            <span className="hidden md:inline text-sm text-gray-700 font-semibold">{usuario?.nombre}</span>
-            <div className="w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">
-                {usuario?.nombre.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettingsMenu(!showSettingsMenu);
-              }}
-              className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center transition-colors"
-            >
-              <SettingsIcon className="w-5 h-5 text-gray-600" />
-            </button>
-            {showSettingsMenu && (
-              <div className="absolute top-14 right-0 bg-white rounded-xl shadow-lg border border-gray-200 py-2 w-48 z-50">
-                <button
-                  onClick={() => {
-                    setShowSettingsMenu(false);
-                    setShowLogoutModal(true);
-                  }}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-red-600"
-                >
-                  <LogOut className="w-4 h-4" />
-                  {t('cerrarSesion')}
-                </button>
-              </div>
-            )}
-          </div>
+          <UserMenu 
+            usuario={usuario!}
+            onSettings={(view) => setCurrentView(view)}
+            onLogout={() => setShowLogoutModal(true)} 
+          />
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+      {currentView === 'profile' ? (
+        <ProfilePage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'settings' ? (
+        <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        {/* Bienvenida */}
         <div className="mb-6 sm:mb-8">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#0288D1] mb-2">
-            {t('bienvenido')}, {usuario?.nombre}! 🛡️
+          <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.primary} mb-1 sm:mb-2`}>
+            {t.bienvenido}, {usuario?.nombre}!
           </h2>
-          <p className="text-sm sm:text-base text-gray-600">{t('panelAdministracionSistema')}</p>
+          <p className={`text-sm sm:text-base ${colors.text.secondary}`}>{t.panelAdministracionSistema}</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border-4 border-[#4DB6E8]">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-xl sm:rounded-2xl flex items-center justify-center">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        {/* Métricas */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm text-gray-600 font-semibold">{t('totalUsuarios')}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#0288D1]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.totalUsuarios}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.totalUsuarios}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg border-4 border-[#58C47C]">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#58C47C] to-[#4CAF50] rounded-2xl flex items-center justify-center">
-                <UserCheck className="w-6 h-6 text-white" />
+          <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <UserCheck className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-semibold">{t('estudiantes')}</p>
-                <p className="text-3xl font-bold text-[#58C47C]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.estudiantes}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.totalEstudiantes}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg border-4 border-[#FFD54F]">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-2xl flex items-center justify-center">
-                <Shield className="w-6 h-6 text-white" />
+          <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.accent.warning.gradient} ${colors.accent.warning.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-semibold">{t('docentes')}</p>
-                <p className="text-3xl font-bold text-[#FFC107]">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.docentes}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.totalDocentes}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-6 shadow-lg border-4 border-green-400">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-white" />
+          <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+                <Activity className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-semibold">{t('activos')}</p>
-                <p className="text-3xl font-bold text-green-600">
+                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.activos}</p>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
                   {estadisticas.usuariosActivos}
                 </p>
               </div>
@@ -269,200 +207,184 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <button onClick={() => setShowAddUserModal(true)} className="bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] text-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+        {/* Acciones Rápidas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
+          <button onClick={() => setShowAddUserModal(true)} className={`${getButtonPrimaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <UserCheck className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-lg sm:text-xl font-bold">{t('registrarUsuario')}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t('crearNuevaCuenta')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.registrarUsuario}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.crearNuevaCuenta}</p>
               </div>
             </div>
           </button>
 
-          <button className="bg-gradient-to-r from-[#58C47C] to-[#4CAF50] text-white rounded-3xl p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Settings className="w-7 h-7" />
+          <button className={`${getButtonSecondaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <Settings className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold">{t('gestionarRoles')}</h3>
-                <p className="text-sm opacity-90">{t('asignarModificarRoles')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.gestionarRoles}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.asignarModificarRoles}</p>
               </div>
             </div>
           </button>
 
-          <button className="bg-gradient-to-r from-[#FFD54F] to-[#FFC107] text-white rounded-3xl p-6 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <BarChart3 className="w-7 h-7" />
+          <button className={`${getButtonWarningClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-xl font-bold">{t('estadisticas')}</h3>
-                <p className="text-sm opacity-90">{t('verMetricasSistema')}</p>
+                <h3 className="text-base sm:text-lg font-bold">{t.estadisticas}</h3>
+                <p className="text-xs sm:text-sm opacity-90">{t.verMetricasSistema}</p>
               </div>
             </div>
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-lg">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-[#4DB6E8]" />
-              <h3 className="text-xl sm:text-2xl font-bold text-[#0288D1]">{t('todosLosUsuarios')}</h3>
+        {/* Tabla de Usuarios */}
+        <div className={`${getCardClasses()} p-5 sm:p-6 lg:p-8`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5 sm:mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center`}>
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <h3 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>{t.todosLosUsuarios}</h3>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <select
                 value={filtroRol}
                 onChange={(e) => setFiltroRol(e.target.value)}
-                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border-2 border-gray-200 rounded-xl focus:outline-none focus:border-[#4DB6E8] transition-colors"
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-sm border-2 ${colors.border.light} rounded-xl focus:outline-none ${colors.border.focus} transition-colors ${colors.background.card} ${colors.text.primary}`}
               >
-                <option value="todos">{t('todos')}</option>
-                <option value="estudiante">{t('estudiantes')}</option>
-                <option value="docente">{t('docentes')}</option>
-                <option value="administrador">{t('administradores')}</option>
+                <option value="todos">{t.todos}</option>
+                <option value="estudiante">{t.estudiantes}</option>
+                <option value="docente">{t.docentes}</option>
+                <option value="administrador">{t.administradores}</option>
               </select>
               <button
                 onClick={loadData}
-                className="px-3 sm:px-4 py-2 text-sm bg-[#4DB6E8] text-white rounded-xl hover:bg-[#0288D1] transition-colors whitespace-nowrap"
+                className={`px-3 sm:px-4 py-2 text-sm ${getButtonPrimaryClasses()} rounded-xl transition-colors whitespace-nowrap font-medium`}
               >
-                {t('actualizar')}
+                {t.actualizar}
               </button>
             </div>
           </div>
 
           {usuarios.length === 0 ? (
-            <div className="text-center py-12">
-              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">{t('noHayUsuarios')}</p>
+            <div className="text-center py-12 sm:py-16">
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                <Users className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.muted}`} />
+              </div>
+              <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold`}>{t.noHayUsuarios}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">
-                      {t('usuario')}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">
-                      {t('email')}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">{t('rol')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">
-                      {t('estado')}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">
-                      {t('fechaRegistro')}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-bold text-gray-700">
-                      {t('acciones')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuarios.filter(user => filtroRol === 'todos' || user.rol === filtroRol).map((user) => (
-                    <tr
-                      key={user.id_usuario}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-xl flex items-center justify-center">
-                            <span className="text-white font-bold">
-                              {user.nombre.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {user.nombre} {user.apellido}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600">{user.correo_electronico}</td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${getRolColor(
-                            user.rol
-                          )}`}
-                        >
-                          {user.rol.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            user.estado_cuenta === 'pendiente'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : getEstadoColor(user.estado_cuenta)
-                          }`}
-                        >
-                          {user.estado_cuenta.toUpperCase()}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600">
-                        {new Date(user.fecha_registro).toLocaleDateString('es-ES')}
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          {user.rol === 'administrador' || user.id_usuario === usuario?.id_usuario ? (
-                            <span className="text-xs text-gray-400 italic">{t('sinAcciones')}</span>
-                          ) : (
-                            <>
-                              {user.estado_cuenta === 'pendiente' ? (
-                                <button
-                                  onClick={async () => {
-                                    await supabase.from('usuarios').update({ estado_cuenta: 'activo' }).eq('id_usuario', user.id_usuario);
-                                    loadData();
-                                  }}
-                                  className="px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold"
-                                >
-                                  {t('aprobar')}
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => toggleUserStatus(user.id_usuario, user.estado_cuenta)}
-                                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                                  title={user.estado_cuenta === 'activo' ? 'Desactivar' : 'Activar'}
-                                >
-                                  {user.estado_cuenta === 'activo' ? (
-                                    <ToggleRight className="w-5 h-5 text-green-600" />
-                                  ) : (
-                                    <ToggleLeft className="w-5 h-5 text-gray-400" />
-                                  )}
-                                </button>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setShowRoleModal(true);
-                                }}
-                                className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
-                                title={t('cambiarRol')}
-                              >
-                                <Edit className="w-5 h-5 text-blue-600" />
-                              </button>
-                              <button
-                                onClick={() => deleteUser(user.id_usuario)}
-                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="w-5 h-5 text-red-600" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+            <div className="overflow-x-auto -mx-5 sm:mx-0">
+              <div className="inline-block min-w-full align-middle">
+                <table className="min-w-full">
+                  <thead>
+                    <tr className={`border-b-2 ${colors.border.light}`}>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary}`}>{t.usuario}</th>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary} hidden md:table-cell`}>{t.email}</th>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary}`}>{t.rol}</th>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary}`}>{t.estado}</th>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary} hidden lg:table-cell`}>{t.fechaRegistro}</th>
+                      <th className={`text-left py-3 px-4 text-xs sm:text-sm font-bold ${colors.text.secondary}`}>{t.acciones}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {usuarios.filter(user => filtroRol === 'todos' || user.rol === filtroRol).map((user) => (
+                      <tr key={user.id_usuario} className={`border-b ${colors.border.light} ${colors.background.hover} transition-colors`}>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${colors.accent.warning.gradient} ${colors.accent.warning.gradientDark} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                              <span className="text-white font-bold text-sm">
+                                {user.nombre.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className={`font-semibold ${colors.text.primary} text-sm truncate`}>
+                                {user.nombre} {user.apellido}
+                              </p>
+                              <p className={`text-xs ${colors.text.secondary} md:hidden truncate`}>{user.correo_electronico}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className={`py-4 px-4 ${colors.text.secondary} text-sm hidden md:table-cell`}>{user.correo_electronico}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getRolColor(user.rol)}`}>
+                            {user.rol === 'estudiante' ? t.roles.student.toUpperCase() : user.rol === 'docente' ? t.roles.teacher.toUpperCase() : user.rol === 'administrador' ? t.roles.admin.toUpperCase() : user.rol.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${getEstadoColor(user.estado_cuenta)}`}>
+                            {user.estado_cuenta === 'activo' ? t.status.active.toUpperCase() : user.estado_cuenta === 'pendiente' ? t.status.pending.toUpperCase() : user.estado_cuenta === 'inactivo' ? t.status.inactive.toUpperCase() : user.estado_cuenta.toUpperCase()}
+                          </span>
+                        </td>
+                        <td className={`py-4 px-4 ${colors.text.secondary} text-sm hidden lg:table-cell`}>
+                          {new Date(user.fecha_registro).toLocaleDateString('es-ES')}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {user.rol === 'administrador' || user.id_usuario === usuario?.id_usuario ? (
+                              <span className={`text-xs ${colors.text.muted} italic`}>{t.sinAcciones}</span>
+                            ) : (
+                              <>
+                                {user.estado_cuenta === 'pendiente' ? (
+                                  <button
+                                    onClick={async () => {
+                                      await UserService.updateStatus(user.id_usuario, 'activo');
+                                      loadData();
+                                    }}
+                                    className={`px-2 sm:px-3 py-1 ${getButtonSecondaryClasses()} rounded-lg transition-colors text-xs font-semibold`}
+                                  >
+                                    {t.aprobar}
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => toggleUserStatus(user.id_usuario, user.estado_cuenta)}
+                                    className={`p-1.5 sm:p-2 ${colors.background.hover} rounded-lg transition-colors`}
+                                  >
+                                    {user.estado_cuenta === 'activo' ? (
+                                      <ToggleRight className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 dark:text-green-400" />
+                                    ) : (
+                                      <ToggleLeft className={`w-4 h-4 sm:w-5 sm:h-5 ${colors.text.muted}`} />
+                                    )}
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setShowRoleModal(true);
+                                  }}
+                                  className={`p-1.5 sm:p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors`}
+                                >
+                                  <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 dark:text-blue-400" />
+                                </button>
+                                <button
+                                  onClick={() => deleteUser(user.id_usuario)}
+                                  className={`p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors`}
+                                >
+                                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 dark:text-red-400" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
       </div>
+      )}
       
       <LogoutModal
         isOpen={showLogoutModal}

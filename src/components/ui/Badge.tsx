@@ -2,21 +2,22 @@ import type { AccountStatus, DifficultyLevel, AssignmentStatus } from '@/types';
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple';
   className?: string;
 }
 
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-100 text-gray-700',
-    success: 'bg-green-100 text-green-700',
-    warning: 'bg-yellow-100 text-yellow-700',
-    danger: 'bg-red-100 text-red-700',
-    info: 'bg-blue-100 text-blue-700',
+    default: 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]',
+    success: 'bg-[#D1FAE5] text-[#10B981] border-[#10B981]',
+    warning: 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]',
+    danger: 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]',
+    info: 'bg-[#DBEAFE] text-[#3B82F6] border-[#3B82F6]',
+    purple: 'bg-[#F5F3FF] text-[#8B5CF6] border-[#8B5CF6]',
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold border ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -25,11 +26,17 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
 export function StatusBadge({ status }: { status: AccountStatus | AssignmentStatus }) {
   const getVariant = () => {
     if (status === 'activo' || status === 'completado') return 'success';
-    if (status === 'pendiente' || status === 'en_curso') return 'warning';
+    if (status === 'pendiente' || status === 'en_curso' || status === 'en_progreso') return 'warning';
+    if (status === 'inactivo') return 'default';
     return 'default';
   };
 
-  return <Badge variant={getVariant()}>{status.toUpperCase()}</Badge>;
+  const getLabel = () => {
+    if (status === 'en_progreso' || status === 'en_curso') return 'EN PROGRESO';
+    return status.toUpperCase();
+  };
+
+  return <Badge variant={getVariant()}>{getLabel()}</Badge>;
 }
 
 export function DifficultyBadge({ level }: { level: DifficultyLevel }) {
@@ -40,4 +47,21 @@ export function DifficultyBadge({ level }: { level: DifficultyLevel }) {
   };
 
   return <Badge variant={variants[level]}>{level.toUpperCase()}</Badge>;
+}
+
+export function RoleBadge({ role }: { role: string }) {
+  const getVariant = () => {
+    switch (role) {
+      case 'administrador':
+        return 'danger';
+      case 'docente':
+        return 'info';
+      case 'estudiante':
+        return 'success';
+      default:
+        return 'default';
+    }
+  };
+
+  return <Badge variant={getVariant()}>{role.toUpperCase()}</Badge>;
 }
