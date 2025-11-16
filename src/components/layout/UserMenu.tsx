@@ -5,12 +5,13 @@ import type { Usuario } from '@/types/user.types';
 
 interface UserMenuProps {
   usuario: Usuario;
-  onSettings?: (view: 'profile' | 'settings') => void;
   onLogout: () => void;
+  onProfile?: () => void;
+  onSettings?: () => void;
   onViewAsStudent?: () => void;
 }
 
-export function UserMenu({ usuario, onSettings, onLogout, onViewAsStudent }: UserMenuProps) {
+export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStudent }: UserMenuProps) {
   const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,31 +65,31 @@ export function UserMenu({ usuario, onSettings, onLogout, onViewAsStudent }: Use
             </div>
           </div>
 
-          <div className="py-2">
-            {onSettings && (
-              <>
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onSettings('profile');
-                  }}
-                  className="w-full px-4 py-3 text-left hover:bg-[#F8FAFC] dark:hover:bg-gray-700 flex items-center gap-3 text-[#334155] dark:text-gray-300 transition-all active:scale-98 text-sm sm:text-base"
-                >
-                  <User className="w-5 h-5" />
-                  <span className="font-medium">{t.userMenuProfile}</span>
-                </button>
+          <div className="py-1">
+            {onProfile && (
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  onProfile();
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+              >
+                <User className="w-5 h-5" />
+                <span className="font-medium">{t.userMenuProfile}</span>
+              </button>
+            )}
 
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    onSettings('settings');
-                  }}
-                  className="w-full px-4 py-3 text-left hover:bg-[#F8FAFC] dark:hover:bg-gray-700 flex items-center gap-3 text-[#334155] dark:text-gray-300 transition-all active:scale-98 text-sm sm:text-base"
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">{t.userMenuSettings}</span>
-                </button>
-              </>
+            {onSettings && (
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  onSettings();
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="font-medium">{t.userMenuSettings}</span>
+              </button>
             )}
 
             {onViewAsStudent && (
@@ -97,7 +98,7 @@ export function UserMenu({ usuario, onSettings, onLogout, onViewAsStudent }: Use
                   setShowMenu(false);
                   onViewAsStudent();
                 }}
-                className="w-full px-4 py-3 text-left hover:bg-[#DBEAFE] dark:hover:bg-blue-900/30 flex items-center gap-3 text-[#3B82F6] dark:text-blue-400 transition-all active:scale-98 text-sm sm:text-base"
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
               >
                 <User className="w-5 h-5" />
                 <span className="font-medium">{t.userMenuViewAsStudent}</span>
@@ -109,7 +110,7 @@ export function UserMenu({ usuario, onSettings, onLogout, onViewAsStudent }: Use
                 setShowMenu(false);
                 onLogout();
               }}
-              className="w-full px-4 py-3 text-left hover:bg-[#FEE2E2] dark:hover:bg-red-900/30 flex items-center gap-3 text-[#EF4444] dark:text-red-400 transition-all active:scale-98 text-sm sm:text-base"
+              className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">{t.userMenuLogout}</span>

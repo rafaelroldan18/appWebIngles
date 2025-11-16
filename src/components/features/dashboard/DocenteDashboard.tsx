@@ -15,8 +15,8 @@ import {
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
 import EstudianteDashboard from './EstudianteDashboard';
-import SettingsPage from '@/components/features/settings/SettingsPage';
 import ProfilePage from '@/components/features/profile/ProfilePage';
+import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonWarningClasses } from '@/config/colors';
 
@@ -163,20 +163,24 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
     }`}>
       <nav className={`${colors.background.card} shadow-sm border-b-2 ${colors.border.light}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
+          <button 
+            onClick={() => setCurrentView('dashboard')}
+            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+          >
             <img 
               src="/images/logo.jpg" 
               alt="Logo" 
-              className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 object-contain rounded-lg"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-lg"
             />
-            <div>
-              <h1 className={`text-base sm:text-lg lg:text-xl font-bold ${colors.text.primary}`}>English27</h1>
-              <p className={`hidden sm:block text-xs lg:text-sm ${colors.text.secondary}`}>{t.panelDocente}</p>
+            <div className="text-left">
+              <h1 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>English27</h1>
+              <p className={`hidden sm:block text-sm ${colors.text.secondary}`}>{t.panelDocente}</p>
             </div>
-          </div>
+          </button>
           <UserMenu 
             usuario={usuario!}
-            onSettings={(view) => setCurrentView(view)}
+            onProfile={() => setCurrentView('profile')}
+            onSettings={() => setCurrentView('settings')}
             onLogout={() => setShowLogoutModal(true)}
             onViewAsStudent={() => {
               setIsTransitioning(true);

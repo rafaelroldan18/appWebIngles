@@ -21,8 +21,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
         {onBack && (
           <button
             onClick={onBack}
@@ -31,14 +31,14 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </button>
         )}
-        <h1 className="text-3xl font-bold text-[#0288D1] dark:text-blue-400">{t.profile.title}</h1>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#0288D1] dark:text-blue-400">{t.profile.title}</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 text-center">
             <div className="relative inline-block mb-4">
-              <div className="w-32 h-32 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-full flex items-center justify-center shadow-xl">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-full flex items-center justify-center shadow-xl">
                 <span className="text-white font-bold text-5xl">
                   {usuario?.nombre.charAt(0).toUpperCase()}
                 </span>

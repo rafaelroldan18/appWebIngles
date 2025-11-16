@@ -1,0 +1,285 @@
+================================================================================
+                    ESTRUCTURA DE ROUTING - English27
+                           Next.js App Router
+================================================================================
+
+FECHA: 2024
+ESTADO: ✅ Implementado correctamente
+
+================================================================================
+                            ARQUITECTURA DE ROUTING
+================================================================================
+
+El proyecto usa Next.js App Router con rutas basadas en carpetas:
+
+app/
+├── page.tsx                              → / (Landing)
+├── login/
+│   └── page.tsx                          → /login
+├── dashboard/
+│   ├── estudiante/
+│   │   └── page.tsx                      → /dashboard/estudiante
+│   ├── docente/
+│   │   └── page.tsx                      → /dashboard/docente
+│   └── administrador/
+│       └── page.tsx                      → /dashboard/administrador
+├── cuenta-pendiente/
+│   └── page.tsx                          → /cuenta-pendiente
+├── cuenta-deshabilitada/
+│   └── page.tsx                          → /cuenta-deshabilitada
+├── reset-password/
+│   └── page.tsx                          → /reset-password
+└── layout.tsx                            → Layout global
+
+
+================================================================================
+                            PROTECCIÓN DE RUTAS
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        MIDDLEWARE (middleware.ts)                       │
+│                                                                         │
+│  - Intercepta todas las peticiones                                     │
+│  - Verifica sesión de Supabase                                         │
+│  - Redirige automáticamente según estado                               │
+│                                                                         │
+│  Rutas públicas:                                                       │
+│    ✓ /                                                                 │
+│    ✓ /login                                                            │
+│    ✓ /reset-password                                                   │
+│                                                                         │
+│  Rutas protegidas:                                                     │
+│    🔒 /dashboard/*                                                      │
+│    🔒 /cuenta-*                                                         │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PROTECCIÓN A NIVEL DE PÁGINA                        │
+│                                                                         │
+│  Cada página protegida tiene useEffect que verifica:                   │
+│    1. Usuario autenticado                                              │
+│    2. Estado de cuenta (activo/pendiente/inactivo)                     │
+│    3. Rol correcto para la página                                      │
+│                                                                         │
+│  Si no cumple → Redirige a la ruta correcta                            │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                        FLUJO DE NAVEGACIÓN COMPLETO
+================================================================================
+
+
+───────────────────────────────────────────────────────────────────────────────
+                            USUARIO NO AUTENTICADO
+───────────────────────────────────────────────────────────────────────────────
+
+1. Usuario visita cualquier URL
+   └─> Middleware verifica sesión
+
+2. Si no hay sesión y es ruta protegida:
+   └─> Redirige a /login
+
+3. Usuario ve página de login
+   └─> Puede iniciar sesión o registrarse
+
+4. Al hacer login exitoso:
+   └─> AuthContext.signIn() se ejecuta
+   └─> Redirige a / (home)
+
+5. page.tsx (home) detecta usuario autenticado:
+   └─> Verifica estado_cuenta
+   └─> Redirige según rol:
+       • estudiante → /dashboard/estudiante
+       • docente → /dashboard/docente
+       • administrador → /dashboard/administrador
+
+
+───────────────────────────────────────────────────────────────────────────────
+                            USUARIO AUTENTICADO
+───────────────────────────────────────────────────────────────────────────────
+
+1. Usuario ya tiene sesión activa
+
+2. Visita / (home):
+   └─> page.tsx detecta sesión
+   └─> Redirige automáticamente a su dashboard
+
+3. Visita /login:
+   └─> Middleware detecta sesión
+   └─> Redirige a / (que redirige a dashboard)
+
+4. Visita /dashboard/estudiante:
+   └─> Middleware permite acceso (ruta protegida con sesión)
+   └─> Página verifica rol
+   └─> Si rol correcto: muestra dashboard
+   └─> Si rol incorrecto: redirige a /dashboard/{rol_correcto}
+
+5. Hace logout:
+   └─> AuthContext.signOut() se ejecuta
+   └─> Limpia sesión
+   └─> Redirige a /
+
+
+───────────────────────────────────────────────────────────────────────────────
+                        ESTADOS DE CUENTA ESPECIALES
+───────────────────────────────────────────────────────────────────────────────
+
+CUENTA PENDIENTE:
+1. Usuario se registra
+2. estado_cuenta = 'pendiente'
+3. Al hacer login:
+   └─> page.tsx detecta estado
+   └─> Redirige a /cuenta-pendiente
+4. Usuario ve mensaje de espera
+5. Cuando admin aprueba:
+   └─> estado_cuenta = 'activo'
+   └─> Próximo login redirige a dashboard
+
+CUENTA DESHABILITADA:
+1. Admin desactiva cuenta
+2. estado_cuenta = 'inactivo'
+3. Al hacer login:
+   └─> page.tsx detecta estado
+   └─> Redirige a /cuenta-deshabilitada
+4. Usuario ve mensaje de cuenta deshabilitada
+
+
+================================================================================
+                            NAVEGACIÓN PROGRAMÁTICA
+================================================================================
+
+Todos los componentes usan useRouter de Next.js:
+
+import { useRouter } from 'next/navigation'
+
+const router = useRouter()
+
+// Navegar a otra página
+router.push('/dashboard/estudiante')
+
+// Reemplazar en historial (no permite volver atrás)
+router.replace('/login')
+
+// Volver atrás
+router.back()
+
+// Refrescar página actual
+router.refresh()
+
+
+================================================================================
+                            VENTAJAS DE ESTA ARQUITECTURA
+================================================================================
+
+✅ URLs funcionales y compartibles
+   → localhost:3000/dashboard/estudiante
+
+✅ Historial del navegador funciona
+   → Botón atrás/adelante del navegador
+
+✅ SEO mejorado
+   → Cada página tiene su propia URL
+
+✅ Código organizado
+   → Cada ruta en su propio archivo
+
+✅ Protección automática
+   → Middleware + verificación en página
+
+✅ Redirecciones inteligentes
+   → Según rol y estado de cuenta
+
+✅ Experiencia de usuario fluida
+   → No hay renderizado condicional masivo
+
+✅ Mantenimiento fácil
+   → Agregar nueva ruta = crear carpeta + page.tsx
+
+
+================================================================================
+                            COMPARACIÓN: ANTES vs AHORA
+================================================================================
+
+ANTES (❌ Anti-patrón):
+┌─────────────────────────────────────────────────────────────────────────┐
+│  app/page.tsx                                                           │
+│    └─> if (!user) return <Landing />                                   │
+│    └─> if (showLogin) return <Login />                                 │
+│    └─> if (rol === 'estudiante') return <EstudianteDashboard />        │
+│    └─> if (rol === 'docente') return <DocenteDashboard />              │
+│    └─> if (rol === 'admin') return <AdministradorDashboard />          │
+│                                                                         │
+│  ❌ Todo en un solo archivo                                             │
+│  ❌ URL siempre es localhost:3000/                                      │
+│  ❌ No hay historial de navegación                                      │
+│  ❌ Difícil de mantener                                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+AHORA (✅ Patrón correcto):
+┌─────────────────────────────────────────────────────────────────────────┐
+│  app/                                                                   │
+│    ├── page.tsx              → localhost:3000/                         │
+│    ├── login/page.tsx        → localhost:3000/login                    │
+│    └── dashboard/                                                      │
+│        ├── estudiante/       → localhost:3000/dashboard/estudiante     │
+│        ├── docente/          → localhost:3000/dashboard/docente        │
+│        └── administrador/    → localhost:3000/dashboard/administrador  │
+│                                                                         │
+│  ✅ Cada ruta en su archivo                                             │
+│  ✅ URLs funcionales                                                    │
+│  ✅ Historial del navegador                                             │
+│  ✅ Fácil de mantener                                                   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                            CÓMO AGREGAR NUEVA RUTA
+================================================================================
+
+Ejemplo: Agregar página de perfil
+
+1. Crear carpeta y archivo:
+   app/perfil/page.tsx
+
+2. Crear componente:
+   'use client'
+   
+   import { useAuth } from '@/contexts/AuthContext'
+   import { useRouter } from 'next/navigation'
+   
+   export default function PerfilPage() {
+     const { user, usuario } = useAuth()
+     const router = useRouter()
+     
+     if (!user) {
+       router.push('/login')
+       return null
+     }
+     
+     return <div>Perfil de {usuario?.nombre}</div>
+   }
+
+3. Navegar desde otro componente:
+   router.push('/perfil')
+
+4. ¡Listo! La ruta está disponible en localhost:3000/perfil
+
+
+================================================================================
+                            RESUMEN TÉCNICO
+================================================================================
+
+Framework: Next.js 15 App Router
+Routing: File-system based routing
+Protección: Middleware + Client-side verification
+Navegación: useRouter hook
+Estado: AuthContext (React Context)
+Autenticación: Supabase Auth + SSR
+Redirecciones: Automáticas según rol y estado
+
+================================================================================

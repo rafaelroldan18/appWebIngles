@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Nunito } from 'next/font/google'
+import Script from 'next/script'
 import '../src/index.css'
 import { AuthProvider } from '../src/contexts/AuthContext'
 import { LanguageProvider } from '../src/contexts/LanguageContext'
@@ -12,7 +13,7 @@ const nunito = Nunito({
 })
 
 export const metadata: Metadata = {
-  title: 'English27 - Aprende inglés de forma divertida',
+  title: 'English27',
   description: 'Sistema educativo gamificado para aprender inglés',
 }
 
@@ -23,10 +24,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <head>
-        <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" async></script>
-        <script noModule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" async></script>
-      </head>
       <body className={nunito.className} suppressHydrationWarning>
         <AuthProvider>
           <LanguageProvider>
@@ -35,6 +32,8 @@ export default function RootLayout({
             </ThemeProvider>
           </LanguageProvider>
         </AuthProvider>
+        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" type="module" />
+        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" noModule />
       </body>
     </html>
   )
