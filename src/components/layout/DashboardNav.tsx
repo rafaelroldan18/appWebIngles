@@ -12,7 +12,7 @@ interface DashboardNavProps {
 export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }: DashboardNavProps) {
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-md border-b-4 border-[#3B82F6] dark:border-blue-500">
+    <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
         <button 
           onClick={onSettings ? () => onSettings('dashboard' as any) : undefined}
@@ -24,8 +24,8 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }:
             className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-lg"
           />
           <div className="text-left">
-            <h1 className="text-lg sm:text-xl font-bold text-[#1E293B] dark:text-white">{title}</h1>
-            <p className="hidden sm:block text-sm text-[#64748B] dark:text-gray-400">{subtitle}</p>
+            <h1 className="text-lg sm:text-xl font-bold text-[#111827] dark:text-white">{title}</h1>
+            <p className="hidden sm:block text-sm text-[#6B7280] dark:text-[#E5E7EB]">{subtitle}</p>
           </div>
         </button>
         

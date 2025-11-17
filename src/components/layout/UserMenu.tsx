@@ -35,10 +35,10 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
         onClick={() => setShowMenu(!showMenu)}
         className="flex items-center gap-2 hover:opacity-80 transition-all"
       >
-        <span className="hidden lg:inline text-sm text-[#334155] dark:text-gray-300 font-semibold">
+        <span className="hidden lg:inline text-sm text-[#6B7280] dark:text-[#E5E7EB] font-semibold">
           {usuario.nombre}
         </span>
-        <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-[#F59E0B] to-[#D97706] rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-700">
+        <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-primary to-primary-dark rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#334155]">
           <span className="text-white font-bold text-sm lg:text-base">
             {usuario.nombre.charAt(0).toUpperCase()}
           </span>
@@ -46,19 +46,19 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
       </button>
 
       {showMenu && (
-        <div className="absolute top-12 sm:top-14 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-[#E2E8F0] dark:border-gray-700 w-64 sm:w-72 z-50 overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-[#F1F5F9] dark:border-gray-700 bg-gradient-to-r from-[#F8FAFC] to-white dark:from-gray-700 dark:to-gray-800">
+        <div className="absolute top-12 sm:top-14 right-0 bg-white dark:bg-[#1E293B] rounded-lg shadow-2xl border border-neutral-200 dark:border-[#334155] w-64 sm:w-72 z-50 overflow-hidden">
+          <div className="p-4 sm:p-5 border-b border-neutral-100 dark:border-[#334155] bg-gradient-to-r from-neutral-100 to-white dark:from-[#334155] dark:to-[#1E293B]">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-[#F59E0B] to-[#D97706] rounded-full flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary-dark rounded-full flex items-center justify-center shadow-md">
                 <span className="text-white font-bold text-lg sm:text-xl">
                   {usuario.nombre.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-[#1E293B] dark:text-white truncate text-sm sm:text-base">
+                <p className="font-bold text-[#111827] dark:text-white truncate text-sm sm:text-base">
                   {usuario.nombre} {usuario.apellido}
                 </p>
-                <p className="text-xs sm:text-sm text-[#64748B] dark:text-gray-400 truncate">
+                <p className="text-xs sm:text-sm text-[#6B7280] dark:text-[#E5E7EB] truncate">
                   {usuario.correo_electronico}
                 </p>
               </div>
@@ -72,7 +72,7 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
                   setShowMenu(false);
                   onProfile();
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#334155] flex items-center gap-3 text-[#6B7280] dark:text-[#E5E7EB] transition-all text-sm"
               >
                 <User className="w-5 h-5" />
                 <span className="font-medium">{t.userMenuProfile}</span>
@@ -85,7 +85,7 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
                   setShowMenu(false);
                   onSettings();
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#334155] flex items-center gap-3 text-[#6B7280] dark:text-[#E5E7EB] transition-all text-sm"
               >
                 <Settings className="w-5 h-5" />
                 <span className="font-medium">{t.userMenuSettings}</span>
@@ -98,7 +98,7 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
                   setShowMenu(false);
                   onViewAsStudent();
                 }}
-                className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+                className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#334155] flex items-center gap-3 text-[#6B7280] dark:text-[#E5E7EB] transition-all text-sm"
               >
                 <User className="w-5 h-5" />
                 <span className="font-medium">{t.userMenuViewAsStudent}</span>
@@ -110,7 +110,7 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
                 setShowMenu(false);
                 onLogout();
               }}
-              className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition-all text-sm"
+              className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#334155] flex items-center gap-3 text-[#6B7280] dark:text-[#E5E7EB] transition-all text-sm"
             >
               <LogOut className="w-5 h-5" />
               <span className="font-medium">{t.userMenuLogout}</span>

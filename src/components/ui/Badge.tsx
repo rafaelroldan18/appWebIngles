@@ -8,16 +8,16 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   const variants = {
-    default: 'bg-[#F1F5F9] text-[#64748B] border-[#E2E8F0]',
-    success: 'bg-[#D1FAE5] text-[#10B981] border-[#10B981]',
-    warning: 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]',
-    danger: 'bg-[#FEE2E2] text-[#EF4444] border-[#EF4444]',
-    info: 'bg-[#DBEAFE] text-[#3B82F6] border-[#3B82F6]',
-    purple: 'bg-[#F5F3FF] text-[#8B5CF6] border-[#8B5CF6]',
+    default: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+    success: 'bg-success/10 text-success border-success/20',
+    warning: 'bg-info/10 text-info border-info/20',
+    danger: 'bg-danger/10 text-danger border-danger/20',
+    info: 'bg-info/10 text-info border-info/20',
+    purple: 'bg-secondary/10 text-secondary border-secondary/20',
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold border ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center px-2.5 sm:px-3 py-1 rounded-lg text-xs font-semibold border ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -26,7 +26,7 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
 export function StatusBadge({ status }: { status: AccountStatus | AssignmentStatus }) {
   const getVariant = () => {
     if (status === 'activo' || status === 'completado') return 'success';
-    if (status === 'pendiente' || status === 'en_curso' || status === 'en_progreso') return 'warning';
+    if (status === 'pendiente' || status === 'en_curso' || status === 'en_progreso') return 'info';
     if (status === 'inactivo') return 'default';
     return 'default';
   };
@@ -42,7 +42,7 @@ export function StatusBadge({ status }: { status: AccountStatus | AssignmentStat
 export function DifficultyBadge({ level }: { level: DifficultyLevel }) {
   const variants = {
     bajo: 'success' as const,
-    medio: 'warning' as const,
+    medio: 'info' as const,
     alto: 'danger' as const,
   };
 

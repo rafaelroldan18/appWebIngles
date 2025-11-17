@@ -62,8 +62,8 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div className="bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] p-6 flex items-center justify-between rounded-t-xl">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+        <div className="bg-gradient-to-r from-[#4DB6E8] to-[#0288D1] p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Lock className="w-6 h-6 text-white" />
             <h3 className="text-xl font-bold text-white">Cambiar Contraseña</h3>

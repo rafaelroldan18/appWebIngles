@@ -5,7 +5,7 @@ interface CardProps {
 
 export function Card({ children, className = '' }: CardProps) {
   return (
-    <div className={`bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-[#E2E8F0] hover:shadow-lg transition-all ${className}`}>
+    <div className={`bg-white rounded-lg p-5 sm:p-6 shadow-sm border border-neutral-200 hover:shadow-lg transition-all ${className}`}>
       {children}
     </div>
   );
@@ -19,15 +19,15 @@ interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ icon, label, value, gradient = 'from-[#3B82F6] to-[#2563EB]', className = '' }: StatCardProps) {
+export function StatCard({ icon, label, value, gradient = 'from-primary to-primary-dark', className = '' }: StatCardProps) {
   return (
-    <div className={`bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-[#E2E8F0] hover:shadow-lg hover:scale-[1.02] transition-all ${className}`}>
+    <div className={`bg-white rounded-lg p-4 sm:p-5 shadow-sm border border-neutral-200 hover:shadow-lg hover:scale-[1.02] transition-all ${className}`}>
       <div className="flex flex-col items-center text-center">
-        <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center mb-3 shadow-md`}>
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${gradient} rounded-lg flex items-center justify-center mb-3 shadow-md`}>
           {icon}
         </div>
-        <p className="text-xs sm:text-sm text-[#64748B] font-medium mb-1">{label}</p>
-        <p className="text-2xl sm:text-3xl font-bold text-[#1E293B]">{value}</p>
+        <p className="text-xs sm:text-sm text-[#6B7280] dark:text-[#E5E7EB] font-medium mb-1">{label}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-[#111827] dark:text-white">{value}</p>
       </div>
     </div>
   );
@@ -42,14 +42,14 @@ interface ActionCardProps {
   className?: string;
 }
 
-export function ActionCard({ icon, title, description, gradient = 'from-[#3B82F6] to-[#2563EB]', onClick, className = '' }: ActionCardProps) {
+export function ActionCard({ icon, title, description, gradient = 'from-primary to-primary-dark', onClick, className = '' }: ActionCardProps) {
   return (
     <button 
       onClick={onClick}
-      className={`bg-gradient-to-r ${gradient} text-white rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all text-left w-full ${className}`}
+      className={`bg-gradient-to-r ${gradient} text-white rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all text-left w-full ${className}`}
     >
       <div className="flex items-center gap-3 sm:gap-4">
-        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
         <div>

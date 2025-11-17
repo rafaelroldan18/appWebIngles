@@ -18,7 +18,7 @@ import EstudianteDashboard from './EstudianteDashboard';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
-import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonWarningClasses } from '@/config/colors';
+import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonInfoClasses } from '@/config/colors';
 
 interface Actividad {
   id_actividad: string;
@@ -109,7 +109,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       case 'alto':
         return `border-l-red-500 dark:border-l-red-400 ${colors.status.error.bg}`;
       case 'medio':
-        return `border-l-amber-500 dark:border-l-amber-400 ${colors.status.warning.bg}`;
+        return `border-l-info dark:border-l-info ${colors.status.info.bg}`;
       default:
         return `border-l-green-500 dark:border-l-green-400 ${colors.status.success.bg}`;
     }
@@ -136,8 +136,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       <div className={`relative transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
         <EstudianteDashboard onLogout={onLogout} />
         <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
-          <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white rounded-2xl shadow-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-xl flex items-center justify-center">
+          <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white rounded shadow-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded flex items-center justify-center">
               <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="pr-1 sm:pr-2">
@@ -147,7 +147,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             <button
               onClick={handleExitPreview}
               disabled={isTransitioning}
-              className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50"
+              className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50"
             >
               Salir
             </button>
@@ -161,7 +161,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
     <div className={`min-h-screen ${colors.background.base} transition-opacity duration-300 ${
       isTransitioning ? 'opacity-0' : 'opacity-100'
     }`}>
-      <nav className={`${colors.background.card} shadow-sm border-b-2 ${colors.border.light}`}>
+      <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between">
           <button 
             onClick={() => setCurrentView('dashboard')}
@@ -173,7 +173,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               className="w-10 h-10 sm:w-12 sm:h-12 object-contain rounded-lg"
             />
             <div className="text-left">
-              <h1 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>English27</h1>
+              <h1 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>English27</h1>
               <p className={`hidden sm:block text-sm ${colors.text.secondary}`}>{t.panelDocente}</p>
             </div>
           </button>
@@ -212,22 +212,22 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Bienvenida */}
         <div className="mb-6 sm:mb-8">
-          <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.primary} mb-1 sm:mb-2`}>
+          <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.title} mb-1 sm:mb-2`}>
             {t.bienvenidoProfesor} {usuario?.nombre}!
           </h2>
-          <p className={`text-sm sm:text-base ${colors.text.secondary}`}>{t.gestionaActividadesEstudiantes}</p>
+          <p className={`text-sm sm:text-base ${colors.text.primary}`}>{t.gestionaActividadesEstudiantes}</p>
         </div>
 
         {/* Métricas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
           <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
                 <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
                 <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.actividadesCreadas}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
                   {estadisticas.totalActividades}
                 </p>
               </div>
@@ -236,12 +236,12 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
           <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
                 <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
                 <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.estudiantes}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
                   {estadisticas.totalEstudiantes}
                 </p>
               </div>
@@ -250,12 +250,12 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
           <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.accent.warning.gradient} ${colors.accent.warning.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-info to-info rounded-lg flex items-center justify-center shadow-md`}>
                 <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
                 <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.asignaciones}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
+                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
                   {estadisticas.actividadesAsignadas}
                 </p>
               </div>
@@ -265,9 +265,9 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
         {/* Acciones Rápidas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-6 sm:mb-8">
-          <button className={`${getButtonPrimaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+          <button className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
                 <PlusCircle className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
@@ -277,9 +277,9 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
           </button>
 
-          <button onClick={() => setShowStudentsModal(true)} className={`${getButtonSecondaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+          <button onClick={() => setShowStudentsModal(true)} className={`${getButtonSecondaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
                 <Users className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
@@ -289,9 +289,9 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
           </button>
 
-          <button className={`${getButtonWarningClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+          <button className={`${getButtonInfoClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
                 <FileText className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
@@ -301,9 +301,9 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
           </button>
 
-          <button className={`${getButtonPrimaryClasses()} rounded-2xl p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+          <button className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
                 <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
@@ -320,7 +320,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center`}>
               <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <h3 className={`text-lg sm:text-xl font-bold ${colors.text.primary}`}>{t.actividadesRecientes}</h3>
+            <h3 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>{t.actividadesRecientes}</h3>
           </div>
 
           {actividades.length === 0 ? (
@@ -336,19 +336,19 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               {actividades.map((actividad) => (
                 <div
                   key={actividad.id_actividad}
-                  className={`border-l-4 ${getDificultadColor(actividad.nivel_dificultad)} rounded-xl p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
+                  className={`border-l-4 ${getDificultadColor(actividad.nivel_dificultad)} bg-white dark:bg-[#1E293B] rounded-lg p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
                 >
-                  <h4 className={`text-sm sm:text-base font-bold ${colors.text.primary} mb-2`}>
+                  <h4 className={`text-sm sm:text-base font-bold ${colors.text.title} mb-2`}>
                     {actividad.titulo}
                   </h4>
                   <div className="flex flex-wrap gap-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.neutral.bg} ${colors.status.neutral.text}`}>
+                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.neutral.bg} ${colors.status.neutral.text}`}>
                       {actividad.nivel_dificultad.toUpperCase()}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.info.bg} ${colors.status.info.text}`}>
+                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.info.bg} ${colors.status.info.text}`}>
                       {actividad.tipo.toUpperCase()}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.status.neutral.bg} ${colors.text.secondary}`}>
+                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.neutral.bg} ${colors.text.secondary}`}>
                       📅 {new Date(actividad.fecha_creacion).toLocaleDateString('es-ES')}
                     </span>
                   </div>

@@ -6,10 +6,10 @@ export function LoadingSpinner({ message = 'Cargando...', size = 'default' }: { 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#F1F5F9] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center p-4">
       <div className="text-center">
-        <div className={`${sizes[size]} border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
-        <p className="text-[#1E293B] font-semibold text-sm sm:text-base">{message}</p>
+        <div className={`${sizes[size]} border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4`} />
+        <p className="text-[#111827] dark:text-white font-semibold text-sm sm:text-base">{message}</p>
       </div>
     </div>
   );
@@ -23,6 +23,6 @@ export function InlineSpinner({ size = 'default', className = '' }: { size?: 'sm
   };
 
   return (
-    <div className={`${sizes[size]} border-[#3B82F6] border-t-transparent rounded-full animate-spin ${className}`} />
+    <div className={`${sizes[size]} border-primary border-t-transparent rounded-full animate-spin ${className}`} />
   );
 }

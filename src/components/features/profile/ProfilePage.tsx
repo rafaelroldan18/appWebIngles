@@ -31,7 +31,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
           </button>
         )}
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#0288D1] dark:text-blue-400">{t.profile.title}</h1>
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827] dark:text-white">{t.profile.title}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -39,7 +39,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 text-center">
             <div className="relative inline-block mb-4">
               <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-full flex items-center justify-center shadow-xl">
-                <span className="text-white font-bold text-5xl">
+                <span className="text-white font-bold text-3xl sm:text-4xl">
                   {usuario?.nombre.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -48,7 +48,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               </div>
             </div>
             
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-1">
+            <h2 className="text-lg sm:text-xl font-bold text-[#111827] dark:text-white mb-1">
               {usuario?.nombre} {usuario?.apellido}
             </h2>
             
@@ -57,11 +57,11 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             </span>
 
             <div className="mt-6 pt-6 border-t-2 border-gray-100 dark:border-gray-700">
-              <div className="flex items-center justify-center gap-2 text-gray-600 dark:text-gray-400">
+              <div className="flex items-center justify-center gap-2 text-[#6B7280] dark:text-[#E5E7EB]">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">{t.profile.memberSince}</span>
               </div>
-              <p className="text-gray-800 dark:text-gray-200 font-semibold mt-1">
+              <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold mt-1 text-sm">
                 {new Date(usuario?.fecha_registro || '').toLocaleDateString('es-ES', {
                   month: 'long',
                   year: 'numeric'
@@ -77,7 +77,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               <div className="w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-lg flex items-center justify-center">
                 <Award className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">{t.profile.personalInfo}</h3>
+              <h3 className="text-lg font-bold text-[#111827] dark:text-white">{t.profile.personalInfo}</h3>
             </div>
 
             <div className="space-y-4">
@@ -86,8 +86,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wide">{t.profile.email}</p>
-                  <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg">{usuario?.correo_electronico}</p>
+                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.email}</p>
+                  <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold text-sm">{usuario?.correo_electronico}</p>
                 </div>
               </div>
 
@@ -96,8 +96,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <IdCard className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wide">{t.profile.idCard}</p>
-                  <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg">{usuario?.cedula}</p>
+                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.idCard}</p>
+                  <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold text-sm">{usuario?.cedula}</p>
                 </div>
               </div>
 
@@ -106,7 +106,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold uppercase tracking-wide">{t.profile.accountStatus}</p>
+                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.accountStatus}</p>
                   <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${
                     usuario?.estado_cuenta === 'activo' 
                       ? 'bg-green-500 text-white' 

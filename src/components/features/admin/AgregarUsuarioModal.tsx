@@ -43,8 +43,8 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-gray-700">
-        <div className="bg-blue-600 p-5 flex items-center justify-between rounded-t-2xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full border border-slate-200 dark:border-gray-700">
+        <div className="bg-blue-600 p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <UserPlus className="w-5 h-5 text-white" />
