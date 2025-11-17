@@ -257,4 +257,24 @@ export const en: TranslationKeys = {
   accountPasswordError: 'Error changing password',
   accountChangePassword: 'Change Password',
   accountHide: 'Hide',
+
+  // Form validation messages
+  validation: {
+    required: 'This field is required',
+    emailInvalid: 'Please enter a valid email address',
+    emailRequired: 'Email is required',
+    passwordRequired: 'Password is required',
+    passwordMinLength: 'Password must be at least 6 characters',
+    passwordMismatch: 'Passwords do not match',
+    nameRequired: 'First name is required',
+    nameMinLength: 'First name must be at least 2 characters',
+    lastNameRequired: 'Last name is required',
+    lastNameMinLength: 'Last name must be at least 2 characters',
+    idCardRequired: 'ID card is required',
+    idCardMinLength: 'ID card must be at least 6 characters',
+    idCardMaxLength: 'ID card must not exceed 20 characters',
+    currentPasswordRequired: 'Current password is required',
+    newPasswordRequired: 'New password is required',
+    confirmPasswordRequired: 'You must confirm the new password',
+  },
 };

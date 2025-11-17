@@ -184,7 +184,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
 
           <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-info to-info rounded-xl flex items-center justify-center shadow-md`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-xl flex items-center justify-center shadow-md`}>
                 <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
@@ -237,7 +237,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
             </div>
           </button>
 
-          <button className={`${getButtonInfoClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
+          <button className={`${getButtonSecondaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -282,7 +282,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
           {usuarios.length === 0 ? (
             <div className="text-center py-12 sm:py-16">
               <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                <Users className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.muted}`} />
+                <Users className="w-10 h-10 sm:w-12 sm:h-12 text-[#6B7280] dark:text-[#E5E7EB]" />
               </div>
               <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold`}>{t.noHayUsuarios}</p>
             </div>
@@ -305,7 +305,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                       <tr key={user.id_usuario} className="border-b border-[#E5E7EB] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#334155] transition-colors">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-info to-info rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center flex-shrink-0`}>
                               <span className="text-white font-bold text-sm">
                                 {user.nombre.charAt(0).toUpperCase()}
                               </span>

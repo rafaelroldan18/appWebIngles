@@ -35,7 +35,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (err) {
-      setError(t('errorActualizarRol'));
+      setError('Error al actualizar rol');
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <UserCog className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-white">{t('cambiarRol')}</h2>
+            <h2 className="text-xl font-bold text-white">Cambiar Rol</h2>
           </div>
           <button
             onClick={onClose}
@@ -70,7 +70,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
           <form onSubmit={handleSubmit}>
             <div className="mb-5">
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                {t('seleccionarRol')}
+                Seleccionar Rol
               </label>
               <select
                 value={selectedRole}
@@ -79,7 +79,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
               >
                 {roles.map((role) => (
                   <option key={role} value={role}>
-                    {t(role)}
+                    {role === 'estudiante' ? 'Estudiante' : 'Docente'}
                   </option>
                 ))}
               </select>
@@ -98,14 +98,14 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                 className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
                 disabled={loading}
               >
-                {t('cancelar')}
+                Cancelar
               </button>
               <button
                 type="submit"
                 className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 active:scale-98"
                 disabled={loading}
               >
-                {loading ? t('cargando') : t('guardar')}
+                {loading ? 'Cargando...' : 'Guardar'}
               </button>
             </div>
           </form>

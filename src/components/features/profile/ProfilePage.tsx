@@ -1,8 +1,7 @@
-'use client';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, Mail, Calendar, Shield, IdCard, Award, Star } from 'lucide-react';
+import { colors } from '@/config/colors';
 
 interface ProfilePageProps {
   onBack?: () => void;
@@ -14,9 +13,9 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
   const getRolColor = () => {
     switch (usuario?.rol) {
-      case 'administrador': return 'from-red-500 to-red-600';
-      case 'docente': return 'from-blue-500 to-blue-600';
-      default: return 'from-green-500 to-green-600';
+      case 'administrador': return colors.accent.danger.gradient;
+      case 'docente': return colors.accent.info.gradient;
+      default: return colors.accent.success.gradient;
     }
   };
 
@@ -26,29 +25,29 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         {onBack && (
           <button
             onClick={onBack}
-            className="w-10 h-10 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+            className={`w-10 h-10 ${colors.background.card} ${colors.border.light} hover:${colors.background.hover} rounded-lg flex items-center justify-center transition-colors shadow-sm`}
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <ArrowLeft className={`w-5 h-5 ${colors.text.secondary}`} />
           </button>
         )}
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#111827] dark:text-white">{t.profile.title}</h1>
+        <h1 className={`text-lg sm:text-xl lg:text-2xl font-bold ${colors.text.title}`}>{t.profile.title}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 text-center">
+          <div className={`${colors.background.card} rounded-2xl shadow-lg p-4 sm:p-6 text-center`}>
             <div className="relative inline-block mb-4">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-[#FFD54F] to-[#FFC107] rounded-full flex items-center justify-center shadow-xl">
+              <div className={`w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br ${colors.primary.gradient} rounded-full flex items-center justify-center shadow-xl`}>
                 <span className="text-white font-bold text-3xl sm:text-4xl">
                   {usuario?.nombre.charAt(0).toUpperCase()}
                 </span>
               </div>
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-full flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-lg">
+              <div className={`absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br ${colors.secondary.gradient} rounded-full flex items-center justify-center border-4 ${colors.background.card} shadow-lg`}>
                 <Star className="w-5 h-5 text-white" />
               </div>
             </div>
             
-            <h2 className="text-lg sm:text-xl font-bold text-[#111827] dark:text-white mb-1">
+            <h2 className={`text-lg sm:text-xl font-bold ${colors.text.title} mb-1`}>
               {usuario?.nombre} {usuario?.apellido}
             </h2>
             
@@ -56,12 +55,12 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               {t.roles[usuario?.rol as keyof typeof t.roles]?.toUpperCase() || usuario?.rol.toUpperCase()}
             </span>
 
-            <div className="mt-6 pt-6 border-t-2 border-gray-100 dark:border-gray-700">
-              <div className="flex items-center justify-center gap-2 text-[#6B7280] dark:text-[#E5E7EB]">
+            <div className={`mt-6 pt-6 border-t-2 ${colors.border.light}`}>
+              <div className={`flex items-center justify-center gap-2 ${colors.text.secondary}`}>
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">{t.profile.memberSince}</span>
               </div>
-              <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold mt-1 text-sm">
+              <p className={`${colors.text.primary} font-semibold mt-1 text-sm`}>
                 {new Date(usuario?.fecha_registro || '').toLocaleDateString('es-ES', {
                   month: 'long',
                   year: 'numeric'
@@ -72,47 +71,47 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <div className={`${colors.background.card} rounded-2xl shadow-lg p-6`}>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#4DB6E8] to-[#0288D1] rounded-lg flex items-center justify-center">
+              <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} rounded-lg flex items-center justify-center`}>
                 <Award className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-[#111827] dark:text-white">{t.profile.personalInfo}</h3>
+              <h3 className={`text-lg font-bold ${colors.text.title}`}>{t.profile.personalInfo}</h3>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-900/30 dark:to-blue-900/20 rounded-xl border-l-4 border-blue-500">
-                <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-lg flex items-center justify-center shadow-sm">
-                  <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.primary.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.primary.border}`}>
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
+                  <Mail className={`w-6 h-6 ${colors.primary.main}`} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.email}</p>
-                  <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold text-sm">{usuario?.correo_electronico}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.email}</p>
+                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.correo_electronico}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-green-50/50 dark:from-green-900/30 dark:to-green-900/20 rounded-xl border-l-4 border-green-500">
-                <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-lg flex items-center justify-center shadow-sm">
-                  <IdCard className="w-6 h-6 text-green-600 dark:text-green-400" />
+              <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.secondary.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.secondary.border}`}>
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
+                  <IdCard className={`w-6 h-6 ${colors.secondary.main}`} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.idCard}</p>
-                  <p className="text-[#374151] dark:text-[#F8FAFC] font-semibold text-sm">{usuario?.cedula}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.idCard}</p>
+                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.cedula}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-purple-50/50 dark:from-purple-900/30 dark:to-purple-900/20 rounded-xl border-l-4 border-purple-500">
-                <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-lg flex items-center justify-center shadow-sm">
-                  <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.neutral.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.neutral.border}`}>
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
+                  <Shield className={`w-6 h-6 ${colors.neutral.main}`} />
                 </div>
                 <div className="flex-1">
-                  <p className="text-xs text-[#6B7280] dark:text-[#E5E7EB] font-semibold uppercase tracking-wide">{t.profile.accountStatus}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.accountStatus}</p>
                   <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${
                     usuario?.estado_cuenta === 'activo' 
-                      ? 'bg-green-500 text-white' 
+                      ? `${colors.status.success.bg} ${colors.status.success.text}`
                       : usuario?.estado_cuenta === 'pendiente'
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-gray-500 text-white'
+                      ? `${colors.status.info.bg} ${colors.status.info.text}`
+                      : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
                   }`}>
                     {t.status[usuario?.estado_cuenta as keyof typeof t.status]?.toUpperCase() || usuario?.estado_cuenta.toUpperCase()}
                   </span>
@@ -125,3 +124,4 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
     </div>
   );
 }
+

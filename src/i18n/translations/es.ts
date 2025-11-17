@@ -255,6 +255,26 @@ export const es = {
   accountPasswordError: 'Error al cambiar contraseña',
   accountChangePassword: 'Cambiar Contraseña',
   accountHide: 'Ocultar',
+
+  // Mensajes de validación de formularios
+  validation: {
+    required: 'Este campo es obligatorio',
+    emailInvalid: 'Ingresa un correo electrónico válido',
+    emailRequired: 'El correo electrónico es obligatorio',
+    passwordRequired: 'La contraseña es obligatoria',
+    passwordMinLength: 'La contraseña debe tener al menos 6 caracteres',
+    passwordMismatch: 'Las contraseñas no coinciden',
+    nameRequired: 'El nombre es obligatorio',
+    nameMinLength: 'El nombre debe tener al menos 2 caracteres',
+    lastNameRequired: 'El apellido es obligatorio',
+    lastNameMinLength: 'El apellido debe tener al menos 2 caracteres',
+    idCardRequired: 'La cédula es obligatoria',
+    idCardMinLength: 'La cédula debe tener al menos 6 caracteres',
+    idCardMaxLength: 'La cédula no debe exceder 20 caracteres',
+    currentPasswordRequired: 'La contraseña actual es obligatoria',
+    newPasswordRequired: 'La nueva contraseña es obligatoria',
+    confirmPasswordRequired: 'Debes confirmar la nueva contraseña',
+  },
 };
 
 export type TranslationKeys = typeof es;

@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { X, Lock, Eye, EyeOff } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { commonValidations } from '@/lib/utils/formValidation';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -9,14 +12,28 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { t } = useLanguage();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const validation = useFormValidation({
+    initialValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+    validationRules: {
+      currentPassword: commonValidations.password,
+      newPassword: commonValidations.password,
+      confirmPassword: {
+        ...commonValidations.password,
+        match: '', // Se actualizará dinámicamente
+      },
+    },
+  });
 
   if (!isOpen) return null;
 
@@ -24,13 +41,21 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     e.preventDefault();
     setError('');
 
-    if (newPassword.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    // Actualizar la regla de coincidencia para confirmPassword
+    validation.validationRules.confirmPassword = {
+      ...commonValidations.password,
+      match: validation.values.newPassword,
+    };
+
+    // Validar todos los campos
+    const isValid = validation.validateAllFields();
+    if (!isValid) {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+    // Verificar que las contraseñas coincidan
+    if (validation.values.newPassword !== validation.values.confirmPassword) {
+      setError(t.validation.passwordMismatch);
       return;
     }
 
@@ -39,7 +64,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       const res = await fetch('/api/user/change-password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ 
+          currentPassword: validation.values.currentPassword, 
+          newPassword: validation.values.newPassword 
+        }),
       });
 
       const data = await res.json();
@@ -49,9 +77,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
         return;
       }
 
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      validation.reset();
       onClose();
     } catch (error) {
       setError('Error al cambiar contraseña');
@@ -73,16 +99,20 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Contraseña Actual</label>
             <div className="relative">
               <input
                 type={showCurrent ? 'text' : 'password'}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-gray-50 border-2 border-gray-200 rounded-lg focus:border-[#4DB6E8] focus:outline-none"
-                required
+                value={validation.values.currentPassword}
+                onChange={(e) => validation.handleChange('currentPassword', e.target.value)}
+                onBlur={() => validation.handleBlur('currentPassword')}
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
+                  validation.errors.currentPassword && validation.touched.currentPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-gray-200 focus:border-[#4DB6E8]'
+                }`}
               />
               <button
                 type="button"
@@ -92,6 +122,11 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 {showCurrent ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {validation.errors.currentPassword && validation.touched.currentPassword && (
+              <p className="mt-1 text-sm text-red-600">
+                {validation.errors.currentPassword}
+              </p>
+            )}
           </div>
 
           <div>
@@ -99,11 +134,14 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <div className="relative">
               <input
                 type={showNew ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-gray-50 border-2 border-gray-200 rounded-lg focus:border-[#4DB6E8] focus:outline-none"
-                required
-                minLength={6}
+                value={validation.values.newPassword}
+                onChange={(e) => validation.handleChange('newPassword', e.target.value)}
+                onBlur={() => validation.handleBlur('newPassword')}
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
+                  validation.errors.newPassword && validation.touched.newPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-gray-200 focus:border-[#4DB6E8]'
+                }`}
               />
               <button
                 type="button"
@@ -113,6 +151,11 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {validation.errors.newPassword && validation.touched.newPassword && (
+              <p className="mt-1 text-sm text-red-600">
+                {validation.errors.newPassword}
+              </p>
+            )}
           </div>
 
           <div>
@@ -120,11 +163,14 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
             <div className="relative">
               <input
                 type={showConfirm ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 pr-12 bg-gray-50 border-2 border-gray-200 rounded-lg focus:border-[#4DB6E8] focus:outline-none"
-                required
-                minLength={6}
+                value={validation.values.confirmPassword}
+                onChange={(e) => validation.handleChange('confirmPassword', e.target.value)}
+                onBlur={() => validation.handleBlur('confirmPassword')}
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
+                  validation.errors.confirmPassword && validation.touched.confirmPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : 'border-gray-200 focus:border-[#4DB6E8]'
+                }`}
               />
               <button
                 type="button"
@@ -134,6 +180,11 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+            {validation.errors.confirmPassword && validation.touched.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">
+                {validation.errors.confirmPassword}
+              </p>
+            )}
           </div>
 
           {error && (

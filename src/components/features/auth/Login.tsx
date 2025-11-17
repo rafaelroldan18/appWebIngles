@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { UserRole } from '@/types';
 import Icon from '@/components/ui/Icon';
 import LanguageSelector from '@/components/layout/LanguageSelector';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { commonValidations } from '@/lib/utils/formValidation';
+import { colors } from '@/config/colors';
 
 interface LoginProps {
   onBack?: () => void;
@@ -12,13 +15,7 @@ interface LoginProps {
 export default function Login({ onBack }: LoginProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [cedula, setCedula] = useState('');
   const [rol, setRol] = useState<UserRole>('estudiante');
-  const [adminExists, setAdminExists] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,6 +23,45 @@ export default function Login({ onBack }: LoginProps) {
 
   const { signIn, signUp } = useAuth();
   const { t } = useLanguage();
+
+  // Configuración de validación para login
+  const loginValidation = useFormValidation({
+    initialValues: {
+      email: '',
+      password: '',
+    },
+    validationRules: {
+      email: commonValidations.email,
+      password: commonValidations.password,
+    },
+  });
+
+  // Configuración de validación para registro
+  const registerValidation = useFormValidation({
+    initialValues: {
+      nombre: '',
+      apellido: '',
+      cedula: '',
+      email: '',
+      password: '',
+    },
+    validationRules: {
+      nombre: commonValidations.name,
+      apellido: commonValidations.name,
+      cedula: commonValidations.idCard,
+      email: commonValidations.email,
+      password: commonValidations.password,
+    },
+  });
+
+  // Seleccionar la validación según el modo
+  const validation = isLogin ? loginValidation : registerValidation;
+
+  // Resetear validación al cambiar de modo
+  useEffect(() => {
+    validation.reset();
+    setError('');
+  }, [isLogin]);
 
   if (showForgotPassword) {
     const ForgotPassword = require('./ForgotPassword').default;
@@ -35,25 +71,30 @@ export default function Login({ onBack }: LoginProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validar todos los campos
+    const isValid = validation.validateAllFields();
+    if (!isValid) {
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isLogin) {
-        await signIn(email, password);
+        await signIn(validation.values.email, validation.values.password);
       } else {
-        if (!nombre.trim() || !apellido.trim() || !cedula.trim()) {
-          setError('Todos los campos son obligatorios');
-          setLoading(false);
-          return;
-        }
-        await signUp(email, password, nombre.trim(), apellido.trim(), cedula.trim(), rol);
+        await signUp(
+          validation.values.email,
+          validation.values.password,
+          validation.values.nombre.trim(),
+          validation.values.apellido.trim(),
+          validation.values.cedula.trim(),
+          rol
+        );
         setSuccess('Cuenta creada exitosamente. Espera la aprobación para iniciar sesión.');
         setIsLogin(true);
-        setEmail('');
-        setPassword('');
-        setNombre('');
-        setApellido('');
-        setCedula('');
+        validation.reset();
         setTimeout(() => setSuccess(''), 10000);
       }
     } catch (err) {
@@ -64,12 +105,12 @@ export default function Login({ onBack }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className={`min-h-screen ${colors.background.base} flex items-center justify-center p-4 sm:p-6 relative overflow-hidden`}>
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-info/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-green-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className={`absolute top-20 left-10 w-72 h-72 ${colors.primary.gradient} bg-opacity-10 rounded-full blur-3xl animate-pulse`} />
+        <div className={`absolute bottom-20 right-10 w-96 h-96 ${colors.secondary.gradient} bg-opacity-10 rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '1s' }} />
+        <div className={`absolute top-1/2 left-1/3 w-64 h-64 ${colors.accent.success.gradient} bg-opacity-10 rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }} />
       </div>
 
       <div className="fixed top-4 right-4 z-50">
@@ -82,20 +123,20 @@ export default function Login({ onBack }: LoginProps) {
             alt="Unidad Educativa Delice" 
             className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-3 sm:mb-4"
           />
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mb-1 sm:mb-2">English27</h1>
-          <p className="text-sm sm:text-base text-slate-600 dark:text-gray-400">{t.loginSubtitle}</p>
+          <h1 className={`text-2xl sm:text-3xl font-bold ${colors.text.title} mb-1 sm:mb-2`}>English27</h1>
+          <p className={`text-sm sm:text-base ${colors.text.secondary}`}>{t.loginSubtitle}</p>
           {success && (
-            <div className="mt-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+            <div className={`mt-4 ${colors.status.success.bg} ${colors.status.success.border} ${colors.status.success.text} px-4 py-3 rounded-lg text-sm`}>
               {success}
             </div>
           )}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-slate-200 dark:border-gray-700 p-6 sm:p-8">
+        <div className={`${colors.background.card} rounded-lg shadow-lg border ${colors.border.light} p-6 sm:p-8`}>
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-[#4DB6E8] mb-4 transition-colors"
+              className={`flex items-center gap-2 ${colors.text.secondary} hover:${colors.primary.main} mb-4 transition-colors`}
             >
               <Icon name="arrow-back" className="w-4 h-4" />
               {t.loginBack}
@@ -106,8 +147,8 @@ export default function Login({ onBack }: LoginProps) {
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-all ${
                 isLogin
-                  ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? `bg-gradient-to-r ${colors.primary.gradient} text-white shadow-sm hover:opacity-90`
+                  : `${colors.background.base} ${colors.text.secondary} hover:${colors.background.hover}`
               }`}
             >
               {t.loginTitle}
@@ -116,80 +157,103 @@ export default function Login({ onBack }: LoginProps) {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-all ${
                 !isLogin
-                  ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? `bg-gradient-to-r ${colors.primary.gradient} text-white shadow-sm hover:opacity-90`
+                  : `${colors.background.base} ${colors.text.secondary} hover:${colors.background.hover}`
               }`}
             >
               {t.loginRegister}
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {!isLogin && (
               <>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                  <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                     {t.loginFirstName} *
                   </label>
                   <div className="relative">
-                    <Icon name="person" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Icon name="person" className={`absolute left-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} w-5 h-5`} />
                     <input
                       type="text"
-                      value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                      value={validation.values.nombre}
+                      onChange={(e) => validation.handleChange('nombre', e.target.value)}
+                      onBlur={() => validation.handleBlur('nombre')}
+                      className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${
+                        validation.errors.nombre && validation.touched.nombre
+                          ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                          : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                      }`}
                       placeholder={t.loginYourName}
-                      required
-                      minLength={2}
                     />
+                    {validation.errors.nombre && validation.touched.nombre && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {validation.errors.nombre}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                  <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                     {t.loginLastName} *
                   </label>
                   <div className="relative">
-                    <Icon name="person" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Icon name="person" className={`absolute left-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} w-5 h-5`} />
                     <input
                       type="text"
-                      value={apellido}
-                      onChange={(e) => setApellido(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                      value={validation.values.apellido}
+                      onChange={(e) => validation.handleChange('apellido', e.target.value)}
+                      onBlur={() => validation.handleBlur('apellido')}
+                      className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${
+                        validation.errors.apellido && validation.touched.apellido
+                          ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                          : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                      }`}
                       placeholder={t.loginYourLastName}
-                      required
-                      minLength={2}
                     />
+                    {validation.errors.apellido && validation.touched.apellido && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {validation.errors.apellido}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                  <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                     {t.loginIdCard} *
                   </label>
                   <div className="relative">
-                    <Icon name="card" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Icon name="card" className={`absolute left-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} w-5 h-5`} />
                     <input
                       type="text"
-                      value={cedula}
-                      onChange={(e) => setCedula(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                      value={validation.values.cedula}
+                      onChange={(e) => validation.handleChange('cedula', e.target.value)}
+                      onBlur={() => validation.handleBlur('cedula')}
+                      className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${
+                        validation.errors.cedula && validation.touched.cedula
+                          ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                          : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                      }`}
                       placeholder={t.loginIdCardPlaceholder}
-                      required
-                      minLength={6}
-                      maxLength={20}
                     />
+                    {validation.errors.cedula && validation.touched.cedula && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {validation.errors.cedula}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+                  <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                     {t.loginAccountType}
                   </label>
                   <select
                     value={rol}
                     onChange={(e) => setRol(e.target.value as UserRole)}
-                    className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                    className={`w-full px-4 py-2.5 border ${colors.border.light} rounded-lg focus:${colors.border.focus} focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary}`}
                   >
                     <option value="estudiante">Estudiante</option>
                     <option value="docente">Docente</option>
@@ -200,45 +264,62 @@ export default function Login({ onBack }: LoginProps) {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+              <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                 {t.loginEmail}
               </label>
               <div className="relative">
-                <Icon name="mail" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Icon name="mail" className={`absolute left-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} w-5 h-5`} />
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                  value={validation.values.email}
+                  onChange={(e) => validation.handleChange('email', e.target.value)}
+                  onBlur={() => validation.handleBlur('email')}
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${
+                    validation.errors.email && validation.touched.email
+                      ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                      : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                  }`}
                   placeholder={t.loginEmailPlaceholder}
-                  required
                 />
               </div>
+              {validation.errors.email && validation.touched.email && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {validation.errors.email}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+              <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
                 {t.loginPassword}
               </label>
               <div className="relative">
-                <Icon name="lock-closed" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Icon name="lock-closed" className={`absolute left-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} w-5 h-5`} />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+                  value={validation.values.password}
+                  onChange={(e) => validation.handleChange('password', e.target.value)}
+                  onBlur={() => validation.handleBlur('password')}
+                  className={`w-full pl-10 pr-12 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${
+                    validation.errors.password && validation.touched.password
+                      ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                      : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                  }`}
                   placeholder="••••••••"
-                  required
-                  minLength={6}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-300 transition-colors"
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${colors.text.secondary} hover:${colors.text.primary} transition-colors`}
                 >
                   <Icon name={showPassword ? 'eye-off' : 'eye'} className="w-5 h-5" />
                 </button>
               </div>
+              {validation.errors.password && validation.touched.password && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {validation.errors.password}
+                </p>
+              )}
             </div>
 
             {isLogin && (
@@ -246,7 +327,7 @@ export default function Login({ onBack }: LoginProps) {
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+                  className={`text-sm ${colors.primary.main} hover:${colors.primary.dark} font-semibold transition-colors`}
                 >
                   {t.loginForgotPassword}
                 </button>
@@ -254,7 +335,7 @@ export default function Login({ onBack }: LoginProps) {
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className={`${colors.status.error.bg} ${colors.status.error.border} ${colors.status.error.text} px-4 py-3 rounded-lg text-sm`}>
                 {error}
               </div>
             )}
@@ -262,7 +343,7 @@ export default function Login({ onBack }: LoginProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-98"
+              className={`w-full bg-gradient-to-r ${colors.primary.gradient} hover:opacity-90 text-white py-3 rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-98`}
             >
               {loading ? (
                 t.loginProcessing

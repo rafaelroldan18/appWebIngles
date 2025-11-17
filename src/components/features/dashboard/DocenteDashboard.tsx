@@ -250,7 +250,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
           <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-info to-info rounded-lg flex items-center justify-center shadow-md`}>
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
                 <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
@@ -289,7 +289,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
           </button>
 
-          <button className={`${getButtonInfoClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+          <button className={`${getButtonSecondaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
                 <FileText className="w-6 h-6 sm:w-7 sm:h-7" />

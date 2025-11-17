@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { X, UserPlus } from 'lucide-react';
 import { AuthService } from '@/services/auth.service';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { commonValidations } from '@/lib/utils/formValidation';
 
 interface AgregarUsuarioModalProps {
   onClose: () => void;
@@ -8,28 +10,47 @@ interface AgregarUsuarioModalProps {
 }
 
 export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuarioModalProps) {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    correo_electronico: '',
-    password: '',
-    rol: 'estudiante',
-  });
+  const [rol, setRol] = useState('estudiante');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const validation = useFormValidation({
+    initialValues: {
+      nombre: '',
+      apellido: '',
+      cedula: '',
+      correo_electronico: '',
+      password: '',
+    },
+    validationRules: {
+      nombre: commonValidations.name,
+      apellido: commonValidations.name,
+      cedula: commonValidations.idCard,
+      correo_electronico: commonValidations.email,
+      password: commonValidations.password,
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    // Validar todos los campos
+    const isValid = validation.validateAllFields();
+    if (!isValid) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
       await AuthService.register({
-        email: formData.correo_electronico,
-        password: formData.password,
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        rol: formData.rol as any
+        email: validation.values.correo_electronico,
+        password: validation.values.password,
+        nombre: validation.values.nombre,
+        apellido: validation.values.apellido,
+        cedula: validation.values.cedula,
+        rol: rol as any
       });
 
       onSuccess();
@@ -59,7 +80,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
               {error}
@@ -72,11 +93,20 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
             </label>
             <input
               type="text"
-              required
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+              value={validation.values.nombre}
+              onChange={(e) => validation.handleChange('nombre', e.target.value)}
+              onBlur={() => validation.handleBlur('nombre')}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                validation.errors.nombre && validation.touched.nombre
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
             />
+            {validation.errors.nombre && validation.touched.nombre && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {validation.errors.nombre}
+              </p>
+            )}
           </div>
 
           <div>
@@ -85,11 +115,42 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
             </label>
             <input
               type="text"
-              required
-              value={formData.apellido}
-              onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+              value={validation.values.apellido}
+              onChange={(e) => validation.handleChange('apellido', e.target.value)}
+              onBlur={() => validation.handleBlur('apellido')}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                validation.errors.apellido && validation.touched.apellido
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
             />
+            {validation.errors.apellido && validation.touched.apellido && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {validation.errors.apellido}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
+              Cédula
+            </label>
+            <input
+              type="text"
+              value={validation.values.cedula}
+              onChange={(e) => validation.handleChange('cedula', e.target.value)}
+              onBlur={() => validation.handleBlur('cedula')}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                validation.errors.cedula && validation.touched.cedula
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
+            />
+            {validation.errors.cedula && validation.touched.cedula && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {validation.errors.cedula}
+              </p>
+            )}
           </div>
 
           <div>
@@ -98,11 +159,20 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
             </label>
             <input
               type="email"
-              required
-              value={formData.correo_electronico}
-              onChange={(e) => setFormData({ ...formData, correo_electronico: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+              value={validation.values.correo_electronico}
+              onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
+              onBlur={() => validation.handleBlur('correo_electronico')}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                validation.errors.correo_electronico && validation.touched.correo_electronico
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
             />
+            {validation.errors.correo_electronico && validation.touched.correo_electronico && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {validation.errors.correo_electronico}
+              </p>
+            )}
           </div>
 
           <div>
@@ -111,12 +181,20 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
             </label>
             <input
               type="password"
-              required
-              minLength={6}
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
+              value={validation.values.password}
+              onChange={(e) => validation.handleChange('password', e.target.value)}
+              onBlur={() => validation.handleBlur('password')}
+              className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                validation.errors.password && validation.touched.password
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+              }`}
             />
+            {validation.errors.password && validation.touched.password && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {validation.errors.password}
+              </p>
+            )}
           </div>
 
           <div>
@@ -124,8 +202,8 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               Rol
             </label>
             <select
-              value={formData.rol}
-              onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
             >
               <option value="estudiante">Estudiante</option>

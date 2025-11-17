@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { UserService } from '@/services/user.service';
 import { AuthService } from '@/services/auth.service';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { commonValidations } from '@/lib/utils/formValidation';
 import { Users, X, Mail, Calendar, CheckCircle, XCircle, ToggleLeft, ToggleRight, Trash2, UserPlus } from 'lucide-react';
 
 interface Usuario {
@@ -22,11 +24,22 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
   const [estudiantes, setEstudiantes] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    correo_electronico: '',
-    password: '',
+
+  const validation = useFormValidation({
+    initialValues: {
+      nombre: '',
+      apellido: '',
+      cedula: '',
+      correo_electronico: '',
+      password: '',
+    },
+    validationRules: {
+      nombre: commonValidations.name,
+      apellido: commonValidations.name,
+      cedula: commonValidations.idCard,
+      correo_electronico: commonValidations.email,
+      password: commonValidations.password,
+    },
   });
 
   useEffect(() => {
@@ -64,17 +77,25 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validar todos los campos
+    const isValid = validation.validateAllFields();
+    if (!isValid) {
+      return;
+    }
+
     try {
       await AuthService.register({
-        email: formData.correo_electronico,
-        password: formData.password,
-        nombre: formData.nombre,
-        apellido: formData.apellido,
+        email: validation.values.correo_electronico,
+        password: validation.values.password,
+        nombre: validation.values.nombre,
+        apellido: validation.values.apellido,
+        cedula: validation.values.cedula,
         rol: 'estudiante'
       });
 
       setShowAddModal(false);
-      setFormData({ nombre: '', apellido: '', correo_electronico: '', password: '' });
+      validation.reset();
       loadEstudiantes();
     } catch (err) {
       alert('Error al crear estudiante');
@@ -226,40 +247,102 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                 <X className="w-5 h-5 text-white" />
               </button>
             </div>
-            <form onSubmit={handleAddStudent} className="p-6 space-y-4">
-              <input
-                type="text"
-                placeholder={t.loginFirstName || 'Nombre'}
-                required
-                value={formData.nombre}
-                onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-              />
-              <input
-                type="text"
-                placeholder={t.loginLastName || 'Apellido'}
-                required
-                value={formData.apellido}
-                onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-              />
-              <input
-                type="email"
-                placeholder={t.loginEmail || 'Correo Electrónico'}
-                required
-                value={formData.correo_electronico}
-                onChange={(e) => setFormData({ ...formData, correo_electronico: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-              />
-              <input
-                type="password"
-                placeholder={t.loginPassword || 'Contraseña'}
-                required
-                minLength={6}
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-              />
+            <form onSubmit={handleAddStudent} noValidate className="p-6 space-y-4">
+              <div>
+                <input
+                  type="text"
+                  placeholder={t.loginFirstName || 'Nombre'}
+                  value={validation.values.nombre}
+                  onChange={(e) => validation.handleChange('nombre', e.target.value)}
+                  onBlur={() => validation.handleBlur('nombre')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                    validation.errors.nombre && validation.touched.nombre
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
+                  }`}
+                />
+                {validation.errors.nombre && validation.touched.nombre && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validation.errors.nombre}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder={t.loginLastName || 'Apellido'}
+                  value={validation.values.apellido}
+                  onChange={(e) => validation.handleChange('apellido', e.target.value)}
+                  onBlur={() => validation.handleBlur('apellido')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                    validation.errors.apellido && validation.touched.apellido
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
+                  }`}
+                />
+                {validation.errors.apellido && validation.touched.apellido && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validation.errors.apellido}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder={t.loginIdCard || 'Cédula'}
+                  value={validation.values.cedula}
+                  onChange={(e) => validation.handleChange('cedula', e.target.value)}
+                  onBlur={() => validation.handleBlur('cedula')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                    validation.errors.cedula && validation.touched.cedula
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
+                  }`}
+                />
+                {validation.errors.cedula && validation.touched.cedula && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validation.errors.cedula}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder={t.loginEmail || 'Correo Electrónico'}
+                  value={validation.values.correo_electronico}
+                  onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
+                  onBlur={() => validation.handleBlur('correo_electronico')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                    validation.errors.correo_electronico && validation.touched.correo_electronico
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
+                  }`}
+                />
+                {validation.errors.correo_electronico && validation.touched.correo_electronico && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validation.errors.correo_electronico}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder={t.loginPassword || 'Contraseña'}
+                  value={validation.values.password}
+                  onChange={(e) => validation.handleChange('password', e.target.value)}
+                  onBlur={() => validation.handleBlur('password')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                    validation.errors.password && validation.touched.password
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
+                  }`}
+                />
+                {validation.errors.password && validation.touched.password && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {validation.errors.password}
+                  </p>
+                )}
+              </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"

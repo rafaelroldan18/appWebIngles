@@ -87,7 +87,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
 
           <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
             <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-info to-info rounded-lg flex items-center justify-center mb-3 shadow-md">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-secondary to-secondary-dark rounded-lg flex items-center justify-center mb-3 shadow-md">
                 <Target className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.puntos}</p>
@@ -103,7 +103,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
                 <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.completadas}</p>
-              <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>
+              <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
                 {progress?.actividades_completadas || 0}
               </p>
             </div>
@@ -115,7 +115,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
                 <Award className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
               <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.recompensas}</p>
-              <p className={`text-2xl sm:text-3xl font-bold ${colors.text.primary}`}>0</p>
+              <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>0</p>
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
               {assignments.map((asignacion) => (
                 <div
                   key={asignacion.id_asignacion}
-                  className={`border-l-4 border-l-blue-500 dark:border-l-blue-400 bg-white dark:bg-[#1E293B] rounded-lg p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
+                  className={`border-l-4 border-l-primary dark:border-l-primary-light bg-white dark:bg-[#1E293B] rounded-lg p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
                 >
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                     <div className="flex-1 w-full">
@@ -169,7 +169,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
                     {asignacion.estado === 'completado' && asignacion.puntaje_obtenido && (
                       <div className="text-left sm:text-right">
                         <p className={`text-xs ${colors.text.secondary} font-medium`}>Puntaje</p>
-                        <p className={`text-xl sm:text-2xl font-bold text-info`}>
+                        <p className={`text-xl sm:text-2xl font-bold ${colors.text.title}`}>
                           {asignacion.puntaje_obtenido}
                         </p>
                       </div>
