@@ -100,9 +100,9 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.neutral.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.neutral.border}`}>
+              <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.status.neutral.bg} rounded-xl border-l-4 ${colors.status.neutral.border}`}>
                 <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
-                  <Shield className={`w-6 h-6 ${colors.neutral.main}`} />
+                  <Shield className={`w-6 h-6 ${colors.text.secondary}`} />
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.accountStatus}</p>

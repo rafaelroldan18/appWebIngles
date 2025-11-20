@@ -132,10 +132,10 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
           {assignments.length === 0 ? (
             <div className="text-center py-12 sm:py-16">
               <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                <BookOpen className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.muted}`} />
+                <BookOpen className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.secondary}`} />
               </div>
               <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>{t.noActividadesAsignadas}</p>
-              <p className={`${colors.text.muted} text-sm`}>{t.docenteAsignaraActividades}</p>
+              <p className={`${colors.text.secondary} text-sm`}>{t.docenteAsignaraActividades}</p>
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4">

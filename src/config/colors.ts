@@ -12,6 +12,8 @@ export const colors = {
     extraDark: '#132F73',
     gradient: 'from-[#2B6BEE] to-[#1E4BB5]',
     gradientDark: 'dark:from-[#6FA0FF] dark:to-[#2B6BEE]',
+    bg: 'bg-[#2B6BEE]/10 dark:bg-[#6FA0FF]/20',
+    border: 'border-[#2B6BEE] dark:border-[#6FA0FF]',
   },
 
   // Colores Secundarios
@@ -21,6 +23,8 @@ export const colors = {
     dark: '#4B4FBA',
     gradient: 'from-[#7C80FF] to-[#4B4FBA]',
     gradientDark: 'dark:from-[#C8C9FF] dark:to-[#7C80FF]',
+    bg: 'bg-[#7C80FF]/10 dark:bg-[#C8C9FF]/20',
+    border: 'border-[#7C80FF] dark:border-[#C8C9FF]',
   },
 
   // Colores de Acento
@@ -29,17 +33,20 @@ export const colors = {
       main: '#37C86F',
       gradient: 'from-[#37C86F] to-[#2BA05A]',
       gradientDark: 'dark:from-[#37C86F] dark:to-[#2BA05A]',
+      bg: 'bg-[#37C86F]/10 dark:bg-[#37C86F]/20',
     },
 
     danger: {
       main: '#E84855',
       gradient: 'from-[#E84855] to-[#D63644]',
       gradientDark: 'dark:from-[#E84855] dark:to-[#D63644]',
+      bg: 'bg-[#E84855]/10 dark:bg-[#E84855]/20',
     },
     info: {
       main: '#1BC6F2',
       gradient: 'from-[#1BC6F2] to-[#16A8D1]',
       gradientDark: 'dark:from-[#1BC6F2] dark:to-[#16A8D1]',
+      bg: 'bg-[#1BC6F2]/10 dark:bg-[#1BC6F2]/20',
     },
   },
 

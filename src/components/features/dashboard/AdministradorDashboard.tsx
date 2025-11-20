@@ -321,12 +321,12 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                         <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden md:table-cell">{user.correo_electronico}</td>
                         <td className="py-4 px-4">
                           <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getRolColor(user.rol)}`}>
-                            {user.rol === 'estudiante' ? t.roles.student.toUpperCase() : user.rol === 'docente' ? t.roles.teacher.toUpperCase() : user.rol === 'administrador' ? t.roles.admin.toUpperCase() : user.rol.toUpperCase()}
+                            {user.rol === 'estudiante' ? t.roles.student.toUpperCase() : user.rol === 'docente' ? t.roles.teacher.toUpperCase() : t.roles.admin.toUpperCase()}
                           </span>
                         </td>
                         <td className="py-4 px-4">
                           <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getEstadoColor(user.estado_cuenta)}`}>
-                            {user.estado_cuenta === 'activo' ? t.status.active.toUpperCase() : user.estado_cuenta === 'pendiente' ? t.status.pending.toUpperCase() : user.estado_cuenta === 'inactivo' ? t.status.inactive.toUpperCase() : user.estado_cuenta.toUpperCase()}
+                            {user.estado_cuenta === 'activo' ? t.status.active.toUpperCase() : user.estado_cuenta === 'pendiente' ? t.status.pending.toUpperCase() : t.status.inactive.toUpperCase()}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden lg:table-cell">

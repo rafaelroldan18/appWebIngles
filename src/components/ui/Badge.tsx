@@ -26,13 +26,13 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
 export function StatusBadge({ status }: { status: AccountStatus | AssignmentStatus }) {
   const getVariant = () => {
     if (status === 'activo' || status === 'completado') return 'success';
-    if (status === 'pendiente' || status === 'en_curso' || status === 'en_progreso') return 'info';
+    if (status === 'pendiente' || status === 'en_curso') return 'info';
     if (status === 'inactivo') return 'default';
     return 'default';
   };
 
   const getLabel = () => {
-    if (status === 'en_progreso' || status === 'en_curso') return 'EN PROGRESO';
+    if (status === 'en_curso') return 'EN CURSO';
     return status.toUpperCase();
   };
 

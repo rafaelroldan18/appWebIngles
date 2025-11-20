@@ -41,14 +41,17 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
     e.preventDefault();
     setError('');
 
-    // Actualizar la regla de coincidencia para confirmPassword
-    validation.validationRules.confirmPassword = {
-      ...commonValidations.password,
-      match: validation.values.newPassword,
+    // Validar todos los campos con reglas actualizadas
+    const customRules = {
+      currentPassword: commonValidations.password,
+      newPassword: commonValidations.password,
+      confirmPassword: {
+        ...commonValidations.password,
+        match: validation.values.newPassword,
+      },
     };
 
-    // Validar todos los campos
-    const isValid = validation.validateAllFields();
+    const isValid = validation.validateAllFields(customRules);
     if (!isValid) {
       return;
     }
