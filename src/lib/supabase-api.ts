@@ -18,9 +18,14 @@ export async function createSupabaseClient() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch (error) {
+            // En Next.js 15, las cookies pueden ser read-only en algunos contextos
+            console.warn('Unable to set cookies:', error);
+          }
         },
       },
     }
