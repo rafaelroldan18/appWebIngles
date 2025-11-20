@@ -5,8 +5,33 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function createSupabaseClient() {
+export async function createSupabaseClient(request?: NextRequest) {
+  // Si se proporciona un request, usar cookies del request/response
+  if (request) {
+    const response = NextResponse.next();
+
+    return createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
+  }
+
+  // Fallback para usar cookies() cuando está en contexto de request
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -23,7 +48,7 @@ export async function createSupabaseClient() {
               cookieStore.set(name, value, options);
             });
           } catch (error) {
-            // En Next.js 15, las cookies pueden ser read-only en algunos contextos
+            // Las cookies pueden ser read-only en algunos contextos
             console.warn('Unable to set cookies:', error);
           }
         },

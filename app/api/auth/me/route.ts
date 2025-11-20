@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/lib/get-current-user';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getCurrentUser();
+    const session = await getCurrentUser(request);
 
     if (!session) {
       return Response.json({ error: 'No autenticado' }, { status: 401 });

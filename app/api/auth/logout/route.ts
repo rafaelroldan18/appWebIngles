@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     // Cerrar sesión en Supabase (elimina cookies automáticamente)
     const { error } = await supabase.auth.signOut();

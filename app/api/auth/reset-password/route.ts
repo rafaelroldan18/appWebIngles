@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Email es requerido' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${request.nextUrl.origin}/reset-password`,

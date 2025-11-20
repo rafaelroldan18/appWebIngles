@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const rol = searchParams.get('rol');
     const authUserId = searchParams.get('authUserId');
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     let query = supabase.from('usuarios').select('*').order('fecha_registro', { ascending: false });
 

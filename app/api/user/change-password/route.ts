@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 export async function PUT(request: NextRequest) {
   try {
     const { currentPassword, newPassword } = await request.json();
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

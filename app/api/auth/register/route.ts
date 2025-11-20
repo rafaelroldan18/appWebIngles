@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Rol no válido' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     // Validar que solo exista un administrador
     if (rol === 'administrador') {

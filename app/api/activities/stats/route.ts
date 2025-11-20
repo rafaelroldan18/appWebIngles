@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: 'creatorId requerido' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { data: activities } = await supabase
       .from('actividades')

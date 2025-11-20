@@ -9,7 +9,7 @@ export async function PUT(request: NextRequest) {
       return Response.json({ error: 'Contraseña inválida' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { error } = await supabase.auth.updateUser({
       password: password,

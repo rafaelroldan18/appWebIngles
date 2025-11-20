@@ -1,8 +1,9 @@
 import { createSupabaseClient } from '@/lib/supabase-api';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const [total, estudiantes, docentes, activos] = await Promise.all([
       supabase.from('usuarios').select('*', { count: 'exact', head: true }),

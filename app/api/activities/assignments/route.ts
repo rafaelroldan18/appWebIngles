@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ error: 'studentId requerido' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     let query = supabase
       .from('asignaciones_actividad')

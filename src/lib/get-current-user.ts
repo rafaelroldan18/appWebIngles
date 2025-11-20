@@ -5,10 +5,11 @@
 
 import { createSupabaseClient } from '@/lib/supabase-api';
 import type { AuthSession } from '@/types/auth.types';
+import { NextRequest } from 'next/server';
 
-export async function getCurrentUser(): Promise<AuthSession | null> {
+export async function getCurrentUser(request?: NextRequest): Promise<AuthSession | null> {
   try {
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     // Obtener usuario de Supabase Auth
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -38,9 +39,9 @@ export async function getCurrentUser(): Promise<AuthSession | null> {
   }
 }
 
-export async function requireAuth(): Promise<AuthSession> {
-  const session = await getCurrentUser();
-  
+export async function requireAuth(request?: NextRequest): Promise<AuthSession> {
+  const session = await getCurrentUser(request);
+
   if (!session) {
     throw new Error('No autenticado');
   }
@@ -48,8 +49,8 @@ export async function requireAuth(): Promise<AuthSession> {
   return session;
 }
 
-export async function requireRole(allowedRoles: string[]): Promise<AuthSession> {
-  const session = await requireAuth();
+export async function requireRole(allowedRoles: string[], request?: NextRequest): Promise<AuthSession> {
+  const session = await requireAuth(request);
 
   if (!allowedRoles.includes(session.usuario.rol)) {
     throw new Error('No tienes permisos para acceder a este recurso');

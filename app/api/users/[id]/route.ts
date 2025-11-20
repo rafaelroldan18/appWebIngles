@@ -6,7 +6,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const { id } = await params;
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { error } = await supabase
       .from('usuarios')
@@ -27,7 +27,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const { id } = await params;
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     const { error } = await supabase.rpc('delete_user_completely', { user_id: id });
 

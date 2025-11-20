@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const creatorId = searchParams.get('creatorId');
     const limit = searchParams.get('limit');
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     let query = supabase
       .from('actividades')

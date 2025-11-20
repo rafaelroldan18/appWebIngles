@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Email y contraseña son obligatorios' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient();
+    const supabase = await createSupabaseClient(request);
 
     // Autenticar con Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
