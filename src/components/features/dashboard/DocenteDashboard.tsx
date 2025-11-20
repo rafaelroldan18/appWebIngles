@@ -11,9 +11,13 @@ import {
   FileText,
   MessageSquare,
   Eye,
+  Mail,
+  UserPlus,
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
+import InvitarEstudianteModal from '@/components/features/admin/InvitarEstudianteModal';
+import InvitacionesView from '@/components/features/admin/InvitacionesView';
 import EstudianteDashboard from './EstudianteDashboard';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
@@ -50,6 +54,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [showInviteStudent, setShowInviteStudent] = useState(false);
+  const [showInvitations, setShowInvitations] = useState(false);
   const [isStudentView, setIsStudentView] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showTeacherNotification, setShowTeacherNotification] = useState(false);
@@ -264,7 +270,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         </div>
 
         {/* Acciones Rápidas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
           <button className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
@@ -273,6 +279,30 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               <div className="text-left">
                 <h3 className="text-base sm:text-lg font-bold">{t.crearActividad}</h3>
                 <p className="text-xs sm:text-sm opacity-90">{t.nuevaActividadGamificada}</p>
+              </div>
+            </div>
+          </button>
+
+          <button onClick={() => setShowInviteStudent(true)} className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
+                <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base sm:text-lg font-bold">Invitar Estudiante</h3>
+                <p className="text-xs sm:text-sm opacity-90">Crear invitación</p>
+              </div>
+            </div>
+          </button>
+
+          <button onClick={() => setShowInvitations(true)} className={`${getButtonInfoClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
+                <Mail className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base sm:text-lg font-bold">Invitaciones</h3>
+                <p className="text-xs sm:text-sm opacity-90">Ver enviadas</p>
               </div>
             </div>
           </button>
@@ -372,6 +402,19 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       
       {showStudentsModal && (
         <GestionarEstudiantes onClose={() => setShowStudentsModal(false)} />
+      )}
+
+      {showInviteStudent && (
+        <InvitarEstudianteModal
+          onClose={() => setShowInviteStudent(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {showInvitations && (
+        <InvitacionesView
+          onClose={() => setShowInvitations(false)}
+        />
       )}
     </div>
   );

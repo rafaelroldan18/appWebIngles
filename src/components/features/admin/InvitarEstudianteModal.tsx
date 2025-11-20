@@ -1,0 +1,324 @@
+import { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { commonValidations } from '@/lib/utils/formValidation';
+import { InvitationService } from '@/services/invitation.service';
+import { UserPlus, X, Mail, Copy, CheckCircle, Users, Upload } from 'lucide-react';
+
+interface InvitarEstudianteModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEstudianteModalProps) {
+  const { t } = useLanguage();
+  const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [invitationCode, setInvitationCode] = useState('');
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [mode, setMode] = useState<'individual' | 'bulk'>('individual');
+
+  const validation = useFormValidation({
+    initialValues: {
+      nombre: '',
+      apellido: '',
+      cedula: '',
+      correo_electronico: '',
+    },
+    validationRules: {
+      nombre: commonValidations.name,
+      apellido: commonValidations.name,
+      cedula: commonValidations.idCard,
+      correo_electronico: commonValidations.email,
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const isValid = validation.validateAllFields();
+    if (!isValid) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await InvitationService.create({
+        correo_electronico: validation.values.correo_electronico,
+        nombre: validation.values.nombre,
+        apellido: validation.values.apellido,
+        cedula: validation.values.cedula,
+        rol: 'estudiante',
+      });
+
+      if (result.success && result.invitation) {
+        setInvitationCode(result.invitation.codigo_invitacion);
+        setShowSuccess(true);
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Error al crear invitación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(invitationCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleClose = () => {
+    if (showSuccess) {
+      onSuccess();
+    }
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full border border-slate-200 dark:border-gray-700">
+        <div className="bg-orange-600 p-5 flex items-center justify-between rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-white">
+              {showSuccess ? 'Invitación Creada' : 'Invitar Estudiante'}
+            </h3>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+
+        {showSuccess ? (
+          <div className="p-6 space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
+                ¡Invitación enviada!
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
+                Se ha enviado un correo electrónico a {validation.values.correo_electronico} con las instrucciones para activar su cuenta.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-700">
+              <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">
+                CÓDIGO DE INVITACIÓN
+              </p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-white dark:bg-gray-800 px-4 py-3 rounded-lg border border-slate-300 dark:border-gray-600">
+                  <p className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-400 text-center tracking-wider">
+                    {invitationCode}
+                  </p>
+                </div>
+                <button
+                  onClick={copyCode}
+                  className="p-3 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+                  title="Copiar código"
+                >
+                  {copiedCode ? (
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-gray-400 mt-2">
+                También puedes compartir este código manualmente
+              </p>
+            </div>
+
+            <button
+              onClick={handleClose}
+              className="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all"
+            >
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2 p-4 bg-slate-50 dark:bg-gray-900">
+              <button
+                onClick={() => setMode('individual')}
+                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                  mode === 'individual'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700'
+                }`}
+              >
+                <UserPlus className="w-4 h-4 inline-block mr-2" />
+                Individual
+              </button>
+              <button
+                onClick={() => setMode('bulk')}
+                className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-all ${
+                  mode === 'bulk'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700'
+                }`}
+              >
+                <Users className="w-4 h-4 inline-block mr-2" />
+                Masivo
+              </button>
+            </div>
+
+            {mode === 'individual' ? (
+              <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Nombre"
+                    value={validation.values.nombre}
+                    onChange={(e) => validation.handleChange('nombre', e.target.value)}
+                    onBlur={() => validation.handleBlur('nombre')}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                      validation.errors.nombre && validation.touched.nombre
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                    }`}
+                  />
+                  {validation.errors.nombre && validation.touched.nombre && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {validation.errors.nombre}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Apellido"
+                    value={validation.values.apellido}
+                    onChange={(e) => validation.handleChange('apellido', e.target.value)}
+                    onBlur={() => validation.handleBlur('apellido')}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                      validation.errors.apellido && validation.touched.apellido
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                    }`}
+                  />
+                  {validation.errors.apellido && validation.touched.apellido && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {validation.errors.apellido}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Cédula"
+                    value={validation.values.cedula}
+                    onChange={(e) => validation.handleChange('cedula', e.target.value)}
+                    onBlur={() => validation.handleBlur('cedula')}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                      validation.errors.cedula && validation.touched.cedula
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                    }`}
+                  />
+                  {validation.errors.cedula && validation.touched.cedula && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {validation.errors.cedula}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Correo Electrónico"
+                    value={validation.values.correo_electronico}
+                    onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
+                    onBlur={() => validation.handleBlur('correo_electronico')}
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
+                      validation.errors.correo_electronico && validation.touched.correo_electronico
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                    }`}
+                  />
+                  {validation.errors.correo_electronico && validation.touched.correo_electronico && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {validation.errors.correo_electronico}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-orange-800 dark:text-orange-300">
+                      Se enviará un correo electrónico con un código de invitación al estudiante para que active su cuenta.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Enviando...' : 'Enviar Invitación'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-6 space-y-4">
+                <div className="border-2 border-dashed border-slate-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                  <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                  <p className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
+                    Cargar archivo Excel
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
+                    Formato: nombre, apellido, cédula, correo
+                  </p>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="inline-block px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold cursor-pointer transition-colors"
+                  >
+                    Seleccionar Archivo
+                  </label>
+                </div>
+
+                <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <p className="text-xs text-orange-800 dark:text-orange-300">
+                    La carga masiva está en desarrollo. Por ahora, utiliza el modo individual.
+                  </p>
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="w-full px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

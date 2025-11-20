@@ -13,10 +13,15 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Mail,
+  UserPlus,
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import AgregarUsuarioModal from '@/components/features/admin/AgregarUsuarioModal';
 import { CambiarRolModal } from '@/components/features/admin/CambiarRolModal';
+import InvitarDocenteModal from '@/components/features/admin/InvitarDocenteModal';
+import InvitarEstudianteModal from '@/components/features/admin/InvitarEstudianteModal';
+import InvitacionesView from '@/components/features/admin/InvitacionesView';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
@@ -50,6 +55,9 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [showInviteTeacher, setShowInviteTeacher] = useState(false);
+  const [showInviteStudent, setShowInviteStudent] = useState(false);
+  const [showInvitations, setShowInvitations] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [filtroRol, setFiltroRol] = useState<string>('todos');
   const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
@@ -212,32 +220,44 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
         </div>
 
         {/* Acciones Rápidas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
-          <button onClick={() => setShowAddUserModal(true)} className={`${getButtonPrimaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-6 sm:mb-8">
+          <button onClick={() => setShowInviteTeacher(true)} className={`${getButtonPrimaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <UserPlus className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base sm:text-lg font-bold">Invitar Docente</h3>
+                <p className="text-xs sm:text-sm opacity-90">Crear invitación</p>
+              </div>
+            </div>
+          </button>
+
+          <button onClick={() => setShowInviteStudent(true)} className={`${getButtonSecondaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <UserCheck className="w-6 h-6 sm:w-7 sm:h-7" />
               </div>
               <div className="text-left">
-                <h3 className="text-base sm:text-lg font-bold">{t.registrarUsuario}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t.crearNuevaCuenta}</p>
+                <h3 className="text-base sm:text-lg font-bold">Invitar Estudiante</h3>
+                <p className="text-xs sm:text-sm opacity-90">Crear invitación</p>
+              </div>
+            </div>
+          </button>
+
+          <button onClick={() => setShowInvitations(true)} className={`${getButtonInfoClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                <Mail className="w-6 h-6 sm:w-7 sm:h-7" />
+              </div>
+              <div className="text-left">
+                <h3 className="text-base sm:text-lg font-bold">Invitaciones</h3>
+                <p className="text-xs sm:text-sm opacity-90">Ver enviadas</p>
               </div>
             </div>
           </button>
 
           <button className={`${getButtonSecondaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                <Settings className="w-6 h-6 sm:w-7 sm:h-7" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-base sm:text-lg font-bold">{t.gestionarRoles}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t.asignarModificarRoles}</p>
-              </div>
-            </div>
-          </button>
-
-          <button className={`${getButtonSecondaryClasses()} rounded-lg p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7" />
@@ -414,6 +434,26 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
             setSelectedUser(null);
           }}
           onSuccess={loadData}
+        />
+      )}
+
+      {showInviteTeacher && (
+        <InvitarDocenteModal
+          onClose={() => setShowInviteTeacher(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {showInviteStudent && (
+        <InvitarEstudianteModal
+          onClose={() => setShowInviteStudent(false)}
+          onSuccess={loadData}
+        />
+      )}
+
+      {showInvitations && (
+        <InvitacionesView
+          onClose={() => setShowInvitations(false)}
         />
       )}
     </div>

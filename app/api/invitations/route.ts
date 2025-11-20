@@ -1,0 +1,192 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    const { data: usuario, error: userError } = await supabase
+      .from('usuarios')
+      .select('id_usuario, rol')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (userError || !usuario) {
+      return NextResponse.json(
+        { success: false, error: 'Usuario no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const { data: invitations, error } = await supabase
+      .from('invitaciones')
+      .select('*')
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      invitations,
+    });
+  } catch (error) {
+    console.error('Error fetching invitations:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al obtener invitaciones' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
+
+    const { data: usuario, error: userError } = await supabase
+      .from('usuarios')
+      .select('id_usuario, rol')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (userError || !usuario) {
+      return NextResponse.json(
+        { success: false, error: 'Usuario no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const { correo_electronico, nombre, apellido, cedula, rol } = body;
+
+    if (!correo_electronico || !nombre || !apellido || !cedula || !rol) {
+      return NextResponse.json(
+        { success: false, error: 'Todos los campos son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    if (usuario.rol === 'docente' && rol !== 'estudiante') {
+      return NextResponse.json(
+        { success: false, error: 'Los docentes solo pueden invitar estudiantes' },
+        { status: 403 }
+      );
+    }
+
+    const { data: existingInvitation } = await supabase
+      .from('invitaciones')
+      .select('id_invitacion')
+      .eq('correo_electronico', correo_electronico)
+      .eq('estado', 'pendiente')
+      .maybeSingle();
+
+    if (existingInvitation) {
+      return NextResponse.json(
+        { success: false, error: 'Ya existe una invitación pendiente para este correo' },
+        { status: 400 }
+      );
+    }
+
+    const { data: existingUser } = await supabase
+      .from('usuarios')
+      .select('id_usuario')
+      .eq('correo_electronico', correo_electronico)
+      .maybeSingle();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: 'Ya existe un usuario con este correo' },
+        { status: 400 }
+      );
+    }
+
+    const { data: codeData, error: codeError } = await supabase
+      .rpc('generate_invitation_code');
+
+    if (codeError || !codeData) {
+      return NextResponse.json(
+        { success: false, error: 'Error al generar código de invitación' },
+        { status: 500 }
+      );
+    }
+
+    const { data: invitation, error: inviteError } = await supabase
+      .from('invitaciones')
+      .insert({
+        codigo_invitacion: codeData,
+        correo_electronico,
+        nombre,
+        apellido,
+        cedula,
+        rol,
+        creado_por: usuario.id_usuario,
+      })
+      .select()
+      .single();
+
+    if (inviteError) {
+      return NextResponse.json(
+        { success: false, error: inviteError.message },
+        { status: 500 }
+      );
+    }
+
+    const { error: userCreateError } = await supabase
+      .from('usuarios')
+      .insert({
+        correo_electronico,
+        nombre,
+        apellido,
+        cedula,
+        rol,
+        estado_cuenta: 'pendiente',
+        auth_user_id: null,
+      });
+
+    if (userCreateError) {
+      await supabase
+        .from('invitaciones')
+        .delete()
+        .eq('id_invitacion', invitation.id_invitacion);
+
+      return NextResponse.json(
+        { success: false, error: 'Error al crear usuario pendiente' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Invitación creada exitosamente',
+      invitation,
+    });
+  } catch (error) {
+    console.error('Error creating invitation:', error);
+    return NextResponse.json(
+      { success: false, error: 'Error al crear invitación' },
+      { status: 500 }
+    );
+  }
+}
