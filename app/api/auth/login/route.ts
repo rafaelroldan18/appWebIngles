@@ -3,8 +3,9 @@
 // Endpoint para inicio de sesión
 // ============================================================================
 
-import { createSupabaseClient, createServiceRoleClient } from '@/lib/supabase-api';
-import { NextRequest } from 'next/server';
+import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
+import { createServiceRoleClient } from '@/lib/supabase-server';
+import { NextRequest, NextResponse } from 'next/server';
 import type { LoginRequest } from '@/types/auth.types';
 
 export async function POST(request: NextRequest) {
@@ -14,10 +15,10 @@ export async function POST(request: NextRequest) {
 
     // Validaciones
     if (!email || !password) {
-      return Response.json({ error: 'Email y contraseña son obligatorios' }, { status: 400 });
+      return NextResponse.json({ error: 'Email y contraseña son obligatorios' }, { status: 400 });
     }
 
-    const supabase = await createSupabaseClient(request);
+    const { supabase, response } = createRouteHandlerClient(request);
     const supabaseAdmin = createServiceRoleClient();
 
     // Autenticar con Supabase Auth
@@ -27,11 +28,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      return Response.json({ error: 'Credenciales inválidas' }, { status: 401 });
+      return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
     if (!authData.user || !authData.session) {
-      return Response.json({ error: 'Error al iniciar sesión' }, { status: 500 });
+      return NextResponse.json({ error: 'Error al iniciar sesión' }, { status: 500 });
     }
 
     // Obtener datos del usuario de la base de datos
@@ -43,18 +44,18 @@ export async function POST(request: NextRequest) {
 
     if (dbError || !usuario) {
       await supabase.auth.signOut();
-      return Response.json({ error: 'Usuario no encontrado en la base de datos' }, { status: 404 });
+      return NextResponse.json({ error: 'Usuario no encontrado en la base de datos' }, { status: 404 });
     }
 
     // Validar estado de la cuenta
     if (usuario.estado_cuenta === 'inactivo') {
       await supabase.auth.signOut();
-      return Response.json({ error: 'Tu cuenta ha sido desactivada' }, { status: 403 });
+      return NextResponse.json({ error: 'Tu cuenta ha sido desactivada' }, { status: 403 });
     }
 
     if (usuario.estado_cuenta === 'pendiente') {
       await supabase.auth.signOut();
-      return Response.json({ error: 'Tu cuenta aún no ha sido aprobada por un administrador' }, { status: 403 });
+      return NextResponse.json({ error: 'Tu cuenta aún no ha sido aprobada por un administrador' }, { status: 403 });
     }
 
     // Actualizar app_metadata con el rol del usuario (necesario para RLS)
@@ -69,20 +70,24 @@ export async function POST(request: NextRequest) {
       console.error('Error updating user metadata:', updateError);
     }
 
-    // La sesión ya está guardada en cookies por Supabase SSR
-    // Retornar datos básicos del usuario
-    return Response.json({
-      success: true,
-      user: {
-        id: usuario.id_usuario,
-        email: usuario.correo_electronico,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
-        rol: usuario.rol,
+    // Retornar respuesta con cookies incluidas
+    return NextResponse.json(
+      {
+        success: true,
+        user: {
+          id: usuario.id_usuario,
+          email: usuario.correo_electronico,
+          nombre: usuario.nombre,
+          apellido: usuario.apellido,
+          rol: usuario.rol,
+        },
       },
-    });
+      {
+        headers: response.headers,
+      }
+    );
   } catch (error) {
     console.error('Login error:', error);
-    return Response.json({ error: 'Error en el servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

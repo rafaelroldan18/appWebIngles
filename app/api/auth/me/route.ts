@@ -3,24 +3,36 @@
 // Endpoint para obtener usuario actual
 // ============================================================================
 
-import { NextRequest } from 'next/server';
-import { getCurrentUser } from '@/lib/get-current-user';
+import { NextRequest, NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getCurrentUser(request);
+    const { supabase } = createRouteHandlerClient(request);
 
-    if (!session) {
-      return Response.json({ error: 'No autenticado' }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    return Response.json({
+    const { data: usuario, error: dbError } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (dbError || !usuario) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
+    }
+
+    return NextResponse.json({
       success: true,
-      user: session.user,
-      usuario: session.usuario,
+      user,
+      usuario,
     });
   } catch (error) {
     console.error('Get current user error:', error);
-    return Response.json({ error: 'Error en el servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }
