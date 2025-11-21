@@ -147,8 +147,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (inviteError) {
+      console.error('Error creating invitation:', inviteError);
       return NextResponse.json(
-        { success: false, error: inviteError.message },
+        { success: false, error: `Error al crear invitación: ${inviteError.message}` },
         { status: 500 }
       );
     }
@@ -166,13 +167,14 @@ export async function POST(request: NextRequest) {
       });
 
     if (userCreateError) {
+      console.error('Error creating pending user:', userCreateError);
       await supabase
         .from('invitaciones')
         .delete()
         .eq('id_invitacion', invitation.id_invitacion);
 
       return NextResponse.json(
-        { success: false, error: 'Error al crear usuario pendiente' },
+        { success: false, error: `Error al crear usuario pendiente: ${userCreateError.message}` },
         { status: 500 }
       );
     }
