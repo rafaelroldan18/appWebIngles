@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createServiceRoleClient } from '@/lib/supabase-server';
+import { createClient as createBrowserClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Use anon client for reading invitation (public access)
+    const supabaseAnon = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
+    // Use service role client for admin operations
+    const supabase = createServiceRoleClient();
     const body = await request.json();
     const { codigo_invitacion, password, nombre, apellido, cedula } = body;
 
@@ -14,9 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await supabase.rpc('mark_expired_invitations');
+    await supabaseAnon.rpc('mark_expired_invitations');
 
-    const { data: invitation, error: inviteError } = await supabase
+    const { data: invitation, error: inviteError } = await supabaseAnon
       .from('invitaciones')
       .select('*')
       .eq('codigo_invitacion', codigo_invitacion.toUpperCase())
@@ -60,16 +68,18 @@ export async function POST(request: NextRequest) {
     const finalApellido = apellido || invitation.apellido;
     const finalCedula = cedula || invitation.cedula;
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    // Use service role to create user with proper metadata
+    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
       email: invitation.correo_electronico,
       password,
-      options: {
-        data: {
-          nombre: finalNombre,
-          apellido: finalApellido,
-          cedula: finalCedula,
-        },
-        emailRedirectTo: undefined,
+      email_confirm: true,
+      user_metadata: {
+        nombre: finalNombre,
+        apellido: finalApellido,
+        cedula: finalCedula,
+      },
+      app_metadata: {
+        rol: invitation.rol,
       },
     });
 
