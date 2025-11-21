@@ -436,6 +436,51 @@ export async function getUserProgress(
 }
 
 /**
+ * Get completed missions with points earned for a user
+ */
+export async function getCompletedMissionsWithPoints(userId: string): Promise<
+  Array<{
+    mission_id: string;
+    mission_title: string;
+    completed_at: string;
+    points_earned: number;
+    score_percentage: number;
+  }>
+> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('gamification_mission_attempts')
+    .select(
+      `
+      mission_id,
+      completed_at,
+      points_earned,
+      score_percentage,
+      gamification_missions!inner (
+        title
+      )
+    `
+    )
+    .eq('user_id', userId)
+    .eq('status', 'completed')
+    .not('completed_at', 'is', null)
+    .order('completed_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (
+    data?.map((item: any) => ({
+      mission_id: item.mission_id,
+      mission_title: item.gamification_missions.title,
+      completed_at: item.completed_at,
+      points_earned: item.points_earned,
+      score_percentage: item.score_percentage,
+    })) || []
+  );
+}
+
+/**
  * Get user's complete gamification stats
  */
 export async function getUserGamificationStats(

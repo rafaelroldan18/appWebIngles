@@ -18,7 +18,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   recordActivityAttempt,
   completeMission,
+  getUserProgress,
 } from '@/lib/gamification/gamificationApi';
+import { checkAndAwardBadges } from '@/lib/gamification/badge-assignment';
 
 interface ActivityResult {
   activityId: string;
@@ -51,6 +53,8 @@ export function ActivityRunner({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [totalPointsEarned, setTotalPointsEarned] = useState(0);
+  const [newBadges, setNewBadges] = useState<any[]>([]);
+  const [updatedTotalPoints, setUpdatedTotalPoints] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const currentActivity = activities[currentIndex];
@@ -133,6 +137,12 @@ export function ActivityRunner({
         time_spent_seconds: totalTimeSpent,
       });
 
+      const earnedBadges = await checkAndAwardBadges(userId);
+      setNewBadges(earnedBadges);
+
+      const progressData = await getUserProgress(userId);
+      setUpdatedTotalPoints(progressData?.puntaje_total || 0);
+
       setTotalPointsEarned(totalPoints);
       setIsCompleted(true);
     } catch (err) {
@@ -155,12 +165,54 @@ export function ActivityRunner({
 
           <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg p-6 mb-6 border-2 border-yellow-300 dark:border-yellow-700">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Total Points Earned
+              Mission Points Earned
             </p>
             <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">
               +{totalPointsEarned}
             </p>
           </div>
+
+          {updatedTotalPoints > 0 && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border-2 border-blue-200 dark:border-blue-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                Updated Total Points
+              </p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {updatedTotalPoints}
+              </p>
+            </div>
+          )}
+
+          {newBadges.length > 0 && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 mb-6 border-2 border-purple-300 dark:border-purple-700">
+              <h3 className="text-xl font-bold text-[#1F2937] dark:text-white mb-4">
+                🎊 New Badges Unlocked!
+              </h3>
+              <div className="space-y-3">
+                {newBadges.map((badge) => (
+                  <div
+                    key={badge.id}
+                    className="flex items-center gap-3 bg-white dark:bg-[#1E293B] rounded-lg p-4"
+                  >
+                    <div className="text-3xl">{badge.icon}</div>
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-[#1F2937] dark:text-white">
+                        {badge.name}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {badge.description}
+                      </p>
+                      {badge.points_reward > 0 && (
+                        <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-1">
+                          +{badge.points_reward} bonus points
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4">
