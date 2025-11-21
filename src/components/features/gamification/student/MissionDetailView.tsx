@@ -83,13 +83,7 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
       });
 
       setAttempt(newAttempt);
-
-      // TODO: Navigate to Activity Runner
-      // This is where we'll integrate the activity execution component
-      // router.push(`/estudiante/gamification/mission/${mission.id}/activity/${activities[0].id}`);
-      alert(
-        'Misión iniciada! La ejecución de actividades se integrará aquí. Por ahora, vuelve a la lista de misiones.'
-      );
+      router.push(`/estudiante/gamification/mission/${mission.id}/play`);
     } catch (err) {
       console.error('Error starting mission:', err);
       setError('Error al iniciar la misión');
@@ -99,12 +93,7 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
   };
 
   const handleContinueMission = () => {
-    // TODO: Navigate to Activity Runner at the correct activity
-    // Calculate which activity to resume based on activities_completed
-    // router.push(`/estudiante/gamification/mission/${mission.id}/activity/${nextActivityId}`);
-    alert(
-      'Continuar misión. La navegación a actividades se integrará aquí. Por ahora, vuelve a la lista de misiones.'
-    );
+    router.push(`/estudiante/gamification/mission/${mission.id}/play`);
   };
 
   const handleReviewMission = () => {

@@ -167,6 +167,15 @@ export async function getActivitiesForMission(
 }
 
 /**
+ * Alias for getActivitiesForMission (for consistency)
+ */
+export async function getActivitiesByMission(
+  missionId: string
+): Promise<Activity[]> {
+  return getActivitiesForMission(missionId);
+}
+
+/**
  * Fetch activities with user attempts for a specific user and mission
  */
 export async function getActivitiesWithAttempts(
@@ -323,6 +332,26 @@ export async function getCurrentMissionAttempt(
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Get all mission attempts for a user and mission
+ */
+export async function getMissionAttempts(
+  userId: string,
+  missionId: string
+): Promise<MissionAttempt[]> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('gamification_mission_attempts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('mission_id', missionId)
+    .order('started_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }
 
 // ============================================================================
