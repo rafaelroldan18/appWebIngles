@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email y contraseña son obligatorios' }, { status: 400 });
     }
 
-    const { supabase, response } = createRouteHandlerClient(request);
+    const { supabase, cookiesToSet } = createRouteHandlerClient(request);
     const supabaseAdmin = createServiceRoleClient();
 
     // Autenticar con Supabase Auth
@@ -71,21 +71,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Retornar respuesta con cookies incluidas
-    return NextResponse.json(
-      {
-        success: true,
-        user: {
-          id: usuario.id_usuario,
-          email: usuario.correo_electronico,
-          nombre: usuario.nombre,
-          apellido: usuario.apellido,
-          rol: usuario.rol,
-        },
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: usuario.id_usuario,
+        email: usuario.correo_electronico,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        rol: usuario.rol,
       },
-      {
-        headers: response.headers,
-      }
-    );
+    });
+
+    // Establecer cookies
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });

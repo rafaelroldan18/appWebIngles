@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { supabase, response } = createRouteHandlerClient(request);
+    const { supabase, cookiesToSet } = createRouteHandlerClient(request);
 
     // Cerrar sesión en Supabase (elimina cookies automáticamente)
     const { error } = await supabase.auth.signOut();
@@ -18,12 +18,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true },
-      {
-        headers: response.headers,
-      }
-    );
+    const response = NextResponse.json({ success: true });
+
+    // Establecer cookies
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set(name, value, options);
+    });
+
+    return response;
   } catch (error) {
     console.error('Logout error:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
