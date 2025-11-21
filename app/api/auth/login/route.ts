@@ -3,7 +3,7 @@
 // Endpoint para inicio de sesión
 // ============================================================================
 
-import { createSupabaseClient } from '@/lib/supabase-api';
+import { createSupabaseClient, createServiceRoleClient } from '@/lib/supabase-api';
 import { NextRequest } from 'next/server';
 import type { LoginRequest } from '@/types/auth.types';
 
@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createSupabaseClient(request);
+    const supabaseAdmin = createServiceRoleClient();
 
     // Autenticar con Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -56,13 +57,25 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Tu cuenta aún no ha sido aprobada por un administrador' }, { status: 403 });
     }
 
+    // Actualizar app_metadata con el rol del usuario (necesario para RLS)
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      authData.user.id,
+      {
+        app_metadata: { rol: usuario.rol }
+      }
+    );
+
+    if (updateError) {
+      console.error('Error updating user metadata:', updateError);
+    }
+
     // La sesión ya está guardada en cookies por Supabase SSR
     // Retornar datos básicos del usuario
     return Response.json({
       success: true,
       user: {
-        id: usuario.id,
-        email: usuario.email,
+        id: usuario.id_usuario,
+        email: usuario.correo_electronico,
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         rol: usuario.rol,

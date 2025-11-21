@@ -35,16 +35,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          nombre,
-          apellido,
-          cedula,
-        },
-        emailRedirectTo: undefined,
+      email_confirm: true,
+      user_metadata: {
+        nombre,
+        apellido,
+        cedula,
+      },
+      app_metadata: {
+        rol: 'administrador',
       },
     });
 
