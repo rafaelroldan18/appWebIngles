@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ActivityService } from '@/services/activity.service';
@@ -13,6 +14,7 @@ import {
   Eye,
   Mail,
   UserPlus,
+  Gamepad2,
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
@@ -43,6 +45,7 @@ interface DocenteDashboardProps {
 }
 
 export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
+  const router = useRouter();
   const { usuario, signOut } = useAuth();
   const { t } = useLanguage();
   const [actividades, setActividades] = useState<Actividad[]>([]);
@@ -265,6 +268,30 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                   {estadisticas.actividadesAsignadas}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Gamification Card */}
+        <div
+          onClick={() => router.push('/docente/gamification')}
+          className={`${getCardClasses()} p-6 mb-6 sm:mb-8 cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Gamepad2 className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
+                🎮 Gamification Management
+              </h3>
+              <p className="text-purple-700 dark:text-purple-300 text-sm">
+                Create and manage missions, activities, and track student progress
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
+              <span>Manage</span>
+              <span className="text-2xl">→</span>
             </div>
           </div>
         </div>

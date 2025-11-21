@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Trophy, BookOpen, Award, Target, TrendingUp } from 'lucide-react';
+import { Trophy, BookOpen, Award, Target, TrendingUp, Gamepad2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/hooks/useProgress';
@@ -15,6 +16,7 @@ interface EstudianteDashboardProps {
 }
 
 export default function EstudianteDashboard({ onLogout }: EstudianteDashboardProps) {
+  const router = useRouter();
   const { usuario, signOut } = useAuth();
   const { t } = useLanguage();
   const { progress } = useProgress(usuario?.id);
@@ -116,6 +118,30 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
               </div>
               <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.recompensas}</p>
               <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>0</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Gamification Card */}
+        <div
+          onClick={() => router.push('/estudiante/gamification')}
+          className={`${getCardClasses()} p-6 mb-6 sm:mb-8 cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Gamepad2 className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
+                🎮 Gamification
+              </h3>
+              <p className="text-purple-700 dark:text-purple-300 text-sm">
+                Complete missions, earn points, and unlock badges!
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
+              <span>Play Now</span>
+              <span className="text-2xl">→</span>
             </div>
           </div>
         </div>
