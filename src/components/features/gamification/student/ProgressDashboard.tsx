@@ -1,3 +1,8 @@
+// ============================================================================
+// PROGRESS DASHBOARD
+// Displays student progress across all missions from Units 13-16 of the English textbook
+// ============================================================================
+
 'use client';
 
 import { useEffect, useState } from 'react';

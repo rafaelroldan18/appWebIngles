@@ -1,6 +1,7 @@
 // ============================================================================
 // MISSION DETAIL VIEW
 // Display detailed information about a mission and its activities
+// Aligned with English textbook Units 13-16
 // ============================================================================
 
 'use client';
@@ -15,6 +16,14 @@ import {
   startMission,
 } from '@/lib/gamification/gamificationApi';
 import type { Mission, Activity, MissionAttempt } from '@/types/gamification.types';
+
+// Unit titles from the English textbook
+const UNIT_TITLES: Record<number, string> = {
+  13: 'Places',
+  14: 'Out and about',
+  15: 'What shall I wear?',
+  16: 'Buy it!',
+};
 
 interface MissionDetailViewProps {
   missionId: string;
@@ -185,7 +194,7 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm font-semibold opacity-90">
-                      Unidad {mission.unit_number}
+                      Unit {mission.unit_number}: {UNIT_TITLES[mission.unit_number] || 'Unknown Unit'}
                     </span>
                     <span
                       className={`text-xs px-3 py-1 rounded-full font-bold ${getDifficultyColor()}`}

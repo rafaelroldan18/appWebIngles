@@ -1,6 +1,7 @@
 // ============================================================================
 // MISSION CARD COMPONENT
 // Display a single mission with its details and action button
+// Aligned with English textbook Units 13-16
 // ============================================================================
 
 'use client';
@@ -12,12 +13,22 @@ interface MissionCardProps {
   onStartContinue: () => void;
 }
 
+// Unit titles from the English textbook
+const UNIT_TITLES: Record<number, string> = {
+  13: 'Places',
+  14: 'Out and about',
+  15: 'What shall I wear?',
+  16: 'Buy it!',
+};
+
 export function MissionCard({ mission, onStartContinue }: MissionCardProps) {
   const { mission: missionData, activities_count, user_attempt } = mission;
 
   const isNotStarted = !user_attempt;
   const isInProgress = user_attempt?.status === 'in_progress';
   const isCompleted = user_attempt?.status === 'completed';
+
+  const unitTitle = UNIT_TITLES[missionData.unit_number] || 'Unknown Unit';
 
   const getDifficultyColor = () => {
     switch (missionData.difficulty_level) {
@@ -74,8 +85,8 @@ export function MissionCard({ mission, onStartContinue }: MissionCardProps) {
           <span className="text-4xl">{getTypeIcon()}</span>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Unidad {missionData.unit_number}
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                Unit {missionData.unit_number}: {unitTitle}
               </span>
               <span className={`text-xs px-2 py-1 rounded-full font-semibold ${getDifficultyColor()}`}>
                 {missionData.difficulty_level.toUpperCase()}

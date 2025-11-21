@@ -1,6 +1,8 @@
 // ============================================================================
 // MISSIONS LIST VIEW
 // Display all available missions for the student
+// Aligned with English textbook Units 13-16:
+// Unit 13: Places, Unit 14: Out and about, Unit 15: What shall I wear?, Unit 16: Buy it!
 // ============================================================================
 
 'use client';
@@ -66,12 +68,36 @@ export function MissionsListView() {
     return true;
   });
 
+  // Group missions by unit (13-16 from the English textbook)
+  const missionsByUnit = {
+    13: missions.filter((m) => m.mission.unit_number === 13),
+    14: missions.filter((m) => m.mission.unit_number === 14),
+    15: missions.filter((m) => m.mission.unit_number === 15),
+    16: missions.filter((m) => m.mission.unit_number === 16),
+  };
+
+  // Unit titles from the English textbook
+  const unitTitles: Record<number, string> = {
+    13: 'Places',
+    14: 'Out and about',
+    15: 'What shall I wear?',
+    16: 'Buy it!',
+  };
+
   const stats = {
     total: missions.length,
     completed: missions.filter((m) => m.user_attempt?.status === 'completed').length,
     inProgress: missions.filter((m) => m.user_attempt?.status === 'in_progress').length,
     notStarted: missions.filter((m) => !m.user_attempt).length,
   };
+
+  // Calculate unit stats for summary
+  const unitStats = Object.entries(missionsByUnit).map(([unit, unitMissions]) => ({
+    unit: Number(unit),
+    title: unitTitles[Number(unit)],
+    total: unitMissions.length,
+    completed: unitMissions.filter((m) => m.user_attempt?.status === 'completed').length,
+  }));
 
   if (authLoading || loading) {
     return (
@@ -112,6 +138,29 @@ export function MissionsListView() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Summary of missions by unit from the English textbook */}
+        <div className="bg-white dark:bg-[#1E293B] rounded-lg p-6 mb-6 border-2 border-gray-200 dark:border-[#334155]">
+          <h2 className="text-lg font-bold text-[#1F2937] dark:text-white mb-4">
+            📚 Unidades del Libro (Units 13-16)
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {unitStats.map((stat) => (
+              <div key={stat.unit} className="text-center">
+                <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                  Unit {stat.unit}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+                  {stat.title}
+                </div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stat.completed}/{stat.total}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-500">completadas</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white dark:bg-[#1E293B] rounded-lg p-4 border-2 border-gray-200 dark:border-[#334155]">
             <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
@@ -208,14 +257,53 @@ export function MissionsListView() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredMissions.map((mission) => (
-            <MissionCard
-              key={mission.mission.id}
-              mission={mission}
-              onStartContinue={() => handleMissionClick(mission.mission.id)}
-            />
-          ))}
+        {/* Missions grouped by textbook unit (13-16) */}
+        <div className="space-y-8">
+          {[13, 14, 15, 16].map((unitNum) => {
+            const unitMissions = filter === 'all'
+              ? missionsByUnit[unitNum as 13 | 14 | 15 | 16]
+              : missionsByUnit[unitNum as 13 | 14 | 15 | 16].filter((m) => {
+                  if (filter === 'not_started') return !m.user_attempt;
+                  if (filter === 'in_progress') return m.user_attempt?.status === 'in_progress';
+                  if (filter === 'completed') return m.user_attempt?.status === 'completed';
+                  return true;
+                });
+
+            if (unitMissions.length === 0) return null;
+
+            const unitCompleted = unitMissions.filter((m) => m.user_attempt?.status === 'completed').length;
+
+            return (
+              <div key={unitNum}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white">
+                      Unit {unitNum}: {unitTitles[unitNum]}
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {unitCompleted} de {unitMissions.length} misiones completadas
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+                      <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        {Math.round((unitCompleted / unitMissions.length) * 100)}% completado
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {unitMissions.map((mission) => (
+                    <MissionCard
+                      key={mission.mission.id}
+                      mission={mission}
+                      onStartContinue={() => handleMissionClick(mission.mission.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
