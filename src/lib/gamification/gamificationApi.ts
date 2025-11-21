@@ -130,7 +130,7 @@ export async function createMission(
 ): Promise<Mission> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
+  const { data, error} = await supabase
     .from('gamification_missions')
     .insert({
       ...input,
@@ -141,6 +141,84 @@ export async function createMission(
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Update an existing mission
+ */
+export async function updateMission(
+  missionId: string,
+  updates: Partial<CreateMissionInput>
+): Promise<Mission> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('gamification_missions')
+    .update(updates)
+    .eq('id', missionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete a mission
+ */
+export async function deleteMission(missionId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('gamification_missions')
+    .delete()
+    .eq('id', missionId);
+
+  if (error) throw error;
+}
+
+/**
+ * Get mission statistics
+ */
+export async function getMissionStatistics(missionId: string): Promise<{
+  total_attempts: number;
+  total_completions: number;
+  average_score: number;
+  average_points: number;
+  unique_students: number;
+}> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('gamification_mission_attempts')
+    .select('*')
+    .eq('mission_id', missionId);
+
+  if (error) throw error;
+
+  const attempts = data || [];
+  const completions = attempts.filter((a) => a.status === 'completed');
+  const uniqueStudents = new Set(attempts.map((a) => a.user_id)).size;
+
+  const averageScore =
+    completions.length > 0
+      ? completions.reduce((sum, a) => sum + (a.score_percentage || 0), 0) /
+        completions.length
+      : 0;
+
+  const averagePoints =
+    completions.length > 0
+      ? completions.reduce((sum, a) => sum + (a.points_earned || 0), 0) /
+        completions.length
+      : 0;
+
+  return {
+    total_attempts: attempts.length,
+    total_completions: completions.length,
+    average_score: Math.round(averageScore),
+    average_points: Math.round(averagePoints),
+    unique_students: uniqueStudents,
+  };
 }
 
 // ============================================================================
@@ -237,6 +315,40 @@ export async function createActivity(
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Update an existing activity
+ */
+export async function updateActivity(
+  activityId: string,
+  updates: Partial<CreateActivityInput>
+): Promise<Activity> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('gamification_activities')
+    .update(updates)
+    .eq('id', activityId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete an activity
+ */
+export async function deleteActivity(activityId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('gamification_activities')
+    .delete()
+    .eq('id', activityId);
+
+  if (error) throw error;
 }
 
 // ============================================================================
