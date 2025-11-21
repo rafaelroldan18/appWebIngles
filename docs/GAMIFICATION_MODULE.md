@@ -71,48 +71,40 @@ The gamification module integrates seamlessly with the existing authentication s
 
 ## 🗄️ Database Schema
 
-### Tables to Create (via Supabase migrations)
+### ✅ Tables Created and Deployed
 
-1. **gamification_user_progress**
-   - Stores user's total points, level, experience, streak
-   - One record per user
+The complete database schema has been implemented via Supabase migration: `create_gamification_module`
 
-2. **gamification_achievements**
-   - Global achievements (created by admins)
-   - Criteria-based unlocking
+**9 Tables Created:**
 
-3. **gamification_user_achievements**
-   - User's progress on achievements
-   - Tracks completion and progress percentage
+1. **gamification_missions** - Learning units/topics with activities
+2. **gamification_activities** - Individual exercises (quiz, matching, fill-in, etc.)
+3. **gamification_mission_attempts** - User progress on missions
+4. **gamification_activity_attempts** - Individual activity completions
+5. **gamification_badges** - Achievements users can earn (7 badges pre-loaded)
+6. **gamification_user_badges** - User's earned badges
+7. **gamification_points_transactions** - Audit log of all point changes
+8. **gamification_streaks** - Daily activity streaks tracking
+9. **gamification_settings** - Global configuration (6 settings pre-loaded)
 
-4. **gamification_challenges**
-   - Teacher-created challenges
-   - Time-bound with rewards
+**Integration with Existing Tables:**
+- Uses `usuarios.id_usuario` as foreign key for all user references
+- Automatically updates `progreso_estudiantes` when missions are completed
+- Points, level, and activities count synced via database triggers
 
-5. **gamification_user_challenges**
-   - User's progress on challenges
-   - Tracks status and completion
+**Automatic Features:**
+- ✅ Triggers automatically update `progreso_estudiantes` on mission completion
+- ✅ Triggers automatically update streaks on activity completion
+- ✅ Level calculation based on point thresholds (1-10 levels)
+- ✅ RLS policies enforced for all roles
 
-6. **gamification_rewards**
-   - Claimable rewards (badges, avatars, themes)
-   - Cost in points
+### RLS Policies Implemented
 
-7. **gamification_user_rewards**
-   - User's claimed rewards
+- **Students**: Can view their own data and public leaderboards ✅
+- **Teachers**: Can create missions/activities and view students' progress ✅
+- **Admins**: Full access to all tables and settings ✅
 
-8. **gamification_points_transactions**
-   - Audit log of all point changes
-   - Tracks source and reason
-
-9. **gamification_settings**
-   - Global configuration
-   - Adjustable by admins
-
-### RLS Policies Required
-
-- **Students**: Can view their own data and public leaderboards
-- **Teachers**: Can create challenges and view assigned students' progress
-- **Admins**: Full access to all tables
+📖 **For detailed schema documentation, see:** [DATABASE_SCHEMA_GAMIFICATION.md](./DATABASE_SCHEMA_GAMIFICATION.md)
 
 ## 🎯 Core Features by Role
 
@@ -140,13 +132,14 @@ The gamification module integrates seamlessly with the existing authentication s
 
 ## 📝 Next Implementation Steps
 
-### Phase 1: Database Setup
-1. Create migration with all tables
-2. Set up RLS policies
-3. Create indexes for performance
-4. Insert default settings record
+### ✅ Phase 1: Database Setup (COMPLETED)
+1. ✅ Create migration with all tables
+2. ✅ Set up RLS policies
+3. ✅ Create indexes for performance
+4. ✅ Insert default settings and badges
+5. ✅ Create triggers for automatic updates
 
-### Phase 2: Backend Implementation
+### Phase 2: Backend Implementation (IN PROGRESS)
 1. Complete GamificationService methods
 2. Implement API routes
 3. Add points calculation logic
