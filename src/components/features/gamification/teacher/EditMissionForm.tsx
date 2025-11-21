@@ -1,3 +1,9 @@
+// ============================================================================
+// EDIT MISSION FORM
+// Teacher interface for editing existing missions for Units 13-16
+// Allows modification of mission details aligned with English textbook curriculum
+// ============================================================================
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,15 +12,19 @@ import { getMissionById, updateMission } from '@/lib/gamification/gamificationAp
 import { DifficultyLevel, MissionType, Mission } from '@/types/gamification.types';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
+// English textbook Units 13-16 with their topics
 const CURRICULUM_TOPICS = {
   13: 'Places in town',
-  14: 'Clothes and fashion',
-  15: 'Shopping and money',
-  16: 'Food and restaurants',
-  17: 'Travel and tourism',
-  18: 'Health and body',
-  19: 'Technology and media',
-  20: 'Environment and nature',
+  14: 'Transport and movement',
+  15: 'Clothes and appearance',
+  16: 'Shopping and money',
+};
+
+const UNIT_TITLES: Record<number, string> = {
+  13: 'Places',
+  14: 'Out and about',
+  15: 'What shall I wear?',
+  16: 'Buy it!',
 };
 
 interface EditMissionFormProps {
@@ -123,7 +133,7 @@ export function EditMissionForm({ missionId }: EditMissionFormProps) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-              Edit Mission
+              📝 Edit Mission (Units 13-16)
             </h1>
             <button
               onClick={() => router.push('/docente/gamification/missions')}
@@ -147,7 +157,7 @@ export function EditMissionForm({ missionId }: EditMissionFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Unit Number *
+                  Unit Number & Title *
                 </label>
                 <select
                   value={formData.unit_number}
@@ -157,7 +167,7 @@ export function EditMissionForm({ missionId }: EditMissionFormProps) {
                 >
                   {Object.entries(CURRICULUM_TOPICS).map(([unit, topic]) => (
                     <option key={unit} value={unit}>
-                      Unit {unit}: {topic}
+                      Unit {unit}: {UNIT_TITLES[Number(unit)]} - {topic}
                     </option>
                   ))}
                 </select>

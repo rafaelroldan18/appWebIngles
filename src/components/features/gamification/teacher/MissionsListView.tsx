@@ -1,3 +1,9 @@
+// ============================================================================
+// TEACHER MISSIONS LIST VIEW
+// Manage missions for English textbook Units 13-16
+// Teachers can create, edit, delete missions aligned with curriculum
+// ============================================================================
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,6 +12,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Mission } from '@/types/gamification.types';
 import { getActiveMissions, deleteMission } from '@/lib/gamification/gamificationApi';
+
+// English textbook unit titles (Units 13-16)
+const UNIT_TITLES: Record<number, string> = {
+  13: 'Places',
+  14: 'Out and about',
+  15: 'What shall I wear?',
+  16: 'Buy it!',
+};
 
 export function MissionsListView() {
   const router = useRouter();
@@ -144,12 +158,12 @@ export function MissionsListView() {
 
         <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6 mb-6">
           <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-4">
-            Filters
+            📚 Filter Missions by Unit (Units 13-16)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Unit Number
+                Unit Number & Title
               </label>
               <select
                 value={filterUnit}
@@ -157,9 +171,9 @@ export function MissionsListView() {
                 className="w-full px-4 py-2 border-2 border-gray-300 dark:border-[#334155] rounded-lg bg-white dark:bg-[#0F172A] text-[#1F2937] dark:text-white"
               >
                 <option value="all">All Units</option>
-                {[13, 14, 15, 16, 17, 18, 19, 20].map((unit) => (
+                {[13, 14, 15, 16].map((unit) => (
                   <option key={unit} value={unit.toString()}>
-                    Unit {unit}
+                    Unit {unit}: {UNIT_TITLES[unit]}
                   </option>
                 ))}
               </select>
@@ -239,7 +253,7 @@ export function MissionsListView() {
                       </p>
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-semibold rounded-full">
-                          Unit {mission.unit_number}
+                          Unit {mission.unit_number}: {UNIT_TITLES[mission.unit_number] || 'Custom Unit'}
                         </span>
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getDifficultyColor(mission.difficulty_level)}`}>
                           {mission.difficulty_level}

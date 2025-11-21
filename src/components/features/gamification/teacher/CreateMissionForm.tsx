@@ -1,3 +1,9 @@
+// ============================================================================
+// CREATE MISSION FORM
+// Teacher interface for creating new missions for Units 13-16
+// Provides pedagogically-sound defaults based on English textbook curriculum
+// ============================================================================
+
 'use client';
 
 import { useState } from 'react';
@@ -6,15 +12,73 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createMission } from '@/lib/gamification/gamificationApi';
 import { DifficultyLevel, MissionType } from '@/types/gamification.types';
 
+// English textbook Units 13-16 with their topics and titles
 const CURRICULUM_TOPICS = {
   13: 'Places in town',
-  14: 'Clothes and fashion',
-  15: 'Shopping and money',
-  16: 'Food and restaurants',
-  17: 'Travel and tourism',
-  18: 'Health and body',
-  19: 'Technology and media',
-  20: 'Environment and nature',
+  14: 'Transport and movement',
+  15: 'Clothes and appearance',
+  16: 'Shopping and money',
+};
+
+const UNIT_TITLES: Record<number, string> = {
+  13: 'Places',
+  14: 'Out and about',
+  15: 'What shall I wear?',
+  16: 'Buy it!',
+};
+
+// Pedagogical defaults for each unit
+const UNIT_DEFAULTS: Record<number, {
+  suggestedType: MissionType;
+  suggestedDifficulty: DifficultyLevel;
+  basePoints: number;
+  estimatedMinutes: number;
+  hints: string[];
+}> = {
+  13: {
+    suggestedType: 'vocabulary',
+    suggestedDifficulty: 'facil',
+    basePoints: 100,
+    estimatedMinutes: 15,
+    hints: [
+      'Focus on places vocabulary: bank, post office, supermarket, library',
+      'Use "there is/are" questions',
+      'Include prepositions of place: next to, between, opposite',
+    ],
+  },
+  14: {
+    suggestedType: 'vocabulary',
+    suggestedDifficulty: 'facil',
+    basePoints: 100,
+    estimatedMinutes: 15,
+    hints: [
+      'Transport vocabulary: train, bus, metro, bicycle, plane',
+      'Movement verbs: walk, drive, fly, ride',
+      'Suggestions with "Let\'s" and "Shall we"',
+    ],
+  },
+  15: {
+    suggestedType: 'vocabulary',
+    suggestedDifficulty: 'facil',
+    basePoints: 100,
+    estimatedMinutes: 15,
+    hints: [
+      'Clothing items: jacket, boots, t-shirt, jeans, coat',
+      'Describing appearance: What are you wearing?',
+      'Weather-appropriate clothing',
+    ],
+  },
+  16: {
+    suggestedType: 'vocabulary',
+    suggestedDifficulty: 'facil',
+    basePoints: 100,
+    estimatedMinutes: 15,
+    hints: [
+      'Shopping vocabulary: checkout, sale, discount, price',
+      'Money and prices: How much is it?',
+      'Shop types: bookshop, butcher, chemist',
+    ],
+  },
 };
 
 export function CreateMissionForm() {
@@ -63,11 +127,24 @@ export function CreateMissionForm() {
   };
 
   const handleUnitChange = (unit: number) => {
-    setFormData({
-      ...formData,
-      unit_number: unit,
-      topic: CURRICULUM_TOPICS[unit as keyof typeof CURRICULUM_TOPICS] || '',
-    });
+    const defaults = UNIT_DEFAULTS[unit as keyof typeof UNIT_DEFAULTS];
+    if (defaults) {
+      setFormData({
+        ...formData,
+        unit_number: unit,
+        topic: CURRICULUM_TOPICS[unit as keyof typeof CURRICULUM_TOPICS] || '',
+        mission_type: defaults.suggestedType,
+        difficulty_level: defaults.suggestedDifficulty,
+        base_points: defaults.basePoints,
+        estimated_duration_minutes: defaults.estimatedMinutes,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        unit_number: unit,
+        topic: CURRICULUM_TOPICS[unit as keyof typeof CURRICULUM_TOPICS] || '',
+      });
+    }
   };
 
   return (
@@ -76,7 +153,7 @@ export function CreateMissionForm() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-              Create New Mission
+              📚 Create New Mission (Units 13-16)
             </h1>
             <button
               onClick={() => router.push('/docente/gamification/missions')}
@@ -95,12 +172,29 @@ export function CreateMissionForm() {
           </div>
         )}
 
+        {/* Pedagogical hints for selected unit */}
+        {UNIT_DEFAULTS[formData.unit_number as keyof typeof UNIT_DEFAULTS] && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-3">
+              💡 Unit {formData.unit_number}: {UNIT_TITLES[formData.unit_number]} - Pedagogical Suggestions
+            </h3>
+            <ul className="space-y-2">
+              {UNIT_DEFAULTS[formData.unit_number as keyof typeof UNIT_DEFAULTS].hints.map((hint, idx) => (
+                <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2">
+                  <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                  <span>{hint}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8">
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Unit Number *
+                  Unit Number & Title *
                 </label>
                 <select
                   value={formData.unit_number}
@@ -110,10 +204,13 @@ export function CreateMissionForm() {
                 >
                   {Object.entries(CURRICULUM_TOPICS).map(([unit, topic]) => (
                     <option key={unit} value={unit}>
-                      Unit {unit}: {topic}
+                      Unit {unit}: {UNIT_TITLES[Number(unit)]} - {topic}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Selecting a unit will apply recommended defaults
+                </p>
               </div>
 
               <div>
