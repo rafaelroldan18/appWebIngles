@@ -6,7 +6,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GamificationService } from '@/services/gamification.service';
+import { getUserBadges } from '@/lib/gamification/gamificationApi';
 import type { UserBadge } from '@/types/gamification.types';
 
 export function useAchievements(userId: string | undefined) {
@@ -15,11 +15,6 @@ export function useAchievements(userId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch user's achievements
-    // - Completed achievements
-    // - In-progress achievements
-    // - Locked achievements
-
     if (!userId) {
       setLoading(false);
       return;
@@ -29,20 +24,23 @@ export function useAchievements(userId: string | undefined) {
   }, [userId]);
 
   const loadAchievements = async () => {
-    // TODO: Implement loading logic
-    // setLoading(true);
-    // try {
-    //   const data = await GamificationService.getUserAchievements(userId);
-    //   setAchievements(data);
-    // } catch (err) {
-    //   setError('Error loading achievements');
-    // } finally {
-    //   setLoading(false);
-    // }
+    if (!userId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getUserBadges(userId);
+      setAchievements(data);
+    } catch (err) {
+      console.error('Error loading achievements:', err);
+      setError('Error loading achievements');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const refresh = () => {
-    // TODO: Refresh achievements after unlocking new ones
     loadAchievements();
   };
 

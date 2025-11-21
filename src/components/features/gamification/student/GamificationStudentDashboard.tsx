@@ -1,10 +1,11 @@
 // ============================================================================
 // GAMIFICATION STUDENT DASHBOARD
-// UI layer: Display achievements, points, leaderboard, rewards
+// Main dashboard with navigation to missions and stats overview
 // ============================================================================
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { UsuarioDB } from '@/types/auth.types';
 
 interface GamificationStudentDashboardProps {
@@ -12,53 +13,121 @@ interface GamificationStudentDashboardProps {
 }
 
 export default function GamificationStudentDashboard({ usuario }: GamificationStudentDashboardProps) {
-  // TODO: Fetch gamification data using hooks
-  // - useAchievements() → Get user achievements
-  // - useLeaderboard() → Get leaderboard position
-  // - useGamification() → Get points, level, badges
+  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
-      {/* TODO: Navigation bar */}
       <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-xl font-bold text-[#1F2937] dark:text-white">
-            Gamificación - {usuario.nombre}
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
+              🎮 Gamificación
+            </h1>
+            <button
+              onClick={() => router.push('/estudiante')}
+              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              ← Volver al Dashboard
+            </button>
+          </div>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* TODO: Points and Level Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
-            Mi Progreso
-          </h2>
-          {/* TODO: Display user points, level, experience bar */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-8 text-white mb-8">
+          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.nombre}!</h2>
+          <p className="text-lg opacity-90">
+            Completa misiones, gana puntos y sube de nivel
+          </p>
         </div>
 
-        {/* TODO: Achievements Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
-            Logros
-          </h2>
-          {/* TODO: Import and use AchievementsList component */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <button
+            onClick={() => router.push('/estudiante/gamification/missions')}
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-5xl">🎯</span>
+              <div>
+                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  Misiones
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Completa actividades de aprendizaje
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold">
+              <span>Ver misiones disponibles</span>
+              <span className="group-hover:translate-x-2 transition-transform">→</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/estudiante/gamification/achievements')}
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-5xl">🏆</span>
+              <div>
+                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                  Logros
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Desbloquea insignias especiales
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
+              <span>Ver logros y medallas</span>
+              <span className="group-hover:translate-x-2 transition-transform">→</span>
+            </div>
+          </button>
+
+          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 opacity-50">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-5xl">📊</span>
+              <div>
+                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
+                  Clasificación
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Compite con otros estudiantes
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+              Próximamente disponible
+            </p>
+          </div>
+
+          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 opacity-50">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-5xl">💎</span>
+              <div>
+                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
+                  Recompensas
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Canjea tus puntos por premios
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-500">
+              Próximamente disponible
+            </p>
+          </div>
         </div>
 
-        {/* TODO: Leaderboard Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
-            Tabla de Clasificación
-          </h2>
-          {/* TODO: Import and use LeaderboardView component */}
-        </div>
-
-        {/* TODO: Rewards Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
-            Recompensas
-          </h2>
-          {/* TODO: Import and use RewardsPanel component */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
+          <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-2">
+            📌 Nota de Desarrollo
+          </h3>
+          <p className="text-gray-700 dark:text-gray-300">
+            El sistema de gamificación está en desarrollo. Actualmente puedes explorar las
+            misiones disponibles. Las funcionalidades de logros, clasificación y recompensas se
+            agregarán próximamente.
+          </p>
         </div>
       </div>
     </div>
