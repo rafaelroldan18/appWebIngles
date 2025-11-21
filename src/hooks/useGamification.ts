@@ -7,10 +7,10 @@
 
 import { useState, useEffect } from 'react';
 import { GamificationService } from '@/services/gamification.service';
-import type { GamificationStatsResponse } from '@/types/gamification.types';
+import type { UserGamificationStats } from '@/types/gamification.types';
 
 export function useGamification(userId: string | undefined) {
-  const [stats, setStats] = useState<GamificationStatsResponse | null>(null);
+  const [stats, setStats] = useState<UserGamificationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

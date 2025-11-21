@@ -7,10 +7,10 @@
 
 import { useState, useEffect } from 'react';
 import { GamificationService } from '@/services/gamification.service';
-import type { UserAchievement } from '@/types/gamification.types';
+import type { UserBadge } from '@/types/gamification.types';
 
 export function useAchievements(userId: string | undefined) {
-  const [achievements, setAchievements] = useState<UserAchievement[]>([]);
+  const [achievements, setAchievements] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,172 +1,394 @@
 // ============================================================================
 // GAMIFICATION TYPES
-// TypeScript interfaces for gamification module
+// TypeScript interfaces matching database schema
 // ============================================================================
 
-// TODO: User Progress & Points
-export interface UserGamificationProgress {
-  id: string;
-  user_id: string;
-  total_points: number;
-  current_level: number;
-  experience_points: number;
-  experience_to_next_level: number;
-  streak_days: number;
-  last_activity_date: Date;
-  created_at: Date;
-  updated_at: Date;
-}
+// ============================================================================
+// MISSIONS & ACTIVITIES
+// ============================================================================
 
-// TODO: Achievements
-export interface Achievement {
+export type DifficultyLevel = 'facil' | 'medio' | 'dificil';
+
+export type MissionType =
+  | 'grammar'
+  | 'vocabulary'
+  | 'reading'
+  | 'listening'
+  | 'speaking'
+  | 'writing'
+  | 'mixed';
+
+export type ActivityType =
+  | 'quiz'
+  | 'matching'
+  | 'fill_in_blank'
+  | 'ordering'
+  | 'multiple_choice'
+  | 'true_false';
+
+export interface Mission {
   id: string;
+  unit_number: number;
+  topic: string;
   title: string;
   description: string;
-  icon: string;
-  category: 'learning' | 'social' | 'progression' | 'special';
-  points_reward: number;
-  criteria_type: 'activity_count' | 'points_threshold' | 'streak' | 'custom';
-  criteria_value: number;
-  is_hidden: boolean;
+  difficulty_level: DifficultyLevel;
+  base_points: number;
+  mission_type: MissionType;
+  estimated_duration_minutes: number;
   is_active: boolean;
-  created_by: string;
-  created_at: Date;
+  order_index: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-// TODO: User Achievement Progress
-export interface UserAchievement {
+export interface Activity {
   id: string;
-  user_id: string;
-  achievement_id: string;
-  progress: number;
-  completed: boolean;
-  completed_at?: Date;
-  created_at: Date;
-  updated_at: Date;
-
-  // Joined data
-  achievement?: Achievement;
-}
-
-// TODO: Leaderboard Entry
-export interface LeaderboardEntry {
-  rank: number;
-  user_id: string;
-  user_name: string;
-  user_avatar?: string;
-  total_points: number;
-  level: number;
-  achievements_count: number;
-}
-
-// TODO: Challenges (Teacher-created)
-export interface Challenge {
-  id: string;
+  mission_id: string;
   title: string;
-  description: string;
-  challenge_type: 'quiz' | 'activity' | 'assignment' | 'collaborative';
-  points_reward: number;
-  difficulty: 'facil' | 'medio' | 'dificil';
-  start_date: Date;
-  end_date: Date;
+  activity_type: ActivityType;
+  prompt: string;
+  content_data: ActivityContentData;
+  points_value: number;
+  time_limit_seconds: number | null;
+  order_index: number;
   is_active: boolean;
-  created_by: string;
-  target_audience: 'all' | 'specific_class' | 'specific_students';
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
 }
 
-// TODO: User Challenge Progress
-export interface UserChallengeProgress {
+// Flexible content structure for different activity types
+export type ActivityContentData =
+  | QuizContent
+  | MatchingContent
+  | FillInBlankContent
+  | OrderingContent
+  | MultipleChoiceContent
+  | TrueFalseContent;
+
+export interface QuizContent {
+  type: 'quiz';
+  questions: {
+    question: string;
+    options: string[];
+    correct: number;
+    explanation?: string;
+  }[];
+}
+
+export interface MatchingContent {
+  type: 'matching';
+  pairs: {
+    left: string;
+    right: string;
+  }[];
+}
+
+export interface FillInBlankContent {
+  type: 'fill_in_blank';
+  sentence: string;
+  blanks: {
+    position: number;
+    answer: string;
+    alternatives?: string[];
+  }[];
+}
+
+export interface OrderingContent {
+  type: 'ordering';
+  items: string[];
+  correctOrder: number[];
+}
+
+export interface MultipleChoiceContent {
+  type: 'multiple_choice';
+  question: string;
+  options: string[];
+  correct: number;
+  explanation?: string;
+}
+
+export interface TrueFalseContent {
+  type: 'true_false';
+  statement: string;
+  correct: boolean;
+  explanation?: string;
+}
+
+// ============================================================================
+// MISSION & ACTIVITY ATTEMPTS
+// ============================================================================
+
+export type MissionStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'failed'
+  | 'abandoned';
+
+export interface MissionAttempt {
   id: string;
   user_id: string;
-  challenge_id: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'failed';
-  progress_percentage: number;
-  completed_at?: Date;
+  mission_id: string;
+  status: MissionStatus;
+  score_percentage: number;
   points_earned: number;
-  created_at: Date;
-  updated_at: Date;
-
-  // Joined data
-  challenge?: Challenge;
+  time_spent_seconds: number;
+  activities_completed: number;
+  total_activities: number;
+  started_at: string;
+  completed_at: string | null;
+  last_activity_at: string;
 }
 
-// TODO: Rewards
-export interface Reward {
-  id: string;
-  title: string;
-  description: string;
-  reward_type: 'badge' | 'avatar' | 'theme' | 'bonus_points' | 'privilege';
-  points_cost: number;
-  is_available: boolean;
-  quantity_available?: number;
-  icon: string;
-  created_at: Date;
-}
-
-// TODO: User Rewards (Claimed)
-export interface UserReward {
+export interface ActivityAttempt {
   id: string;
   user_id: string;
-  reward_id: string;
-  claimed_at: Date;
-
-  // Joined data
-  reward?: Reward;
+  activity_id: string;
+  mission_attempt_id: string | null;
+  user_answers: Record<string, any>;
+  is_correct: boolean;
+  score_percentage: number;
+  points_earned: number;
+  time_spent_seconds: number;
+  attempt_number: number;
+  feedback: string | null;
+  attempted_at: string;
 }
 
-// TODO: Points Transaction
+// ============================================================================
+// BADGES & ACHIEVEMENTS
+// ============================================================================
+
+export type BadgeType = 'achievement' | 'milestone' | 'special' | 'seasonal';
+
+export type BadgeCriteriaType =
+  | 'missions_completed'
+  | 'points_reached'
+  | 'streak_days'
+  | 'perfect_scores'
+  | 'speed_bonus';
+
+export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  badge_type: BadgeType;
+  criteria_type: BadgeCriteriaType;
+  criteria_value: number;
+  points_reward: number;
+  rarity: BadgeRarity;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface UserBadge {
+  id: string;
+  user_id: string;
+  badge_id: string;
+  earned_at: string;
+  progress_at_earning: Record<string, any>;
+  badge?: Badge;
+}
+
+// ============================================================================
+// POINTS & TRANSACTIONS
+// ============================================================================
+
+export type TransactionType =
+  | 'mission_complete'
+  | 'activity_complete'
+  | 'badge_earned'
+  | 'bonus'
+  | 'penalty'
+  | 'admin_adjustment';
+
+export type TransactionSource = 'mission' | 'activity' | 'badge' | 'manual';
+
 export interface PointsTransaction {
   id: string;
   user_id: string;
   points_change: number;
-  transaction_type: 'earned' | 'spent' | 'bonus' | 'penalty';
-  source: 'activity' | 'achievement' | 'challenge' | 'reward' | 'manual';
-  source_id?: string;
+  transaction_type: TransactionType;
+  source_type: TransactionSource | null;
+  source_id: string | null;
   description: string;
-  created_at: Date;
+  created_at: string;
 }
 
-// TODO: Gamification Settings (Global configuration)
+// ============================================================================
+// STREAKS
+// ============================================================================
+
+export interface Streak {
+  id: string;
+  user_id: string;
+  current_streak: number;
+  longest_streak: number;
+  last_activity_date: string | null;
+  streak_started_at: string | null;
+  total_active_days: number;
+  updated_at: string;
+}
+
+// ============================================================================
+// SETTINGS
+// ============================================================================
+
 export interface GamificationSettings {
   id: string;
-  points_per_activity_completion: number;
-  points_per_correct_answer: number;
-  points_per_streak_day: number;
-  experience_formula: 'linear' | 'exponential';
-  level_up_multiplier: number;
-  enable_leaderboard: boolean;
-  enable_achievements: boolean;
-  enable_rewards: boolean;
-  updated_at: Date;
-  updated_by: string;
+  setting_key: string;
+  setting_value: Record<string, any>;
+  description: string | null;
+  updated_by: string | null;
+  updated_at: string;
 }
 
-// TODO: API Response types
-export interface GamificationStatsResponse {
+export interface PointsPerMissionSettings {
+  facil: number;
+  medio: number;
+  dificil: number;
+}
+
+export interface StreakBonusSettings {
+  days: number[];
+  multipliers: number[];
+}
+
+export interface LevelThresholdsSettings {
+  levels: number[];
+}
+
+// ============================================================================
+// USER PROGRESS & LEADERBOARD
+// ============================================================================
+
+export interface UserProgress {
+  id_progreso: string;
+  id_estudiante: string;
+  actividades_completadas: number;
+  puntaje_total: number;
+  nivel_actual: number;
+  fecha_ultima_actualizacion: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  nombre: string;
+  apellido: string;
+  puntaje_total: number;
+  nivel_actual: number;
+  badges_count: number;
+  current_streak?: number;
+}
+
+// ============================================================================
+// API RESPONSE TYPES
+// ============================================================================
+
+export interface UserGamificationStats {
   totalPoints: number;
   currentLevel: number;
-  experiencePoints: number;
-  experienceToNextLevel: number;
-  streakDays: number;
-  achievementsUnlocked: number;
+  activitiesCompleted: number;
+  currentStreak: number;
+  longestStreak: number;
+  badgesEarned: number;
   leaderboardPosition: number;
+  missionsCompleted: number;
+  lastActivityDate: string | null;
 }
 
-export interface TeacherGamificationStats {
+export interface MissionWithProgress {
+  mission: Mission;
+  activities_count: number;
+  user_attempt?: MissionAttempt;
+  is_unlocked: boolean;
+}
+
+export interface ActivityWithAttempts {
+  activity: Activity;
+  user_attempts: ActivityAttempt[];
+  best_score: number;
+  is_completed: boolean;
+}
+
+export interface BadgeProgress {
+  badge: Badge;
+  user_badge?: UserBadge;
+  current_progress: number;
+  progress_percentage: number;
+  is_earned: boolean;
+}
+
+export interface TeacherStats {
   totalStudents: number;
+  activeMissions: number;
   averagePoints: number;
-  activeChallenges: number;
-  completedChallenges: number;
-  mostEngagedStudents: LeaderboardEntry[];
+  averageCompletion: number;
+  topStudents: LeaderboardEntry[];
 }
 
-export interface AdminGamificationStats {
+export interface AdminStats {
   totalUsers: number;
+  totalMissions: number;
+  totalActivities: number;
   totalPointsAwarded: number;
-  totalAchievementsUnlocked: number;
-  activeTeachers: number;
-  activeChallenges: number;
-  averageEngagement: number;
+  totalBadgesEarned: number;
+  activeStudents: number;
+  averageLevel: number;
+}
+
+// ============================================================================
+// FORM INPUT TYPES
+// ============================================================================
+
+export interface CreateMissionInput {
+  unit_number: number;
+  topic: string;
+  title: string;
+  description: string;
+  difficulty_level: DifficultyLevel;
+  base_points: number;
+  mission_type: MissionType;
+  estimated_duration_minutes: number;
+  order_index: number;
+}
+
+export interface CreateActivityInput {
+  mission_id: string;
+  title: string;
+  activity_type: ActivityType;
+  prompt: string;
+  content_data: ActivityContentData;
+  points_value: number;
+  time_limit_seconds?: number;
+  order_index: number;
+}
+
+export interface StartMissionInput {
+  user_id: string;
+  mission_id: string;
+  total_activities: number;
+}
+
+export interface CompleteActivityInput {
+  user_id: string;
+  activity_id: string;
+  mission_attempt_id?: string;
+  user_answers: Record<string, any>;
+  is_correct: boolean;
+  score_percentage: number;
+  time_spent_seconds: number;
+}
+
+export interface CompleteMissionInput {
+  attempt_id: string;
+  score_percentage: number;
+  points_earned: number;
+  time_spent_seconds: number;
 }
