@@ -27,9 +27,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Filter invitations by creator - each user only sees their own invitations
     const { data: invitations, error } = await supabase
       .from('invitaciones')
-      .select('*')
+      .select(`
+        *,
+        creador:creado_por (
+          id_usuario,
+          nombre,
+          apellido,
+          correo_electronico,
+          rol
+        )
+      `)
+      .eq('creado_por', usuario.id_usuario)
       .order('fecha_creacion', { ascending: false });
 
     if (error) {

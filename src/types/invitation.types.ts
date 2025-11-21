@@ -1,6 +1,14 @@
 export type InvitationRole = 'docente' | 'estudiante';
 export type InvitationStatus = 'pendiente' | 'activada' | 'expirada';
 
+export interface InvitationCreator {
+  id_usuario: string;
+  nombre: string;
+  apellido: string;
+  correo_electronico: string;
+  rol: string;
+}
+
 export interface Invitation {
   id_invitacion: string;
   codigo_invitacion: string;
@@ -11,6 +19,7 @@ export interface Invitation {
   rol: InvitationRole;
   estado: InvitationStatus;
   creado_por: string;
+  creador?: InvitationCreator;
   fecha_creacion: string;
   fecha_expiracion: string;
   fecha_activacion: string | null;

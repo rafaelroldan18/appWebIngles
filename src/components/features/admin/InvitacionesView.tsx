@@ -71,7 +71,10 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <Mail className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Invitaciones Enviadas</h2>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Mis Invitaciones</h2>
+              <p className="text-sm text-white/80">Invitaciones que has creado</p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -187,19 +190,29 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-gray-300">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>
-                            Enviada: {new Date(invitation.fecha_creacion).toLocaleDateString('es-ES')}
-                          </span>
-                          {invitation.estado === 'activada' && invitation.fecha_activacion && (
-                            <>
-                              <span>•</span>
-                              <span>
-                                Activada:{' '}
-                                {new Date(invitation.fecha_activacion).toLocaleDateString('es-ES')}
+                        <div className="flex flex-col gap-1 text-xs text-slate-600 dark:text-gray-300">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>
+                              Enviada: {new Date(invitation.fecha_creacion).toLocaleDateString('es-ES')}
+                            </span>
+                            {invitation.estado === 'activada' && invitation.fecha_activacion && (
+                              <>
+                                <span>•</span>
+                                <span>
+                                  Activada:{' '}
+                                  {new Date(invitation.fecha_activacion).toLocaleDateString('es-ES')}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {invitation.creador && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <User className="w-3.5 h-3.5" />
+                              <span className="text-slate-500 dark:text-gray-400">
+                                Creada por: {invitation.creador.nombre} {invitation.creador.apellido}
                               </span>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
