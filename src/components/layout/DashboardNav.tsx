@@ -31,7 +31,7 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }:
   const isActivitiesActive = pathname?.includes('/gamification');
   const isDashboardActive = !isActivitiesActive;
 
-  const showActivitiesMenu = usuario.rol === 'estudiante' || usuario.rol === 'docente';
+  const showActivitiesMenu = usuario.rol === 'estudiante';
   const isStudent = usuario.rol === 'estudiante';
 
   return (
