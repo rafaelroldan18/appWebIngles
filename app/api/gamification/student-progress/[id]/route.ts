@@ -18,8 +18,8 @@ export async function GET(
 
     const { data: currentUser, error: userError } = await supabase
       .from('usuarios')
-      .select('rol')
-      .eq('id_usuario', user.id)
+      .select('id_usuario, rol')
+      .eq('auth_user_id', user.id)
       .maybeSingle();
 
     if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
@@ -28,7 +28,7 @@ export async function GET(
 
     const { data: student, error: studentError } = await supabase
       .from('usuarios')
-      .select('id_usuario, nombre, apellido, email, rol, fecha_creacion')
+      .select('id_usuario, nombre, apellido, correo_electronico, rol, fecha_registro')
       .eq('id_usuario', studentId)
       .eq('rol', 'estudiante')
       .maybeSingle();
@@ -160,8 +160,8 @@ export async function GET(
         id: student.id_usuario,
         nombre: student.nombre,
         apellido: student.apellido,
-        email: student.email,
-        fecha_registro: student.fecha_creacion
+        email: student.correo_electronico,
+        fecha_registro: student.fecha_registro
       },
       progress: {
         puntaje_total: progressResult.data?.puntaje_total || 0,

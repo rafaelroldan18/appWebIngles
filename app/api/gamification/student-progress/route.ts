@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
 
     const { data: currentUser, error: userError } = await supabase
       .from('usuarios')
-      .select('rol')
-      .eq('id_usuario', user.id)
+      .select('id_usuario, rol')
+      .eq('auth_user_id', user.id)
       .maybeSingle();
 
     if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
         id_usuario,
         nombre,
         apellido,
-        email,
-        fecha_creacion
+        correo_electronico,
+        fecha_registro
       `)
       .eq('rol', 'estudiante')
-      .eq('estado', 'activo')
+      .eq('estado_cuenta', 'activo')
       .order('nombre', { ascending: true });
 
     if (studentsError) {
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         id: student.id_usuario,
         nombre: student.nombre,
         apellido: student.apellido,
-        email: student.email,
+        email: student.correo_electronico,
         puntaje_total: progress?.puntaje_total || 0,
         nivel_actual: progress?.nivel_actual || 1,
         actividades_completadas: progress?.actividades_completadas || 0,
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         racha_maxima: streak?.longest_streak || 0,
         insignias_ganadas: badgesMap.get(student.id_usuario) || 0,
         ultima_actividad: streak?.last_activity_date || progress?.fecha_ultima_actualizacion || null,
-        fecha_registro: student.fecha_creacion
+        fecha_registro: student.fecha_registro
       };
     });
 
