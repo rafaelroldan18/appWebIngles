@@ -89,11 +89,14 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
             </div>
           </button>
 
-          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 opacity-50">
+          <button
+            onClick={() => router.push('/estudiante/gamification/rewards')}
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+          >
             <div className="flex items-center gap-4 mb-4">
               <span className="text-5xl">💎</span>
               <div>
-                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
+                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                   Recompensas
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -101,10 +104,11 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
                 </p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              Próximamente disponible
-            </p>
-          </div>
+            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
+              <span>Explorar tienda</span>
+              <span className="group-hover:translate-x-2 transition-transform">→</span>
+            </div>
+          </button>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
