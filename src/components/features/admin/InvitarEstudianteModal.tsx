@@ -102,38 +102,20 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                 <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
               <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
-                ¡Invitación enviada!
+                ¡Invitación enviada con éxito!
               </h4>
               <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
-                Se ha enviado un correo electrónico a {validation.values.correo_electronico} con las instrucciones para activar su cuenta.
+                Se ha enviado un correo electrónico a <strong>{validation.values.correo_electronico}</strong> con el enlace de registro y las instrucciones para activar su cuenta.
               </p>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-gray-900 p-4 rounded-lg border border-slate-200 dark:border-gray-700">
-              <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">
-                CÓDIGO DE INVITACIÓN
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 bg-white dark:bg-gray-800 px-4 py-3 rounded-lg border border-slate-300 dark:border-gray-600">
-                  <p className="text-2xl font-mono font-bold text-orange-600 dark:text-orange-400 text-center tracking-wider">
-                    {invitationCode}
-                  </p>
-                </div>
-                <button
-                  onClick={copyCode}
-                  className="p-3 bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
-                  title="Copiar código"
-                >
-                  {copiedCode ? (
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  ) : (
-                    <Copy className="w-5 h-5 text-white" />
-                  )}
-                </button>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left">
+                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  IMPORTANTE
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  El invitado debe revisar su correo electrónico (incluyendo la carpeta de spam) y seguir las instrucciones para completar su registro.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 dark:text-gray-400 mt-2">
-                También puedes compartir este código manualmente
-              </p>
             </div>
 
             <button

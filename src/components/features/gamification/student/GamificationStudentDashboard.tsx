@@ -21,7 +21,7 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-              🎮 Gamificación
+              📚 Actividades de Aprendizaje
             </h1>
             <button
               onClick={() => router.push('/estudiante')}
@@ -125,12 +125,11 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
           <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-2">
-            📌 Nota de Desarrollo
+            📌 Bienvenido al Sistema de Actividades
           </h3>
           <p className="text-gray-700 dark:text-gray-300">
-            El sistema de gamificación está en desarrollo. Actualmente puedes explorar las
-            misiones disponibles. Las funcionalidades de logros, clasificación y recompensas se
-            agregarán próximamente.
+            Aquí puedes acceder a todas las actividades de aprendizaje. Completa misiones,
+            desbloquea logros y sube de nivel mientras aprendes inglés.
           </p>
         </div>
       </div>
