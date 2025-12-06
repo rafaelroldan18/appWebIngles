@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { InvitationService } from '@/services/invitation.service';
-import { Mail, X, Calendar, CheckCircle, Clock, XCircle, Copy, User } from 'lucide-react';
+import { Mail, X, Calendar, CheckCircle, Clock, XCircle, User, Trash2 } from 'lucide-react';
 import type { Invitation } from '@/types/invitation.types';
 
 interface InvitacionesViewProps {
@@ -12,7 +12,7 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
   const { t } = useLanguage();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'todas' | 'pendiente' | 'activada' | 'expirada'>('todas');
 
   useEffect(() => {
@@ -30,10 +30,20 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
     }
   };
 
-  const copyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta invitación?')) {
+      return;
+    }
+
+    try {
+      setDeleting(id);
+      await InvitationService.delete(id);
+      setInvitations(invitations.filter((inv) => inv.id_invitacion !== id));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al eliminar invitación');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -217,29 +227,26 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
                         </div>
                       </div>
 
-                      {invitation.estado === 'pendiente' && (
+                      {(invitation.estado === 'pendiente' || invitation.estado === 'expirada') && (
                         <div className="flex-shrink-0">
-                          <div className="bg-slate-50 dark:bg-gray-900 px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-700">
-                            <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-1">
-                              CÓDIGO
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-sm text-blue-600 dark:text-blue-400">
-                                {invitation.codigo_invitacion}
-                              </span>
-                              <button
-                                onClick={() => copyCode(invitation.codigo_invitacion)}
-                                className="p-1 hover:bg-slate-200 dark:hover:bg-gray-700 rounded transition-colors"
-                                title="Copiar código"
-                              >
-                                {copiedCode === invitation.codigo_invitacion ? (
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
-                                ) : (
-                                  <Copy className="w-4 h-4 text-slate-400" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
+                          <button
+                            onClick={() => handleDelete(invitation.id_invitacion)}
+                            disabled={deleting === invitation.id_invitacion}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                            title="Eliminar invitación"
+                          >
+                            {deleting === invitation.id_invitacion ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Eliminando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="w-4 h-4" />
+                                <span>Eliminar</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       )}
                     </div>

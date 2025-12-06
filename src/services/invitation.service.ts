@@ -91,4 +91,16 @@ export class InvitationService {
 
     return result;
   }
+
+  static async delete(id: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || 'Error al eliminar invitación');
+    }
+  }
 }
