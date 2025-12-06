@@ -10,9 +10,10 @@ interface DashboardNavProps {
   subtitle: string;
   onLogout: () => void;
   onSettings?: (view: 'profile' | 'settings') => void;
+  onViewAsStudent?: () => void;
 }
 
-export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }: DashboardNavProps) {
+export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, onViewAsStudent }: DashboardNavProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -80,7 +81,7 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }:
               </div>
             )}
 
-            <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onLogout={onLogout} />
+            <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onLogout={onLogout} onViewAsStudent={onViewAsStudent} />
           </div>
         </div>
       </div>
