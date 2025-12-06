@@ -12,27 +12,11 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
-      <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-              🎮 Gamification Management
-            </h1>
-            <button
-              onClick={() => router.push('/docente')}
-              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-8 text-white mb-8">
-          <h2 className="text-3xl font-bold mb-2">Welcome, {usuario.nombre}!</h2>
+          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.nombre}!</h2>
           <p className="text-lg opacity-90">
-            Manage missions, track student progress, and configure gamification settings
+            Administra misiones, monitorea el progreso de los estudiantes y configura las actividades
           </p>
         </div>
 
@@ -45,15 +29,15 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
               <span className="text-5xl">🎯</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  Manage Missions
+                  Administrar Misiones
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Create, edit, and organize learning missions
+                  Crea, edita y organiza misiones de aprendizaje
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold">
-              <span>View all missions</span>
+              <span>Ver todas las misiones</span>
               <span className="group-hover:translate-x-2 transition-transform">→</span>
             </div>
           </button>
@@ -63,15 +47,15 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
               <span className="text-5xl">📊</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-                  Student Progress
+                  Progreso de Estudiantes
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Track student performance and engagement
+                  Monitorea el rendimiento y participación
                 </p>
               </div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-500">
-              Coming soon
+              Próximamente disponible
             </p>
           </div>
 
@@ -80,15 +64,15 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
               <span className="text-5xl">🏆</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-                  Badges & Rewards
+                  Insignias y Premios
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Configure achievement badges
+                  Configura logros y medallas
                 </p>
               </div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-500">
-              Coming soon
+              Próximamente disponible
             </p>
           </div>
 
@@ -97,27 +81,27 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
               <span className="text-5xl">⚙️</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-                  Settings
+                  Configuración
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Customize gamification rules
+                  Personaliza las reglas de actividades
                 </p>
               </div>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-500">
-              Coming soon
+              Próximamente disponible
             </p>
           </div>
         </div>
 
         <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-6">
           <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-2">
-            📌 Getting Started
+            📌 Comenzando
           </h3>
           <p className="text-gray-700 dark:text-gray-300">
-            Start by creating missions with activities for your students. Each mission can contain multiple
-            activities (quizzes, fill-in-the-blank, matching exercises). Students earn points by completing
-            missions and unlock badges based on their achievements.
+            Comienza creando misiones con actividades para tus estudiantes. Cada misión puede contener múltiples
+            actividades (cuestionarios, rellenar espacios, ejercicios de emparejamiento). Los estudiantes ganan puntos
+            al completar misiones y desbloquean insignias según sus logros.
           </p>
         </div>
       </div>

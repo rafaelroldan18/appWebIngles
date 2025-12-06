@@ -5,14 +5,16 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { DashboardNav } from '@/components/layout/DashboardNav';
 import GamificationStudentDashboard from './GamificationStudentDashboard';
 
 export function GamificationStudentView() {
-  const { user, usuario, loading } = useAuth();
+  const { user, usuario, loading, signOut } = useAuth();
   const router = useRouter();
+  const [showLogout, setShowLogout] = useState(false);
 
   // TODO: Route protection - verify authentication and role
   useEffect(() => {
@@ -52,5 +54,18 @@ export function GamificationStudentView() {
   }
 
   // TODO: Pass user data to dashboard component
-  return <GamificationStudentDashboard usuario={usuario} />;
+  return (
+    <>
+      <DashboardNav
+        usuario={usuario}
+        title="English27"
+        subtitle="Actividades de aprendizaje"
+        onLogout={async () => {
+          await signOut();
+          router.push('/');
+        }}
+      />
+      <GamificationStudentDashboard usuario={usuario} />
+    </>
+  );
 }

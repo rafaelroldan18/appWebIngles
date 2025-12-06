@@ -272,7 +272,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
           </div>
         </div>
 
-        {/* Gamification Card */}
+        {/* Actividades Card */}
         <div
           onClick={() => router.push('/docente/gamification')}
           className={`${getCardClasses()} p-6 mb-6 sm:mb-8 cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800`}
@@ -283,14 +283,14 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
-                🎮 Gamification Management
+                📚 Administrar actividades
               </h3>
               <p className="text-purple-700 dark:text-purple-300 text-sm">
-                Create and manage missions, activities, and track student progress
+                Crea y administra misiones, actividades y monitorea el progreso de los estudiantes
               </p>
             </div>
             <div className="hidden sm:flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
-              <span>Manage</span>
+              <span>Administrar</span>
               <span className="text-2xl">→</span>
             </div>
           </div>

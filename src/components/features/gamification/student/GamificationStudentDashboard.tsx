@@ -17,22 +17,6 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
-      <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-[#1F2937] dark:text-white">
-              📚 Actividades de Aprendizaje
-            </h1>
-            <button
-              onClick={() => router.push('/estudiante')}
-              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              ← Volver al Dashboard
-            </button>
-          </div>
-        </div>
-      </nav>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-8 text-white mb-8">
           <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.nombre}!</h2>

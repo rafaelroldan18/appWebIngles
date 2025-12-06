@@ -32,6 +32,7 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }:
   const isDashboardActive = !isActivitiesActive;
 
   const showActivitiesMenu = usuario.rol === 'estudiante' || usuario.rol === 'docente';
+  const isStudent = usuario.rol === 'estudiante';
 
   return (
     <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
@@ -55,17 +56,19 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings }:
           <div className="flex items-center gap-4">
             {showActivitiesMenu && (
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => router.push(getDashboardPath())}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
-                    isDashboardActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Home className="w-4 h-4" />
-                  <span className="hidden sm:inline">Inicio</span>
-                </button>
+                {!isStudent && (
+                  <button
+                    onClick={() => router.push(getDashboardPath())}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+                      isDashboardActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Home className="w-4 h-4" />
+                    <span className="hidden sm:inline">Inicio</span>
+                  </button>
+                )}
                 <button
                   onClick={() => router.push(getActivitiesPath())}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
