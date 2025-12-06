@@ -10,11 +10,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardNav } from '@/components/layout/DashboardNav';
 import GamificationStudentDashboard from './GamificationStudentDashboard';
+import ProfilePage from '@/components/features/profile/ProfilePage';
+import SettingsPage from '@/components/features/settings/SettingsPage';
 
 export function GamificationStudentView() {
   const { user, usuario, loading, signOut } = useAuth();
   const router = useRouter();
-  const [showLogout, setShowLogout] = useState(false);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
 
   // TODO: Route protection - verify authentication and role
   useEffect(() => {
@@ -64,8 +66,15 @@ export function GamificationStudentView() {
           await signOut();
           router.push('/');
         }}
+        onSettings={(view) => setCurrentView(view)}
       />
-      <GamificationStudentDashboard usuario={usuario} />
+      {currentView === 'profile' ? (
+        <ProfilePage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'settings' ? (
+        <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : (
+        <GamificationStudentDashboard usuario={usuario} />
+      )}
     </>
   );
 }
