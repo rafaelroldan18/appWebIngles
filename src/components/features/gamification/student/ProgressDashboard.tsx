@@ -14,7 +14,6 @@ import {
   getCompletedMissionsWithPoints,
   getUserBadges,
 } from '@/lib/gamification/gamificationApi';
-import { formatPoints } from '@/lib/gamification/leaderboard-utils';
 
 interface CompletedMissionData {
   mission_id: string;
@@ -137,7 +136,7 @@ export function ProgressDashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="text-sm opacity-90">Total Points</p>
-                <p className="text-4xl font-bold">{formatPoints(totalPoints)}</p>
+                <p className="text-4xl font-bold">{totalPoints.toLocaleString()}</p>
               </div>
               <div className="text-5xl">⭐</div>
             </div>
@@ -211,7 +210,7 @@ export function ProgressDashboard() {
                           </p>
                           <div className="mt-2 flex items-center gap-3">
                             <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                              +{formatPoints(mission.points_earned)} pts
+                              +{mission.points_earned.toLocaleString()} pts
                             </span>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               Score: {mission.score_percentage}%
@@ -262,7 +261,7 @@ export function ProgressDashboard() {
                           </span>
                           {userBadge.badge.points_reward > 0 && (
                             <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
-                              +{formatPoints(userBadge.badge.points_reward)} pts
+                              +{userBadge.badge.points_reward.toLocaleString()} pts
                             </span>
                           )}
                         </div>

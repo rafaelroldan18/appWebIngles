@@ -2,7 +2,6 @@
 
 import { Badge, UserBadge } from '@/types/gamification.types';
 import { getBadgeCriteriaDescription } from '@/lib/gamification/achievement-validator';
-import { formatPoints } from '@/lib/gamification/leaderboard-utils';
 
 interface BadgeCardProps {
   badge: Badge;
@@ -108,7 +107,7 @@ export function BadgeCard({ badge, userBadge, progress = 0 }: BadgeCardProps) {
         {badge.points_reward > 0 && (
           <div className="mt-3 bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 rounded-full">
             <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300">
-              +{formatPoints(badge.points_reward)} pts
+              +{badge.points_reward.toLocaleString()} pts
             </span>
           </div>
         )}

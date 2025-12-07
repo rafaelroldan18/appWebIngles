@@ -169,7 +169,7 @@ export type BadgeCriteriaType =
   | 'perfect_scores'
   | 'speed_bonus';
 
-export type BadgeRarity = 'common' | 'rare' | 'epic' | 'legendary';
+export type BadgeRarity = 'common' | 'rare';
 
 export interface Badge {
   id: string;
@@ -276,16 +276,6 @@ export interface UserProgress {
   fecha_ultima_actualizacion: string;
 }
 
-export interface LeaderboardEntry {
-  rank: number;
-  user_id: string;
-  nombre: string;
-  apellido: string;
-  puntaje_total: number;
-  nivel_actual: number;
-  badges_count: number;
-  current_streak?: number;
-}
 
 // ============================================================================
 // API RESPONSE TYPES
@@ -298,7 +288,6 @@ export interface UserGamificationStats {
   currentStreak: number;
   longestStreak: number;
   badgesEarned: number;
-  leaderboardPosition: number;
   missionsCompleted: number;
   lastActivityDate: string | null;
 }
@@ -330,7 +319,6 @@ export interface TeacherStats {
   activeMissions: number;
   averagePoints: number;
   averageCompletion: number;
-  topStudents: LeaderboardEntry[];
 }
 
 export interface AdminStats {

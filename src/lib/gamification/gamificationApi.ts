@@ -14,7 +14,6 @@ import type {
   PointsTransaction,
   Streak,
   UserProgress,
-  LeaderboardEntry,
   MissionWithProgress,
   ActivityWithAttempts,
   UserGamificationStats,
@@ -600,7 +599,7 @@ export async function getUserGamificationStats(
 ): Promise<UserGamificationStats> {
   const supabase = createClient();
 
-  const [progressData, streakData, badgesData, missionsData, leaderboardData] =
+  const [progressData, streakData, badgesData, missionsData] =
     await Promise.all([
       supabase
         .from('progreso_estudiantes')
@@ -624,21 +623,12 @@ export async function getUserGamificationStats(
         .select('id')
         .eq('user_id', userId)
         .eq('status', 'completed'),
-
-      supabase
-        .from('progreso_estudiantes')
-        .select('puntaje_total')
-        .order('puntaje_total', { ascending: false }),
     ]);
 
   const progress = progressData.data;
   const streak = streakData.data;
   const badges = badgesData.data || [];
   const missions = missionsData.data || [];
-  const allScores = leaderboardData.data || [];
-
-  const userRank =
-    allScores.findIndex((s) => s.puntaje_total <= (progress?.puntaje_total || 0)) + 1;
 
   return {
     totalPoints: progress?.puntaje_total || 0,
@@ -647,7 +637,6 @@ export async function getUserGamificationStats(
     currentStreak: streak?.current_streak || 0,
     longestStreak: streak?.longest_streak || 0,
     badgesEarned: badges.length,
-    leaderboardPosition: userRank || allScores.length + 1,
     missionsCompleted: missions.length,
     lastActivityDate: streak?.last_activity_date || null,
   };
@@ -798,76 +787,3 @@ export async function getUserStreak(userId: string): Promise<Streak | null> {
   return data;
 }
 
-// ============================================================================
-// LEADERBOARD
-// ============================================================================
-
-/**
- * Get leaderboard rankings
- */
-export async function getLeaderboard(
-  limit: number = 10
-): Promise<LeaderboardEntry[]> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase.rpc('get_leaderboard', {
-    row_limit: limit,
-  });
-
-  if (error) {
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('progreso_estudiantes')
-      .select(
-        `
-        puntaje_total,
-        nivel_actual,
-        id_estudiante,
-        usuarios!inner(id_usuario, nombre, apellido, rol, estado_cuenta)
-      `
-      )
-      .eq('usuarios.rol', 'estudiante')
-      .eq('usuarios.estado_cuenta', 'activo')
-      .order('puntaje_total', { ascending: false })
-      .limit(limit);
-
-    if (fallbackError) throw fallbackError;
-
-    return (
-      fallbackData?.map((item: any, index: number) => ({
-        rank: index + 1,
-        user_id: item.usuarios.id_usuario,
-        nombre: item.usuarios.nombre,
-        apellido: item.usuarios.apellido,
-        puntaje_total: item.puntaje_total,
-        nivel_actual: item.nivel_actual,
-        badges_count: 0,
-      })) || []
-    );
-  }
-
-  return data || [];
-}
-
-/**
- * Get user's leaderboard position
- */
-export async function getUserLeaderboardPosition(
-  userId: string
-): Promise<number> {
-  const supabase = createClient();
-
-  const { data: userProgress } = await supabase
-    .from('progreso_estudiantes')
-    .select('puntaje_total')
-    .eq('id_estudiante', userId)
-    .single();
-
-  if (!userProgress) return 0;
-
-  const { count } = await supabase
-    .from('progreso_estudiantes')
-    .select('*', { count: 'exact', head: true })
-    .gt('puntaje_total', userProgress.puntaje_total);
-
-  return (count || 0) + 1;
-}

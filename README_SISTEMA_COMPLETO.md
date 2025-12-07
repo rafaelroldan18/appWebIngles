@@ -9,15 +9,14 @@ English27 es una plataforma web educativa avanzada diseñada para el aprendizaje
 ### Sistema Multi-Rol
 - **Administrador**: Gestión completa de usuarios, docentes, estudiantes e invitaciones
 - **Docente**: Creación de misiones, gestión de actividades y seguimiento de progreso estudiantil
-- **Estudiante**: Acceso a misiones, actividades, sistema de recompensas y seguimiento de progreso personal
+- **Estudiante**: Acceso a misiones, actividades interactivas y seguimiento de progreso personal
 
-### Sistema de Gamificación Completo
+### Sistema de Gamificación
 - Misiones organizadas por unidades temáticas (Units 13-16)
 - Actividades interactivas (quiz, matching, fill-in-the-blank)
 - Sistema de puntos y niveles
 - Insignias y logros desbloqueables
-- Leaderboard competitivo
-- Tienda de recompensas con sistema de canje
+- Seguimiento de progreso individual
 
 ### Sistema de Autenticación Robusto
 - Registro mediante sistema de invitaciones
@@ -71,8 +70,7 @@ project/
 │   │           ├── achievements/          # Logros
 │   │           ├── mission/[id]/          # Detalle y juego
 │   │           ├── missions/              # Lista de misiones
-│   │           ├── progress/              # Dashboard de progreso
-│   │           └── rewards/               # Tienda de recompensas
+│   │           └── progress/              # Dashboard de progreso
 │   ├── api/                               # API Routes
 │   │   ├── activities/                    # Endpoints de actividades
 │   │   ├── auth/                          # Endpoints de autenticación
@@ -123,7 +121,6 @@ project/
 │   │   ├── useActivities.ts               # Hook de actividades
 │   │   ├── useFormValidation.ts           # Hook de validación
 │   │   ├── useGamification.ts             # Hook de gamificación
-│   │   ├── useLeaderboard.ts              # Hook de leaderboard
 │   │   ├── useProgress.ts                 # Hook de progreso
 │   │   ├── useTheme.ts                    # Hook de tema
 │   │   └── useUsers.ts                    # Hook de usuarios
@@ -137,7 +134,6 @@ project/
 │   │   │   ├── achievement-validator.ts   # Validación de logros
 │   │   │   ├── badge-assignment.ts        # Asignación de insignias
 │   │   │   ├── gamificationApi.ts         # API de gamificación
-│   │   │   ├── leaderboard-utils.ts       # Utilidades de leaderboard
 │   │   │   └── points-calculator.ts       # Calculador de puntos
 │   │   ├── utils/                         # Utilidades generales
 │   │   │   ├── cn.ts                      # Utilidad para classnames
@@ -176,8 +172,7 @@ project/
 │       ├── 20251121012800_fix_invitations_rls_policies.sql
 │       ├── 20251121015651_comprehensive_rls_fix_for_invitations.sql
 │       ├── 20251121042541_create_gamification_module.sql
-│       ├── 20251121162040_seed_gamification_units_13_16.sql
-│       └── 20251206202413_create_rewards_system.sql
+│       └── 20251121162040_seed_gamification_units_13_16.sql
 │
 ├── scripts/                               # Scripts de utilidad
 │   └── seedGamificationUnits13_16.ts     # Seed de unidades 13-16
@@ -248,28 +243,13 @@ project/
 **gamification_badges**
 - Insignias desbloqueables
 - Criterios: missions_completed, points_reached, streak_days, perfect_scores, speed_bonus
-- Rareza: common, rare, epic, legendary
+- Rareza: common, rare
 - Recompensas en puntos
 
 **gamification_user_badges**
 - Insignias obtenidas por usuarios
 - Fecha de obtención
 - Snapshot de progreso al obtenerla
-
-#### Sistema de Recompensas
-
-**gamification_rewards**
-- Recompensas canjeables con puntos
-- Tipos: virtual, privilege, physical, special
-- Categorías: avatar, theme, badge, hint, unlock, custom
-- Control de stock y límites de canje
-- Rareza: common, rare, epic, legendary
-
-**gamification_user_rewards**
-- Historial de canjes de estudiantes
-- Estados: pending, approved, delivered, cancelled
-- Puntos gastados
-- Sistema de aprobación por docentes
 
 ### Seguridad (RLS)
 
@@ -278,14 +258,6 @@ Todas las tablas tienen Row Level Security (RLS) habilitado con políticas restr
 - **Estudiantes**: Solo acceden a sus propios datos
 - **Docentes**: Acceden a datos de sus estudiantes y contenido educativo
 - **Administradores**: Acceso completo para gestión
-
-### Funciones de Base de Datos
-
-**redeem_reward(p_user_id, p_reward_id)**
-- Canje atómico de recompensas
-- Validación de puntos, stock y límites
-- Descuento automático de puntos
-- Prevención de race conditions
 
 ## Módulos Principales
 
@@ -332,7 +304,6 @@ Todas las tablas tienen Row Level Security (RLS) habilitado con políticas restr
 - Seguimiento de progreso estudiantil individual
 - Estadísticas por misión
 - Gestión de insignias
-- Aprobación de canjes de recompensas
 - Configuración del módulo de gamificación
 
 ### 4. Panel de Estudiante
@@ -353,19 +324,6 @@ Todas las tablas tienen Row Level Security (RLS) habilitado con políticas restr
 - Insignias obtenidas y por desbloquear
 - Historial de misiones completadas
 - Estadísticas personales
-
-**Tienda de Recompensas:**
-- Catálogo de recompensas por rareza
-- Sistema de canje con validaciones
-- Verificación de puntos suficientes
-- Control de stock y límites
-- Historial de canjes
-- Estados de entrega
-
-**Leaderboard:**
-- Ranking global de estudiantes
-- Puntuaciones y posiciones
-- Filtros por periodo
 
 ### 5. Sistema de Actividades Interactivas
 
@@ -413,8 +371,6 @@ Todas las tablas tienen Row Level Security (RLS) habilitado con políticas restr
 **Rareza y Recompensas:**
 - Common: 100 puntos
 - Rare: 250 puntos
-- Epic: 500 puntos
-- Legendary: 1000 puntos
 
 ## Sistema de Diseño
 
@@ -560,15 +516,6 @@ npm run seed:gamification
 - Vocabulary: Life experiences
 - 12 actividades interactivas
 
-### Recompensas Iniciales
-
-10 recompensas precargadas:
-- 3 Avatares especiales (500-2000 pts)
-- 2 Temas visuales (300-400 pts)
-- 3 Privilegios (200-800 pts)
-- 1 Insignia especial (1500 pts)
-- 1 Certificado digital (2500 pts)
-
 ## API Endpoints
 
 ### Autenticación
@@ -600,7 +547,6 @@ npm run seed:gamification
 - `GET /api/gamification` - Datos de gamificación
 - `GET /api/gamification/achievements` - Logros
 - `GET /api/gamification/challenges` - Desafíos
-- `GET /api/gamification/leaderboard` - Leaderboard
 - `GET /api/gamification/student-progress` - Progreso
 - `GET /api/gamification/student-progress/[id]` - Progreso individual
 
@@ -635,8 +581,7 @@ npm run seed:gamification
 
 4. **Prevención de Exploits:**
    - Transacciones atómicas para operaciones críticas
-   - Función `redeem_reward` SECURITY DEFINER
-   - Verificaciones de stock y límites
+   - Validaciones de integridad de datos
    - Prevención de race conditions
 
 5. **Seguridad de Sesión:**
@@ -662,24 +607,15 @@ npm run seed:gamification
 ## Roadmap Futuro
 
 ### Características Planeadas
-- Sistema de chat entre docentes y estudiantes
-- Notificaciones push
-- Modo offline
 - Reportes avanzados con gráficos
 - Exportación de datos en PDF/Excel
-- Integración con calendario
 - Sistema de tareas y deberes
 - Biblioteca de recursos multimedia
-- Foros de discusión
-- Sistema de mensajería
-- Videollamadas integradas
 
 ### Mejoras Técnicas
 - PWA (Progressive Web App)
-- Aplicación móvil nativa
-- Integración con APIs de IA para feedback
-- Sistema de reconocimiento de voz
-- Análisis predictivo de rendimiento
+- Optimizaciones de rendimiento
+- Análisis detallado de aprendizaje
 
 ## Soporte y Documentación
 

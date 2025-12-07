@@ -25,7 +25,7 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
             onClick={() => router.push('/estudiante/gamification/missions')}
             className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
@@ -85,27 +85,6 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
             </div>
             <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold">
               <span>Ver mi progreso</span>
-              <span className="group-hover:translate-x-2 transition-transform">→</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/estudiante/gamification/rewards')}
-            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">💎</span>
-              <div>
-                <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                  Recompensas
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Canjea tus puntos por premios
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
-              <span>Explorar tienda</span>
               <span className="group-hover:translate-x-2 transition-transform">→</span>
             </div>
           </button>

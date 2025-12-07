@@ -13,7 +13,7 @@ The Gamification Module is fully implemented and provides a game-like learning e
 ### Routes Structure
 
 ```
-/estudiante/gamification     → Student view (achievements, points, leaderboard)
+/estudiante/gamification     → Student view (achievements, points, progress)
 /docente/gamification        → Teacher view (create challenges, track progress)
 /administrador/gamification  → Admin view (global settings, moderation)
 ```
@@ -44,7 +44,7 @@ src/
 ├── hooks/
 │   ├── useGamification.ts
 │   ├── useAchievements.ts
-│   └── useLeaderboard.ts
+│   └── useProgress.ts
 │
 ├── types/
 │   └── gamification.types.ts
@@ -52,13 +52,12 @@ src/
 └── lib/gamification/
     ├── points-calculator.ts
     ├── achievement-validator.ts
-    └── leaderboard-utils.ts
+    └── badge-assignment.ts
 
 app/api/gamification/
 ├── route.ts
 ├── achievements/route.ts
-├── challenges/route.ts
-└── leaderboard/route.ts
+└── challenges/route.ts
 ```
 
 ## 🔗 Integration with Existing Auth System
@@ -69,8 +68,8 @@ The gamification module integrates seamlessly with the existing authentication s
 - **Route Protection**: Each View component verifies authentication and role
 - **User Identification**: Uses `usuario.id_usuario` as foreign key in all tables
 - **Role-Based Access**:
-  - Students: View their own progress, achievements, and leaderboard
-  - Teachers: Create challenges, view class statistics, award manual points
+  - Students: View their own progress, achievements, and stats
+  - Teachers: Create challenges, view class statistics, track student progress
   - Admins: Global configuration, achievement management, moderation
 
 ## 🗄️ Database Schema
