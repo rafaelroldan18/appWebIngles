@@ -1,11 +1,12 @@
 import { MissionPlayView } from '@/components/features/gamification/student/MissionPlayView';
 
 interface MissionPlayPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function MissionPlayPage({ params }: MissionPlayPageProps) {
-  return <MissionPlayView missionId={params.id} />;
+export default async function MissionPlayPage({ params }: MissionPlayPageProps) {
+  const { id } = await params;
+  return <MissionPlayView missionId={id} />;
 }

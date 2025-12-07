@@ -63,18 +63,23 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
 
     try {
       setLoading(true);
-      const [missionData, activitiesData, attemptData] = await Promise.all([
-        getMissionById(missionId),
-        getActivitiesForMission(missionId),
-        getCurrentMissionAttempt(usuario.id_usuario, missionId),
-      ]);
+      setError(null);
+
+      const missionData = await getMissionById(missionId);
+      if (!missionData) {
+        setError('Misión no encontrada');
+        return;
+      }
+
+      const activitiesData = await getActivitiesForMission(missionId);
+      const attemptData = await getCurrentMissionAttempt(usuario.id_usuario, missionId);
 
       setMission(missionData);
-      setActivities(activitiesData);
+      setActivities(activitiesData || []);
       setAttempt(attemptData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading mission data:', err);
-      setError('Error al cargar la misión');
+      setError(err?.message || 'Error al cargar la misión. Por favor, intenta nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -122,7 +127,31 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
     );
   }
 
-  if (!user || !usuario || usuario.rol !== 'estudiante' || !mission) {
+  if (error || !mission) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
+        <div className="max-w-md text-center">
+          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-red-200 dark:border-red-800 p-8">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
+              Error al Cargar Misión
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {error || 'No se pudo cargar la información de la misión'}
+            </p>
+            <button
+              onClick={() => router.push('/estudiante/gamification/missions')}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              Volver a Misiones
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !usuario || usuario.rol !== 'estudiante') {
     return null;
   }
 

@@ -1,11 +1,12 @@
 import { MissionStatsView } from '@/components/features/gamification/teacher/MissionStatsView';
 
 interface MissionStatsPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function MissionStatsPage({ params }: MissionStatsPageProps) {
-  return <MissionStatsView missionId={params.id} />;
+export default async function MissionStatsPage({ params }: MissionStatsPageProps) {
+  const { id } = await params;
+  return <MissionStatsView missionId={id} />;
 }

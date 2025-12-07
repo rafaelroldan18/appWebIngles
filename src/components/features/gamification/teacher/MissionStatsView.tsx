@@ -15,6 +15,7 @@ export function MissionStatsView({ missionId }: MissionStatsViewProps) {
   const [mission, setMission] = useState<Mission | null>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -22,14 +23,22 @@ export function MissionStatsView({ missionId }: MissionStatsViewProps) {
 
   const loadData = async () => {
     try {
-      const [missionData, statsData] = await Promise.all([
-        getMissionById(missionId),
-        getMissionStatistics(missionId),
-      ]);
+      setLoading(true);
+      setError(null);
+
+      const missionData = await getMissionById(missionId);
+      if (!missionData) {
+        setError('Misión no encontrada');
+        return;
+      }
+
+      const statsData = await getMissionStatistics(missionId);
+
       setMission(missionData);
       setStats(statsData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading mission stats:', err);
+      setError(err?.message || 'Error al cargar las estadísticas de la misión');
     } finally {
       setLoading(false);
     }
@@ -37,6 +46,30 @@ export function MissionStatsView({ missionId }: MissionStatsViewProps) {
 
   if (loading) {
     return <LoadingSpinner message="Loading statistics..." size="large" />;
+  }
+
+  if (error || !mission) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
+        <div className="max-w-md text-center">
+          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-red-200 dark:border-red-800 p-8">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-4">
+              Error al Cargar Estadísticas
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {error || 'No se pudieron cargar las estadísticas de la misión'}
+            </p>
+            <button
+              onClick={() => router.push('/docente/gamification/missions')}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+            >
+              Volver a Misiones
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

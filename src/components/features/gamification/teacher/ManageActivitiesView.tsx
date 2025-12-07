@@ -51,15 +51,19 @@ export function ManageActivitiesView({ missionId }: ManageActivitiesViewProps) {
     setError(null);
 
     try {
-      const [missionData, activitiesData] = await Promise.all([
-        getMissionById(missionId),
-        getActivitiesForMission(missionId),
-      ]);
+      const missionData = await getMissionById(missionId);
+      if (!missionData) {
+        setError('Misión no encontrada');
+        return;
+      }
+
+      const activitiesData = await getActivitiesForMission(missionId);
+
       setMission(missionData);
-      setActivities(activitiesData);
-    } catch (err) {
+      setActivities(activitiesData || []);
+    } catch (err: any) {
       console.error('Error loading mission data:', err);
-      setError('Failed to load mission data');
+      setError(err?.message || 'Error al cargar la información de la misión');
     } finally {
       setLoading(false);
     }

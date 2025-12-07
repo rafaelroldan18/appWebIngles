@@ -56,7 +56,15 @@ export function EditMissionForm({ missionId }: EditMissionFormProps) {
 
   const loadMission = async () => {
     try {
+      setLoading(true);
+      setError(null);
+
       const data = await getMissionById(missionId);
+      if (!data) {
+        setError('Misión no encontrada');
+        return;
+      }
+
       setMission(data);
       setFormData({
         unit_number: data.unit_number,
@@ -69,9 +77,9 @@ export function EditMissionForm({ missionId }: EditMissionFormProps) {
         estimated_duration_minutes: data.estimated_duration_minutes,
         order_index: data.order_index,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading mission:', err);
-      setError('Failed to load mission');
+      setError(err?.message || 'Error al cargar la misión');
     } finally {
       setLoading(false);
     }

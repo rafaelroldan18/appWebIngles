@@ -6,10 +6,11 @@
 
 import { ManageActivitiesView } from '@/components/features/gamification/teacher/ManageActivitiesView';
 
-export default function MissionActivitiesPage({
+export default async function MissionActivitiesPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <ManageActivitiesView missionId={params.id} />;
+  const { id } = await params;
+  return <ManageActivitiesView missionId={id} />;
 }

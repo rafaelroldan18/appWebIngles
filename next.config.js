@@ -4,6 +4,9 @@ const nextConfig = {
   images: {
     domains: [],
   },
+  experimental: {
+    serverSourceMaps: false,
+  },
 }
 
 module.exports = nextConfig
