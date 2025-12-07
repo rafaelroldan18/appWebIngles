@@ -10,10 +10,21 @@ import {
   QuizContent,
   CompleteSentenceContent,
   MatchUpContent,
+  MatchingPairsContent,
+  FlashcardsContent,
+  SpeakingCardsContent,
+  OpenBoxContent,
+  GroupSortContent,
+  AnagramContent,
+  UnjumbleContent,
+  HangmanContent,
 } from '@/types/gamification.types';
 import { QuizActivity } from './activities/QuizActivity';
 import { FillInBlankActivity } from './activities/FillInBlankActivity';
 import { MatchingActivity } from './activities/MatchingActivity';
+import { FlashcardsActivity } from './activities/FlashcardsActivity';
+import { GroupSortActivity } from './activities/GroupSortActivity';
+import { WordPuzzleActivity } from './activities/WordPuzzleActivity';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { completeActivity } from '@/services/gamification-progress.service';
 
@@ -294,7 +305,35 @@ export function ActivityRunner({
             currentActivity.activity_type === 'matching_pairs') && (
             <MatchingActivity
               activity={currentActivity}
-              content={currentActivity.content_data as MatchUpContent}
+              content={currentActivity.content_data as MatchUpContent | MatchingPairsContent}
+              onSubmit={handleActivitySubmit}
+            />
+          )}
+
+          {(currentActivity.activity_type === 'flashcards' ||
+            currentActivity.activity_type === 'speaking_cards' ||
+            currentActivity.activity_type === 'open_box') && (
+            <FlashcardsActivity
+              activity={currentActivity}
+              content={currentActivity.content_data as FlashcardsContent | SpeakingCardsContent | OpenBoxContent}
+              onSubmit={handleActivitySubmit}
+            />
+          )}
+
+          {currentActivity.activity_type === 'group_sort' && (
+            <GroupSortActivity
+              activity={currentActivity}
+              content={currentActivity.content_data as GroupSortContent}
+              onSubmit={handleActivitySubmit}
+            />
+          )}
+
+          {(currentActivity.activity_type === 'anagram' ||
+            currentActivity.activity_type === 'unjumble' ||
+            currentActivity.activity_type === 'hangman') && (
+            <WordPuzzleActivity
+              activity={currentActivity}
+              content={currentActivity.content_data as AnagramContent | UnjumbleContent | HangmanContent}
               onSubmit={handleActivitySubmit}
             />
           )}
@@ -304,6 +343,13 @@ export function ActivityRunner({
             'complete_sentence',
             'match_up',
             'matching_pairs',
+            'flashcards',
+            'speaking_cards',
+            'open_box',
+            'group_sort',
+            'anagram',
+            'unjumble',
+            'hangman',
           ].includes(currentActivity.activity_type) && (
             <div className="text-center">
               <p className="text-lg text-gray-600 dark:text-gray-400">

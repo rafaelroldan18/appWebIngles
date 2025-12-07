@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, MatchUpContent } from '@/types/gamification.types';
+import { Activity, MatchUpContent, MatchingPairsContent } from '@/types/gamification.types';
 
 interface MatchingActivityProps {
   activity: Activity;
-  content: MatchUpContent;
+  content: MatchUpContent | MatchingPairsContent;
   onSubmit: (
     isCorrect: boolean,
     scorePercentage: number,
@@ -26,10 +26,13 @@ export function MatchingActivity({
   const [results, setResults] = useState<boolean[]>([]);
 
   useEffect(() => {
-    const left = content.pairs.map((p) => p.term);
-    const right = [...content.pairs.map((p) => p.definition)].sort(
-      () => Math.random() - 0.5
-    );
+    const isMatchUp = content.type === 'match_up';
+    const left = isMatchUp
+      ? content.pairs.map((p) => p.term)
+      : content.pairs.map((p) => p.id);
+    const right = isMatchUp
+      ? [...content.pairs.map((p) => p.definition)].sort(() => Math.random() - 0.5)
+      : [...content.pairs.map((p) => p.match)].sort(() => Math.random() - 0.5);
     setLeftItems(left);
     setRightItems(right);
   }, [content]);
@@ -68,13 +71,20 @@ export function MatchingActivity({
   };
 
   const handleSubmit = () => {
+    const isMatchUp = content.type === 'match_up';
     const pairResults = leftItems.map((leftItem, idx) => {
       const matchedRightIndex = matches.get(idx);
       if (matchedRightIndex === undefined) return false;
 
       const matchedRightItem = rightItems[matchedRightIndex];
-      const correctPair = content.pairs.find((p) => p.term === leftItem);
-      return correctPair?.definition === matchedRightItem;
+
+      if (isMatchUp) {
+        const correctPair = content.pairs.find((p) => p.term === leftItem);
+        return correctPair?.definition === matchedRightItem;
+      } else {
+        const correctPair = content.pairs.find((p) => p.id === leftItem);
+        return correctPair?.match === matchedRightItem;
+      }
     });
 
     setResults(pairResults);
