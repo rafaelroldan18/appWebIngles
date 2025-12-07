@@ -301,7 +301,7 @@ async function seedGamificationData() {
     console.log('\n' + '='.repeat(60));
     console.log('✨ Seeding complete!\n');
     console.log(`📊 Summary:`);
-    console.log(`   Total missions created/updated: ${totalMissions}`);
+    console.log(`   Total missions created: ${totalMissions}`);
     console.log(`   Total activities created: ${totalActivities}`);
     console.log('\n✅ All content for Units 13-16 is now available!\n');
 
