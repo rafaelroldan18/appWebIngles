@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase-browser';
 
 export interface CompleteActivityData {
   userId: string;
@@ -48,6 +48,7 @@ export async function completeActivity(data: CompleteActivityData): Promise<{
   error?: string;
 }> {
   try {
+    const supabase = createClient();
     const basePoints = 10;
     const bonusPoints = data.scorePercentage === 100 ? 5 : 0;
     const pointsEarned = basePoints + bonusPoints;
@@ -193,6 +194,7 @@ async function checkAndAssignBadges(
   const newBadges: BadgeEarned[] = [];
 
   try {
+    const supabase = createClient();
     const { data: existingBadges } = await supabase
       .from('gamification_user_badges')
       .select('badge_id, gamification_badges(code)')
@@ -259,6 +261,7 @@ async function checkAndAssignBadges(
 
 export async function getUserProgress(userId: string): Promise<UserProgress | null> {
   try {
+    const supabase = createClient();
     const { data: allAttempts } = await supabase
       .from('gamification_mission_attempts')
       .select('points_earned, status')
@@ -288,6 +291,7 @@ export async function getUserProgress(userId: string): Promise<UserProgress | nu
 
 export async function getMissionProgress(userId: string, missionId: string): Promise<MissionProgress | null> {
   try {
+    const supabase = createClient();
     const { data: attempt } = await supabase
       .from('gamification_mission_attempts')
       .select('activities_completed, total_activities, points_earned, status')
@@ -325,6 +329,7 @@ export async function getMissionProgress(userId: string, missionId: string): Pro
 
 export async function getUserBadges(userId: string): Promise<BadgeEarned[]> {
   try {
+    const supabase = createClient();
     const { data: userBadges } = await supabase
       .from('gamification_user_badges')
       .select(

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import type { LoginRequest, RegisterRequest, AuthResponse, AuthSession } from '@/types/auth.types';
+import { createClient } from '@/lib/supabase-browser';
 
 export class AuthService {
   private static baseUrl = '/api/auth';
@@ -37,6 +38,9 @@ export class AuthService {
     if (!response.ok) {
       throw new Error(result.error || 'Error al iniciar sesión');
     }
+
+    const supabase = createClient();
+    await supabase.auth.getSession();
 
     return result;
   }
