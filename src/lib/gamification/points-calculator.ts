@@ -18,11 +18,17 @@ const DIFFICULTY_MULTIPLIERS: Record<DifficultyLevel, number> = {
 // Base points by activity type
 const ACTIVITY_BASE_POINTS: Record<ActivityType, number> = {
   quiz: 10,
-  matching: 8,
-  fill_in_blank: 10,
-  ordering: 8,
-  multiple_choice: 10,
-  true_false: 5,
+  match_up: 8,
+  matching_pairs: 8,
+  group_sort: 10,
+  complete_sentence: 10,
+  flashcards: 8,
+  spin_wheel: 6,
+  open_box: 6,
+  anagram: 8,
+  unjumble: 10,
+  speaking_cards: 12,
+  hangman: 10,
 };
 
 // Streak bonus milestones and multipliers

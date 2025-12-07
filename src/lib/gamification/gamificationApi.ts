@@ -599,18 +599,12 @@ export async function getUserGamificationStats(
 ): Promise<UserGamificationStats> {
   const supabase = createClient();
 
-  const [progressData, streakData, badgesData, missionsData] =
+  const [progressData, badgesData, missionsData, perfectScoresData] =
     await Promise.all([
       supabase
         .from('progreso_estudiantes')
         .select('*')
         .eq('id_estudiante', userId)
-        .maybeSingle(),
-
-      supabase
-        .from('gamification_streaks')
-        .select('*')
-        .eq('user_id', userId)
         .maybeSingle(),
 
       supabase
@@ -620,25 +614,36 @@ export async function getUserGamificationStats(
 
       supabase
         .from('gamification_mission_attempts')
-        .select('id')
+        .select('id, score_percentage')
         .eq('user_id', userId)
         .eq('status', 'completed'),
+
+      supabase
+        .from('gamification_activity_attempts')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('score_percentage', 100),
     ]);
 
   const progress = progressData.data;
-  const streak = streakData.data;
   const badges = badgesData.data || [];
   const missions = missionsData.data || [];
+  const perfectScores = perfectScoresData.data || [];
+
+  const averageScore =
+    missions.length > 0
+      ? missions.reduce((sum, m) => sum + (m.score_percentage || 0), 0) /
+        missions.length
+      : 0;
 
   return {
     totalPoints: progress?.puntaje_total || 0,
     currentLevel: progress?.nivel_actual || 1,
     activitiesCompleted: progress?.actividades_completadas || 0,
-    currentStreak: streak?.current_streak || 0,
-    longestStreak: streak?.longest_streak || 0,
-    badgesEarned: badges.length,
     missionsCompleted: missions.length,
-    lastActivityDate: streak?.last_activity_date || null,
+    badgesEarned: badges.length,
+    perfectScores: perfectScores.length,
+    averageScore: Math.round(averageScore),
   };
 }
 

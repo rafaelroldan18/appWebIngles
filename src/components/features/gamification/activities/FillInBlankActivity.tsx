@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Activity, FillInBlankContent } from '@/types/gamification.types';
+import { Activity, CompleteSentenceContent } from '@/types/gamification.types';
 
 interface FillInBlankActivityProps {
   activity: Activity;
-  content: FillInBlankContent;
+  content: CompleteSentenceContent;
   onSubmit: (
     isCorrect: boolean,
     scorePercentage: number,

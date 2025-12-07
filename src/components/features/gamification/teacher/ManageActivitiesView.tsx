@@ -98,10 +98,28 @@ export function ManageActivitiesView({ missionId }: ManageActivitiesViewProps) {
     switch (type) {
       case 'quiz':
         return '❓';
-      case 'matching':
+      case 'match_up':
         return '🔗';
-      case 'fill_in_blank':
+      case 'matching_pairs':
+        return '🎴';
+      case 'complete_sentence':
         return '📝';
+      case 'group_sort':
+        return '📊';
+      case 'flashcards':
+        return '🗂️';
+      case 'spin_wheel':
+        return '🎡';
+      case 'open_box':
+        return '📦';
+      case 'anagram':
+        return '🔤';
+      case 'unjumble':
+        return '🧩';
+      case 'speaking_cards':
+        return '🗣️';
+      case 'hangman':
+        return '🎯';
       default:
         return '📋';
     }
@@ -348,23 +366,69 @@ function ActivityFormModal({ missionId, activity, onClose, onSave }: ActivityFor
               question: 'Sample question?',
               options: ['Option A', 'Option B', 'Option C', 'Option D'],
               correct: 0,
-              explanation: 'Edit this question in the database or through API',
+              feedback: 'Edit this question in the database or through API',
             },
           ],
         };
-      case 'matching':
+      case 'match_up':
         return {
-          type: 'matching' as const,
+          type: 'match_up' as const,
           pairs: [
-            { left: 'Item 1', right: 'Match 1' },
-            { left: 'Item 2', right: 'Match 2' },
+            { term: 'Term 1', definition: 'Definition 1' },
+            { term: 'Term 2', definition: 'Definition 2' },
           ],
         };
-      case 'fill_in_blank':
+      case 'matching_pairs':
         return {
-          type: 'fill_in_blank' as const,
+          type: 'matching_pairs' as const,
+          pairs: [
+            { id: 'Item 1', match: 'Item 1' },
+            { id: 'Item 2', match: 'Item 2' },
+          ],
+        };
+      case 'complete_sentence':
+        return {
+          type: 'complete_sentence' as const,
           sentence: 'This is a sample ___ with a blank.',
           blanks: [{ position: 17, answer: 'sentence', alternatives: [] }],
+          feedback: 'Edit this activity in the database',
+        };
+      case 'group_sort':
+        return {
+          type: 'group_sort' as const,
+          groups: [
+            { name: 'Group 1', items: ['Item A', 'Item B'] },
+            { name: 'Group 2', items: ['Item C', 'Item D'] },
+          ],
+        };
+      case 'flashcards':
+        return {
+          type: 'flashcards' as const,
+          cards: [
+            { front: 'Question 1', back: 'Answer 1' },
+            { front: 'Question 2', back: 'Answer 2' },
+          ],
+        };
+      case 'anagram':
+        return {
+          type: 'anagram' as const,
+          word: 'example',
+          scrambled: 'xamplee',
+          hint: 'A sample word',
+        };
+      case 'unjumble':
+        return {
+          type: 'unjumble' as const,
+          sentence: 'This is a sentence',
+          words: ['is', 'This', 'a', 'sentence'],
+        };
+      case 'hangman':
+        return {
+          type: 'hangman' as const,
+          word: 'example',
+          hint: 'A sample word',
+          category: 'Vocabulary',
+          maxAttempts: 6,
         };
       default:
         return { type: 'quiz' as const, questions: [] };

@@ -89,16 +89,16 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'matching',
+          type: 'match_up',
           title: 'Match Places and Activities',
           prompt: 'Match each place with what you can do there.',
           content_data: {
-            type: 'matching',
+            type: 'match_up',
             pairs: [
-              { left: 'cinema', right: 'watch movies' },
-              { left: 'park', right: 'play and relax' },
-              { left: 'supermarket', right: 'buy food' },
-              { left: 'museum', right: 'see art and history' }
+              { term: 'cinema', definition: 'watch movies' },
+              { term: 'park', definition: 'play and relax' },
+              { term: 'supermarket', definition: 'buy food' },
+              { term: 'museum', definition: 'see art and history' }
             ]
           },
           points_value: 33,
@@ -108,11 +108,11 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'fill_in_blank',
+          type: 'complete_sentence',
           title: 'Complete the Sentences',
           prompt: 'Fill in the blanks with the correct words.',
           content_data: {
-            type: 'fill_in_blank',
+            type: 'complete_sentence',
             sentence: 'Is there a ___ near here? I need to buy medicine.',
             blanks: [
               {
@@ -169,15 +169,15 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'matching',
+          type: 'match_up',
           title: 'Prepositions Practice',
           prompt: 'Match the sentences with the correct preposition.',
           content_data: {
-            type: 'matching',
+            type: 'match_up',
             pairs: [
-              { left: 'The shop is ___ the corner', right: 'on' },
-              { left: 'Walk ___ the bridge', right: 'across' },
-              { left: 'The café is ___ the bank', right: 'opposite' }
+              { term: 'The shop is ___ the corner', definition: 'on' },
+              { term: 'Walk ___ the bridge', definition: 'across' },
+              { term: 'The café is ___ the bank', definition: 'opposite' }
             ]
           },
           points_value: 50,
@@ -187,11 +187,11 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'fill_in_blank',
+          type: 'complete_sentence',
           title: 'Directions',
           prompt: 'Complete the directions.',
           content_data: {
-            type: 'fill_in_blank',
+            type: 'complete_sentence',
             sentence: 'Turn left ___ the corner and the bank is on your right.',
             blanks: [
               { position: 10, answer: 'at', alternatives: [] }
@@ -246,15 +246,15 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'matching',
+          type: 'match_up',
           title: 'Transport and Places',
           prompt: 'Match transport with where you find it.',
           content_data: {
-            type: 'matching',
+            type: 'match_up',
             pairs: [
-              { left: 'plane', right: 'airport' },
-              { left: 'train', right: 'station' },
-              { left: 'ferry', right: 'port' }
+              { term: 'plane', definition: 'airport' },
+              { term: 'train', definition: 'station' },
+              { term: 'ferry', definition: 'port' }
             ]
           },
           points_value: 50,
@@ -306,15 +306,15 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'matching',
+          type: 'match_up',
           title: 'Clothes and Occasions',
           prompt: 'Match clothing with occasions.',
           content_data: {
-            type: 'matching',
+            type: 'match_up',
             pairs: [
-              { left: 'swimsuit', right: 'at the beach' },
-              { left: 'pyjamas', right: 'in bed' },
-              { left: 'coat', right: 'in cold weather' }
+              { term: 'swimsuit', definition: 'at the beach' },
+              { term: 'pyjamas', definition: 'in bed' },
+              { term: 'coat', definition: 'in cold weather' }
             ]
           },
           points_value: 50,
@@ -366,15 +366,15 @@ export const CONTENT_TEMPLATES: Record<number, MissionTemplate[]> = {
           }
         },
         {
-          type: 'matching',
+          type: 'match_up',
           title: 'Shops and Products',
           prompt: 'Match shops with what they sell.',
           content_data: {
-            type: 'matching',
+            type: 'match_up',
             pairs: [
-              { left: 'bookshop', right: 'books' },
-              { left: 'butcher', right: 'meat' },
-              { left: 'chemist', right: 'medicine' }
+              { term: 'bookshop', definition: 'books' },
+              { term: 'butcher', definition: 'meat' },
+              { term: 'chemist', definition: 'medicine' }
             ]
           },
           points_value: 50,

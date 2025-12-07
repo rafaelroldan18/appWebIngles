@@ -20,11 +20,17 @@ export type MissionType =
 
 export type ActivityType =
   | 'quiz'
-  | 'matching'
-  | 'fill_in_blank'
-  | 'ordering'
-  | 'multiple_choice'
-  | 'true_false';
+  | 'match_up'
+  | 'matching_pairs'
+  | 'group_sort'
+  | 'complete_sentence'
+  | 'flashcards'
+  | 'spin_wheel'
+  | 'open_box'
+  | 'anagram'
+  | 'unjumble'
+  | 'speaking_cards'
+  | 'hangman';
 
 export interface Mission {
   id: string;
@@ -57,14 +63,19 @@ export interface Activity {
   created_at: string;
 }
 
-// Flexible content structure for different activity types
 export type ActivityContentData =
   | QuizContent
-  | MatchingContent
-  | FillInBlankContent
-  | OrderingContent
-  | MultipleChoiceContent
-  | TrueFalseContent;
+  | MatchUpContent
+  | MatchingPairsContent
+  | GroupSortContent
+  | CompleteSentenceContent
+  | FlashcardsContent
+  | SpinWheelContent
+  | OpenBoxContent
+  | AnagramContent
+  | UnjumbleContent
+  | SpeakingCardsContent
+  | HangmanContent;
 
 export interface QuizContent {
   type: 'quiz';
@@ -72,47 +83,100 @@ export interface QuizContent {
     question: string;
     options: string[];
     correct: number;
-    explanation?: string;
+    feedback?: string;
   }[];
 }
 
-export interface MatchingContent {
-  type: 'matching';
+export interface MatchUpContent {
+  type: 'match_up';
   pairs: {
-    left: string;
-    right: string;
+    term: string;
+    definition: string;
   }[];
 }
 
-export interface FillInBlankContent {
-  type: 'fill_in_blank';
+export interface MatchingPairsContent {
+  type: 'matching_pairs';
+  pairs: {
+    id: string;
+    match: string;
+  }[];
+}
+
+export interface GroupSortContent {
+  type: 'group_sort';
+  groups: {
+    name: string;
+    items: string[];
+  }[];
+}
+
+export interface CompleteSentenceContent {
+  type: 'complete_sentence';
   sentence: string;
   blanks: {
     position: number;
     answer: string;
     alternatives?: string[];
   }[];
+  feedback?: string;
 }
 
-export interface OrderingContent {
-  type: 'ordering';
-  items: string[];
-  correctOrder: number[];
+export interface FlashcardsContent {
+  type: 'flashcards';
+  cards: {
+    front: string;
+    back: string;
+  }[];
 }
 
-export interface MultipleChoiceContent {
-  type: 'multiple_choice';
-  question: string;
-  options: string[];
-  correct: number;
-  explanation?: string;
+export interface SpinWheelContent {
+  type: 'spin_wheel';
+  segments: string[];
+  question?: string;
+  correctSegment: number;
 }
 
-export interface TrueFalseContent {
-  type: 'true_false';
-  statement: string;
-  correct: boolean;
-  explanation?: string;
+export interface OpenBoxContent {
+  type: 'open_box';
+  items: {
+    label: string;
+    content: string;
+    isCorrect?: boolean;
+  }[];
+  question?: string;
+}
+
+export interface AnagramContent {
+  type: 'anagram';
+  word: string;
+  scrambled: string;
+  hint?: string;
+  feedback?: string;
+}
+
+export interface UnjumbleContent {
+  type: 'unjumble';
+  sentence: string;
+  words: string[];
+  feedback?: string;
+}
+
+export interface SpeakingCardsContent {
+  type: 'speaking_cards';
+  cards: {
+    prompt: string;
+    guidingQuestions?: string[];
+    vocabulary?: string[];
+  }[];
+}
+
+export interface HangmanContent {
+  type: 'hangman';
+  word: string;
+  hint?: string;
+  category?: string;
+  maxAttempts?: number;
 }
 
 // ============================================================================
@@ -165,9 +229,8 @@ export type BadgeType = 'achievement' | 'milestone' | 'special' | 'seasonal';
 export type BadgeCriteriaType =
   | 'missions_completed'
   | 'points_reached'
-  | 'streak_days'
   | 'perfect_scores'
-  | 'speed_bonus';
+  | 'activities_completed';
 
 export type BadgeRarity = 'common' | 'rare';
 
@@ -221,7 +284,7 @@ export interface PointsTransaction {
 }
 
 // ============================================================================
-// STREAKS
+// STREAKS (SIMPLIFIED)
 // ============================================================================
 
 export interface Streak {
@@ -230,8 +293,6 @@ export interface Streak {
   current_streak: number;
   longest_streak: number;
   last_activity_date: string | null;
-  streak_started_at: string | null;
-  total_active_days: number;
   updated_at: string;
 }
 
@@ -264,7 +325,7 @@ export interface LevelThresholdsSettings {
 }
 
 // ============================================================================
-// USER PROGRESS & LEADERBOARD
+// USER PROGRESS
 // ============================================================================
 
 export interface UserProgress {
@@ -274,6 +335,7 @@ export interface UserProgress {
   puntaje_total: number;
   nivel_actual: number;
   fecha_ultima_actualizacion: string;
+  misiones_completadas?: number;
 }
 
 
@@ -285,11 +347,10 @@ export interface UserGamificationStats {
   totalPoints: number;
   currentLevel: number;
   activitiesCompleted: number;
-  currentStreak: number;
-  longestStreak: number;
-  badgesEarned: number;
   missionsCompleted: number;
-  lastActivityDate: string | null;
+  badgesEarned: number;
+  perfectScores: number;
+  averageScore: number;
 }
 
 export interface MissionWithProgress {

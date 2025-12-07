@@ -8,8 +8,8 @@ import {
   MissionAttempt,
   ActivityAttempt,
   QuizContent,
-  FillInBlankContent,
-  MatchingContent,
+  CompleteSentenceContent,
+  MatchUpContent,
 } from '@/types/gamification.types';
 import { QuizActivity } from './activities/QuizActivity';
 import { FillInBlankActivity } from './activities/FillInBlankActivity';
@@ -309,23 +309,23 @@ export function ActivityRunner({
             />
           )}
 
-          {currentActivity.activity_type === 'fill_in_blank' && (
+          {currentActivity.activity_type === 'complete_sentence' && (
             <FillInBlankActivity
               activity={currentActivity}
-              content={currentActivity.content_data as FillInBlankContent}
+              content={currentActivity.content_data as CompleteSentenceContent}
               onSubmit={handleActivitySubmit}
             />
           )}
 
-          {currentActivity.activity_type === 'matching' && (
+          {currentActivity.activity_type === 'match_up' && (
             <MatchingActivity
               activity={currentActivity}
-              content={currentActivity.content_data as MatchingContent}
+              content={currentActivity.content_data as MatchUpContent}
               onSubmit={handleActivitySubmit}
             />
           )}
 
-          {!['quiz', 'fill_in_blank', 'matching'].includes(
+          {!['quiz', 'complete_sentence', 'match_up'].includes(
             currentActivity.activity_type
           ) && (
             <div className="text-center">

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Activity, MatchingContent } from '@/types/gamification.types';
+import { Activity, MatchUpContent } from '@/types/gamification.types';
 
 interface MatchingActivityProps {
   activity: Activity;
-  content: MatchingContent;
+  content: MatchUpContent;
   onSubmit: (
     isCorrect: boolean,
     scorePercentage: number,
@@ -26,8 +26,8 @@ export function MatchingActivity({
   const [results, setResults] = useState<boolean[]>([]);
 
   useEffect(() => {
-    const left = content.pairs.map((p) => p.left);
-    const right = [...content.pairs.map((p) => p.right)].sort(
+    const left = content.pairs.map((p) => p.term);
+    const right = [...content.pairs.map((p) => p.definition)].sort(
       () => Math.random() - 0.5
     );
     setLeftItems(left);
@@ -73,8 +73,8 @@ export function MatchingActivity({
       if (matchedRightIndex === undefined) return false;
 
       const matchedRightItem = rightItems[matchedRightIndex];
-      const correctPair = content.pairs.find((p) => p.left === leftItem);
-      return correctPair?.right === matchedRightItem;
+      const correctPair = content.pairs.find((p) => p.term === leftItem);
+      return correctPair?.definition === matchedRightItem;
     });
 
     setResults(pairResults);

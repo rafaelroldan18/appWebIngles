@@ -43,19 +43,6 @@ export async function checkBadgeCriteria(
       return (progress?.puntaje_total || 0) >= badge.criteria_value;
     }
 
-    case 'streak_days': {
-      const { data: streak } = await supabase
-        .from('gamification_streaks')
-        .select('current_streak, longest_streak')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      return (
-        (streak?.current_streak || 0) >= badge.criteria_value ||
-        (streak?.longest_streak || 0) >= badge.criteria_value
-      );
-    }
-
     case 'perfect_scores': {
       const { count } = await supabase
         .from('gamification_activity_attempts')
@@ -66,24 +53,14 @@ export async function checkBadgeCriteria(
       return (count || 0) >= badge.criteria_value;
     }
 
-    case 'speed_bonus': {
-      const { data: attempts } = await supabase
-        .from('gamification_activity_attempts')
-        .select('time_spent_seconds, activity:gamification_activities(time_limit_seconds)')
-        .eq('user_id', userId)
-        .not('activity.time_limit_seconds', 'is', null);
+    case 'activities_completed': {
+      const { data: progress } = await supabase
+        .from('progreso_estudiantes')
+        .select('actividades_completadas')
+        .eq('id_estudiante', userId)
+        .maybeSingle();
 
-      if (!attempts) return false;
-
-      let speedBonusCount = 0;
-      for (const attempt of attempts as any[]) {
-        const timeLimit = attempt.activity?.time_limit_seconds;
-        if (timeLimit && attempt.time_spent_seconds < timeLimit * 0.75) {
-          speedBonusCount++;
-        }
-      }
-
-      return speedBonusCount >= badge.criteria_value;
+      return (progress?.actividades_completadas || 0) >= badge.criteria_value;
     }
 
     default:
@@ -125,16 +102,6 @@ export async function calculateBadgeProgress(
       break;
     }
 
-    case 'streak_days': {
-      const { data: streak } = await supabase
-        .from('gamification_streaks')
-        .select('current_streak')
-        .eq('user_id', userId)
-        .maybeSingle();
-      currentValue = streak?.current_streak || 0;
-      break;
-    }
-
     case 'perfect_scores': {
       const { count } = await supabase
         .from('gamification_activity_attempts')
@@ -145,23 +112,13 @@ export async function calculateBadgeProgress(
       break;
     }
 
-    case 'speed_bonus': {
-      const { data: attempts } = await supabase
-        .from('gamification_activity_attempts')
-        .select('time_spent_seconds, activity:gamification_activities(time_limit_seconds)')
-        .eq('user_id', userId)
-        .not('activity.time_limit_seconds', 'is', null);
-
-      if (attempts) {
-        let speedBonusCount = 0;
-        for (const attempt of attempts as any[]) {
-          const timeLimit = attempt.activity?.time_limit_seconds;
-          if (timeLimit && attempt.time_spent_seconds < timeLimit * 0.75) {
-            speedBonusCount++;
-          }
-        }
-        currentValue = speedBonusCount;
-      }
+    case 'activities_completed': {
+      const { data: progress } = await supabase
+        .from('progreso_estudiantes')
+        .select('actividades_completadas')
+        .eq('id_estudiante', userId)
+        .maybeSingle();
+      currentValue = progress?.actividades_completadas || 0;
       break;
     }
   }
@@ -257,12 +214,10 @@ export function getBadgeCriteriaDescription(badge: Badge): string {
       return `Complete ${value} mission${value > 1 ? 's' : ''}`;
     case 'points_reached':
       return `Reach ${value.toLocaleString()} points`;
-    case 'streak_days':
-      return `Maintain a ${value}-day streak`;
     case 'perfect_scores':
       return `Get ${value} perfect score${value > 1 ? 's' : ''}`;
-    case 'speed_bonus':
-      return `Complete ${value} activities with speed bonus`;
+    case 'activities_completed':
+      return `Complete ${value} activit${value > 1 ? 'ies' : 'y'}`;
     default:
       return 'Unknown criteria';
   }
