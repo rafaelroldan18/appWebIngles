@@ -15,12 +15,7 @@ import { QuizActivity } from './activities/QuizActivity';
 import { FillInBlankActivity } from './activities/FillInBlankActivity';
 import { MatchingActivity } from './activities/MatchingActivity';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import {
-  recordActivityAttempt,
-  completeMission,
-  getUserProgress,
-} from '@/lib/gamification/gamificationApi';
-import { checkAndAwardBadges } from '@/lib/gamification/badge-assignment';
+import { completeActivity } from '@/services/gamification-progress.service';
 
 interface ActivityResult {
   activityId: string;
@@ -54,7 +49,6 @@ export function ActivityRunner({
   const [isCompleted, setIsCompleted] = useState(false);
   const [totalPointsEarned, setTotalPointsEarned] = useState(0);
   const [newBadges, setNewBadges] = useState<any[]>([]);
-  const [updatedTotalPoints, setUpdatedTotalPoints] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const currentActivity = activities[currentIndex];
@@ -70,37 +64,48 @@ export function ActivityRunner({
     userAnswers: Record<string, any>
   ) => {
     const timeSpent = Math.floor((Date.now() - activityStartTime) / 1000);
-    const pointsEarned = isCorrect
-      ? Math.floor(currentActivity.points_value * (scorePercentage / 100))
-      : 0;
-
-    const result: ActivityResult = {
-      activityId: currentActivity.id,
-      isCorrect,
-      scorePercentage,
-      pointsEarned,
-      timeSpentSeconds: timeSpent,
-      userAnswers,
-    };
-
-    setResults([...results, result]);
 
     try {
       setIsSubmitting(true);
       setError(null);
 
-      await recordActivityAttempt({
-        user_id: userId,
-        activity_id: currentActivity.id,
-        mission_attempt_id: missionAttempt.id,
-        user_answers: userAnswers,
-        is_correct: isCorrect,
-        score_percentage: scorePercentage,
-        time_spent_seconds: timeSpent,
+      const response = await completeActivity({
+        userId,
+        activityId: currentActivity.id,
+        missionId: mission.id,
+        userAnswers,
+        isCorrect,
+        scorePercentage,
+        timeSpentSeconds: timeSpent,
       });
 
-      if (isLastActivity) {
-        await completeMissionFlow([...results, result]);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to complete activity');
+      }
+
+      const result: ActivityResult = {
+        activityId: currentActivity.id,
+        isCorrect,
+        scorePercentage,
+        pointsEarned: response.pointsEarned,
+        timeSpentSeconds: timeSpent,
+        userAnswers,
+      };
+
+      const updatedResults = [...results, result];
+      setResults(updatedResults);
+
+      if (response.newBadges && response.newBadges.length > 0) {
+        setNewBadges((prev) => [...prev, ...response.newBadges]);
+      }
+
+      if (isLastActivity || response.missionCompleted) {
+        const totalPoints = updatedResults.reduce(
+          (sum, r) => sum + r.pointsEarned,
+          0
+        );
+        setTotalPointsEarned(totalPoints);
+        setIsCompleted(true);
       } else {
         setCurrentIndex(currentIndex + 1);
       }
@@ -112,44 +117,6 @@ export function ActivityRunner({
     }
   };
 
-  const completeMissionFlow = async (allResults: ActivityResult[]) => {
-    try {
-      const totalPoints = allResults.reduce(
-        (sum, r) => sum + r.pointsEarned,
-        0
-      );
-      const totalPossiblePoints = activities.reduce(
-        (sum, a) => sum + a.points_value,
-        0
-      );
-      const completionPercentage = Math.floor(
-        (totalPoints / totalPossiblePoints) * 100
-      );
-      const totalTimeSpent = allResults.reduce(
-        (sum, r) => sum + r.timeSpentSeconds,
-        0
-      );
-
-      await completeMission({
-        attempt_id: missionAttempt.id,
-        score_percentage: completionPercentage,
-        points_earned: totalPoints,
-        time_spent_seconds: totalTimeSpent,
-      });
-
-      const earnedBadges = await checkAndAwardBadges(userId);
-      setNewBadges(earnedBadges);
-
-      const progressData = await getUserProgress(userId);
-      setUpdatedTotalPoints(progressData?.puntaje_total || 0);
-
-      setTotalPointsEarned(totalPoints);
-      setIsCompleted(true);
-    } catch (err) {
-      console.error('Error completing mission:', err);
-      setError('Failed to complete mission. Please contact support.');
-    }
-  };
 
   if (isCompleted) {
     return (
@@ -165,23 +132,12 @@ export function ActivityRunner({
 
           <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg p-6 mb-6 border-2 border-yellow-300 dark:border-yellow-700">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Mission Points Earned
+              Total Points Earned
             </p>
             <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">
               +{totalPointsEarned}
             </p>
           </div>
-
-          {updatedTotalPoints > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border-2 border-blue-200 dark:border-blue-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Updated Total Points
-              </p>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                {updatedTotalPoints}
-              </p>
-            </div>
-          )}
 
           {newBadges.length > 0 && (
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 mb-6 border-2 border-purple-300 dark:border-purple-700">
@@ -317,7 +273,8 @@ export function ActivityRunner({
             />
           )}
 
-          {currentActivity.activity_type === 'match_up' && (
+          {(currentActivity.activity_type === 'match_up' ||
+            currentActivity.activity_type === 'matching_pairs') && (
             <MatchingActivity
               activity={currentActivity}
               content={currentActivity.content_data as MatchUpContent}
@@ -325,9 +282,12 @@ export function ActivityRunner({
             />
           )}
 
-          {!['quiz', 'complete_sentence', 'match_up'].includes(
-            currentActivity.activity_type
-          ) && (
+          {![
+            'quiz',
+            'complete_sentence',
+            'match_up',
+            'matching_pairs',
+          ].includes(currentActivity.activity_type) && (
             <div className="text-center">
               <p className="text-lg text-gray-600 dark:text-gray-400">
                 Activity type "{currentActivity.activity_type}" is not yet

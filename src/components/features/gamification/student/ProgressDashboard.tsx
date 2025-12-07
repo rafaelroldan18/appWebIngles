@@ -11,9 +11,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   getUserProgress,
-  getCompletedMissionsWithPoints,
   getUserBadges,
-} from '@/lib/gamification/gamificationApi';
+} from '@/services/gamification-progress.service';
+import { getCompletedMissionsWithPoints } from '@/lib/gamification/gamificationApi';
 
 interface CompletedMissionData {
   mission_id: string;
@@ -24,16 +24,11 @@ interface CompletedMissionData {
 }
 
 interface UserBadgeData {
-  id: string;
-  badge_id: string;
-  earned_at: string;
-  badge: {
-    name: string;
-    description: string;
-    icon: string;
-    rarity: string;
-    points_reward: number;
-  };
+  badgeId: string;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
 }
 
 export function ProgressDashboard() {
@@ -62,8 +57,8 @@ export function ProgressDashboard() {
 
     try {
       const progressData = await getUserProgress(usuario.id_usuario);
-      setTotalPoints(progressData?.puntaje_total || 0);
-      setCurrentLevel(progressData?.nivel_actual || 1);
+      setTotalPoints(progressData?.totalPoints || 0);
+      setCurrentLevel(progressData?.level || 1);
 
       const missionsData = await getCompletedMissionsWithPoints(
         usuario.id_usuario
@@ -86,21 +81,6 @@ export function ProgressDashboard() {
 
   const pointsInCurrentLevel = totalPoints % 100;
   const progressToNextLevel = (pointsInCurrentLevel / 100) * 100;
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case 'common':
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
-      case 'rare':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
-      case 'epic':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
-      case 'legendary':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
-      default:
-        return 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
-    }
-  };
 
   if (loading) {
     return <LoadingSpinner message="Loading your progress..." size="large" />;
@@ -240,34 +220,16 @@ export function ProgressDashboard() {
                 <div className="p-4 space-y-4">
                   {userBadges.map((userBadge) => (
                     <div
-                      key={userBadge.id}
+                      key={userBadge.badgeId}
                       className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-[#0F172A] rounded-lg border border-gray-200 dark:border-[#334155]"
                     >
-                      <div className="text-4xl">{userBadge.badge.icon}</div>
+                      <div className="text-4xl">{userBadge.icon}</div>
                       <div className="flex-1">
                         <h3 className="font-semibold text-[#1F2937] dark:text-white">
-                          {userBadge.badge.name}
+                          {userBadge.name}
                         </h3>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {userBadge.badge.description}
-                        </p>
-                        <div className="mt-2 flex items-center gap-2">
-                          <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-full ${getRarityColor(
-                              userBadge.badge.rarity
-                            )}`}
-                          >
-                            {userBadge.badge.rarity}
-                          </span>
-                          {userBadge.badge.points_reward > 0 && (
-                            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
-                              +{userBadge.badge.points_reward.toLocaleString()} pts
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          Earned on{' '}
-                          {new Date(userBadge.earned_at).toLocaleDateString()}
+                          {userBadge.description}
                         </p>
                       </div>
                     </div>

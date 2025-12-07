@@ -41,21 +41,15 @@ export async function GET(request: NextRequest) {
 
     const studentIds = students?.map(s => s.id_usuario) || [];
 
-    const [progressData, missionsData, streaksData, badgesData] = await Promise.all([
-      supabase
-        .from('progreso_estudiantes')
-        .select('id_estudiante, puntaje_total, nivel_actual, actividades_completadas, fecha_ultima_actualizacion')
-        .in('id_estudiante', studentIds),
-
+    const [missionAttemptsData, activityAttemptsData, badgesData] = await Promise.all([
       supabase
         .from('gamification_mission_attempts')
-        .select('user_id, status')
-        .eq('status', 'completed')
+        .select('user_id, status, points_earned, last_activity_at')
         .in('user_id', studentIds),
 
       supabase
-        .from('gamification_streaks')
-        .select('user_id, current_streak, longest_streak, last_activity_date')
+        .from('gamification_activity_attempts')
+        .select('user_id, activity_id')
         .in('user_id', studentIds),
 
       supabase
@@ -64,34 +58,62 @@ export async function GET(request: NextRequest) {
         .in('user_id', studentIds)
     ]);
 
-    const progressMap = new Map(progressData.data?.map(p => [p.id_estudiante, p]) || []);
-    const missionsMap = new Map<string, number>();
-    missionsData.data?.forEach(m => {
-      missionsMap.set(m.user_id, (missionsMap.get(m.user_id) || 0) + 1);
+    const completedMissionsMap = new Map<string, number>();
+    const totalPointsMap = new Map<string, number>();
+    const lastActivityMap = new Map<string, string>();
+
+    missionAttemptsData.data?.forEach(attempt => {
+      if (attempt.status === 'completed') {
+        completedMissionsMap.set(
+          attempt.user_id,
+          (completedMissionsMap.get(attempt.user_id) || 0) + 1
+        );
+      }
+
+      totalPointsMap.set(
+        attempt.user_id,
+        (totalPointsMap.get(attempt.user_id) || 0) + (attempt.points_earned || 0)
+      );
+
+      if (attempt.last_activity_at) {
+        const currentLast = lastActivityMap.get(attempt.user_id);
+        if (!currentLast || attempt.last_activity_at > currentLast) {
+          lastActivityMap.set(attempt.user_id, attempt.last_activity_at);
+        }
+      }
     });
-    const streaksMap = new Map(streaksData.data?.map(s => [s.user_id, s]) || []);
+
+    const activityCountMap = new Map<string, Set<string>>();
+    activityAttemptsData.data?.forEach(attempt => {
+      if (!activityCountMap.has(attempt.user_id)) {
+        activityCountMap.set(attempt.user_id, new Set());
+      }
+      activityCountMap.get(attempt.user_id)?.add(attempt.activity_id);
+    });
+
     const badgesMap = new Map<string, number>();
     badgesData.data?.forEach(b => {
       badgesMap.set(b.user_id, (badgesMap.get(b.user_id) || 0) + 1);
     });
 
     const studentsWithProgress = students.map(student => {
-      const progress = progressMap.get(student.id_usuario);
-      const streak = streaksMap.get(student.id_usuario);
+      const totalPoints = totalPointsMap.get(student.id_usuario) || 0;
+      const nivel = Math.floor(totalPoints / 100) + 1;
+      const activitiesCompleted = activityCountMap.get(student.id_usuario)?.size || 0;
 
       return {
         id: student.id_usuario,
         nombre: student.nombre,
         apellido: student.apellido,
         email: student.correo_electronico,
-        puntaje_total: progress?.puntaje_total || 0,
-        nivel_actual: progress?.nivel_actual || 1,
-        actividades_completadas: progress?.actividades_completadas || 0,
-        misiones_completadas: missionsMap.get(student.id_usuario) || 0,
-        racha_actual: streak?.current_streak || 0,
-        racha_maxima: streak?.longest_streak || 0,
+        puntaje_total: totalPoints,
+        nivel_actual: nivel,
+        actividades_completadas: activitiesCompleted,
+        misiones_completadas: completedMissionsMap.get(student.id_usuario) || 0,
+        racha_actual: 0,
+        racha_maxima: 0,
         insignias_ganadas: badgesMap.get(student.id_usuario) || 0,
-        ultima_actividad: streak?.last_activity_date || progress?.fecha_ultima_actualizacion || null,
+        ultima_actividad: lastActivityMap.get(student.id_usuario) || null,
         fecha_registro: student.fecha_registro
       };
     });
