@@ -216,6 +216,23 @@ export function ActivityRunner({
     );
   }
 
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+      setError(null);
+    }
+  };
+
+  const handleSkip = () => {
+    if (currentIndex < activities.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setError(null);
+    }
+  };
+
+  const canGoPrevious = currentIndex > 0;
+  const canSkip = currentIndex < activities.length - 1 && results.length > currentIndex;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
@@ -234,7 +251,7 @@ export function ActivityRunner({
                 Progress
               </p>
               <p className="text-lg font-bold text-[#1F2937] dark:text-white">
-                {Math.round(((currentIndex + 1) / activities.length) * 100)}%
+                {Math.round((results.length / activities.length) * 100)}%
               </p>
             </div>
           </div>
@@ -242,7 +259,7 @@ export function ActivityRunner({
             <div
               className="bg-blue-600 h-2 rounded-full transition-all"
               style={{
-                width: `${((currentIndex + 1) / activities.length) * 100}%`,
+                width: `${(results.length / activities.length) * 100}%`,
               }}
             />
           </div>
@@ -294,6 +311,28 @@ export function ActivityRunner({
                 supported.
               </p>
             </div>
+          )}
+        </div>
+
+        <div className="flex gap-4 mt-6">
+          <button
+            onClick={handlePrevious}
+            disabled={!canGoPrevious}
+            className={`px-6 py-3 font-semibold rounded-lg transition-colors ${
+              canGoPrevious
+                ? 'bg-gray-600 hover:bg-gray-700 text-white'
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-600 cursor-not-allowed'
+            }`}
+          >
+            ← Previous
+          </button>
+          {canSkip && (
+            <button
+              onClick={handleSkip}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors ml-auto"
+            >
+              Next →
+            </button>
           )}
         </div>
       </div>
