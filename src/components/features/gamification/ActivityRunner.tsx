@@ -15,15 +15,19 @@ import {
   SpeakingCardsContent,
   OpenBoxContent,
   GroupSortContent,
+  SpinWheelContent,
   AnagramContent,
   UnjumbleContent,
   HangmanContent,
 } from '@/types/gamification.types';
 import { QuizActivity } from './activities/QuizActivity';
 import { FillInBlankActivity } from './activities/FillInBlankActivity';
+import { MultipleChoiceActivity } from './activities/MultipleChoiceActivity';
 import { MatchingActivity } from './activities/MatchingActivity';
+import { MatchingPairsActivity } from './activities/MatchingPairsActivity';
 import { FlashcardsActivity } from './activities/FlashcardsActivity';
 import { GroupSortActivity } from './activities/GroupSortActivity';
+import { SpinWheelActivity } from './activities/SpinWheelActivity';
 import { WordPuzzleActivity } from './activities/WordPuzzleActivity';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { completeActivity } from '@/services/gamification-progress.service';
@@ -128,14 +132,77 @@ export function ActivityRunner({
     }
   };
 
+  const handleMultipleChoiceComplete = async (result: {
+    isCompleted: boolean;
+    isPerfect: boolean;
+    scorePercentage: number;
+    userAnswers: Record<string, any>;
+  }) => {
+    const timeSpent = Math.floor((Date.now() - activityStartTime) / 1000);
+    const isCorrect = result.scorePercentage >= 70;
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const response = await completeActivity({
+        userId,
+        activityId: currentActivity.id,
+        missionId: mission.id,
+        userAnswers: result.userAnswers,
+        isCorrect,
+        scorePercentage: result.scorePercentage,
+        timeSpentSeconds: timeSpent,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to complete activity');
+      }
+
+      const activityResult: ActivityResult = {
+        activityId: currentActivity.id,
+        isCorrect,
+        scorePercentage: result.scorePercentage,
+        pointsEarned: response.pointsEarned,
+        timeSpentSeconds: timeSpent,
+        userAnswers: result.userAnswers,
+      };
+
+      const updatedResults = [...results, activityResult];
+      setResults(updatedResults);
+
+      if (response.newBadges && response.newBadges.length > 0) {
+        setNewBadges((prev) => [...prev, ...response.newBadges]);
+      }
+
+      if (isLastActivity || response.missionCompleted) {
+        const totalPoints = updatedResults.reduce(
+          (sum, r) => sum + r.pointsEarned,
+          0
+        );
+        setTotalPointsEarned(totalPoints);
+        setIsCompleted(true);
+      } else {
+        setTimeout(() => {
+          setCurrentIndex(currentIndex + 1);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Error recording activity attempt:', err);
+      setError('Failed to save your answer. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
   if (isCompleted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center p-4">
         <div className="max-w-2xl w-full bg-white dark:bg-[#1E293B] rounded-lg shadow-2xl border-2 border-gray-200 dark:border-[#334155] p-8 text-center">
-          <div className="text-6xl mb-4">🎉</div>
+          <div className="text-6xl mb-4 animate-bounce">🎉</div>
           <h2 className="text-3xl font-bold text-[#1F2937] dark:text-white mb-4">
-            Mission Completed!
+            ¡Misión Completada!
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-6">
             {mission.title}
@@ -143,7 +210,7 @@ export function ActivityRunner({
 
           <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg p-6 mb-6 border-2 border-yellow-300 dark:border-yellow-700">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Total Points Earned
+              Puntos Ganados
             </p>
             <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">
               +{totalPointsEarned}
@@ -153,12 +220,12 @@ export function ActivityRunner({
           {newBadges.length > 0 && (
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 mb-6 border-2 border-purple-300 dark:border-purple-700">
               <h3 className="text-xl font-bold text-[#1F2937] dark:text-white mb-4">
-                🎊 New Badges Unlocked!
+                🎊 ¡Nuevas Insignias Desbloqueadas!
               </h3>
               <div className="space-y-3">
-                {newBadges.map((badge) => (
+                {newBadges.map((badge, index) => (
                   <div
-                    key={badge.id}
+                    key={badge.badgeId || index}
                     className="flex items-center gap-3 bg-white dark:bg-[#1E293B] rounded-lg p-4"
                   >
                     <div className="text-3xl">{badge.icon}</div>
@@ -184,7 +251,7 @@ export function ActivityRunner({
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Activities Completed
+                Actividades Completadas
               </p>
               <p className="text-2xl font-bold text-[#1F2937] dark:text-white">
                 {results.length} / {activities.length}
@@ -192,7 +259,7 @@ export function ActivityRunner({
             </div>
             <div className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Correct Answers
+                Respuestas Correctas
               </p>
               <p className="text-2xl font-bold text-[#1F2937] dark:text-white">
                 {results.filter((r) => r.isCorrect).length}
@@ -203,15 +270,15 @@ export function ActivityRunner({
           <div className="flex gap-4">
             <button
               onClick={() => router.push('/estudiante/gamification/missions')}
-              className="flex-1 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+              className="flex-1 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 active:scale-95"
             >
-              Back to Missions
+              ← Volver a Misiones
             </button>
             <button
               onClick={onComplete}
-              className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white font-semibold rounded-lg transition-all transform hover:scale-105 active:scale-95"
             >
-              View Details
+              Ver Mi Progreso →
             </button>
           </div>
         </div>
@@ -222,7 +289,7 @@ export function ActivityRunner({
   if (isSubmitting) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center">
-        <LoadingSpinner message="Saving your answer..." size="large" />
+        <LoadingSpinner message="Guardando tu respuesta..." size="large" />
       </div>
     );
   }
@@ -248,25 +315,41 @@ export function ActivityRunner({
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-[#1F2937] dark:text-white">
-                {mission.title}
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Activity {currentIndex + 1} of {activities.length}
-              </p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => {
+                  if (confirm('¿Estás seguro de que quieres salir? Tu progreso se guardará.')) {
+                    router.push('/estudiante/gamification/missions');
+                  }
+                }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium text-sm transition-all flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-gray-300 active:scale-95"
+                aria-label="Volver a misiones"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Salir
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-[#1F2937] dark:text-white">
+                  {mission.title}
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Actividad {currentIndex + 1} de {activities.length}
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Progress
+                Progreso
               </p>
               <p className="text-lg font-bold text-[#1F2937] dark:text-white">
                 {Math.round((results.length / activities.length) * 100)}%
               </p>
             </div>
           </div>
-          <div className="mt-4 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all"
               style={{
@@ -285,58 +368,59 @@ export function ActivityRunner({
         )}
 
         <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8">
-          {currentActivity.activity_type === 'quiz' && (
-            <QuizActivity
-              activity={currentActivity}
-              content={currentActivity.content_data as QuizContent}
-              onSubmit={handleActivitySubmit}
-            />
-          )}
-
-          {currentActivity.activity_type === 'complete_sentence' && (
-            <FillInBlankActivity
-              activity={currentActivity}
-              content={currentActivity.content_data as CompleteSentenceContent}
-              onSubmit={handleActivitySubmit}
-            />
-          )}
+          {(currentActivity.activity_type === 'quiz' ||
+            currentActivity.activity_type === 'complete_sentence') && (
+              <MultipleChoiceActivity
+                activity={currentActivity}
+                content={currentActivity.content_data as QuizContent | CompleteSentenceContent}
+                onComplete={handleMultipleChoiceComplete}
+              />
+            )}
 
           {(currentActivity.activity_type === 'match_up' ||
             currentActivity.activity_type === 'matching_pairs') && (
-            <MatchingActivity
-              activity={currentActivity}
-              content={currentActivity.content_data as MatchUpContent | MatchingPairsContent}
-              onSubmit={handleActivitySubmit}
-            />
-          )}
+              <MatchingPairsActivity
+                activity={currentActivity}
+                content={currentActivity.content_data as MatchUpContent | MatchingPairsContent}
+                onComplete={handleMultipleChoiceComplete}
+              />
+            )}
 
           {(currentActivity.activity_type === 'flashcards' ||
             currentActivity.activity_type === 'speaking_cards' ||
             currentActivity.activity_type === 'open_box') && (
-            <FlashcardsActivity
-              activity={currentActivity}
-              content={currentActivity.content_data as FlashcardsContent | SpeakingCardsContent | OpenBoxContent}
-              onSubmit={handleActivitySubmit}
-            />
-          )}
+              <FlashcardsActivity
+                activity={currentActivity}
+                content={currentActivity.content_data as FlashcardsContent | SpeakingCardsContent | OpenBoxContent}
+                onComplete={handleMultipleChoiceComplete}
+              />
+            )}
 
           {currentActivity.activity_type === 'group_sort' && (
             <GroupSortActivity
               activity={currentActivity}
               content={currentActivity.content_data as GroupSortContent}
-              onSubmit={handleActivitySubmit}
+              onComplete={handleMultipleChoiceComplete}
+            />
+          )}
+
+          {currentActivity.activity_type === 'spin_wheel' && (
+            <SpinWheelActivity
+              activity={currentActivity}
+              content={currentActivity.content_data as SpinWheelContent}
+              onComplete={handleMultipleChoiceComplete}
             />
           )}
 
           {(currentActivity.activity_type === 'anagram' ||
             currentActivity.activity_type === 'unjumble' ||
             currentActivity.activity_type === 'hangman') && (
-            <WordPuzzleActivity
-              activity={currentActivity}
-              content={currentActivity.content_data as AnagramContent | UnjumbleContent | HangmanContent}
-              onSubmit={handleActivitySubmit}
-            />
-          )}
+              <WordPuzzleActivity
+                activity={currentActivity}
+                content={currentActivity.content_data as AnagramContent | UnjumbleContent | HangmanContent}
+                onComplete={handleMultipleChoiceComplete}
+              />
+            )}
 
           {![
             'quiz',
@@ -347,28 +431,28 @@ export function ActivityRunner({
             'speaking_cards',
             'open_box',
             'group_sort',
+            'spin_wheel',
             'anagram',
             'unjumble',
             'hangman',
           ].includes(currentActivity.activity_type) && (
-            <div className="text-center">
-              <p className="text-lg text-gray-600 dark:text-gray-400">
-                Activity type "{currentActivity.activity_type}" is not yet
-                supported.
-              </p>
-            </div>
-          )}
+              <div className="text-center">
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  Activity type "{currentActivity.activity_type}" is not yet
+                  supported.
+                </p>
+              </div>
+            )}
         </div>
 
         <div className="flex gap-4 mt-6">
           <button
             onClick={handlePrevious}
             disabled={!canGoPrevious}
-            className={`px-6 py-3 font-semibold rounded-lg transition-colors ${
-              canGoPrevious
-                ? 'bg-gray-600 hover:bg-gray-700 text-white'
-                : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-600 cursor-not-allowed'
-            }`}
+            className={`px-6 py-3 font-semibold rounded-lg transition-colors ${canGoPrevious
+              ? 'bg-gray-600 hover:bg-gray-700 text-white'
+              : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-600 cursor-not-allowed'
+              }`}
           >
             ← Previous
           </button>

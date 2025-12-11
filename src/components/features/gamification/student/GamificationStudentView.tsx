@@ -6,17 +6,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardNav } from '@/components/layout/DashboardNav';
 import GamificationStudentDashboard from './GamificationStudentDashboard';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
+import LogoutModal from '@/components/ui/LogoutModal';
 
 export function GamificationStudentView() {
   const { user, usuario, loading, signOut } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // TODO: Route protection - verify authentication and role
   useEffect(() => {
@@ -57,15 +60,12 @@ export function GamificationStudentView() {
 
   // TODO: Pass user data to dashboard component
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A]">
       <DashboardNav
         usuario={usuario}
         title="English27"
         subtitle="Actividades de aprendizaje"
-        onLogout={async () => {
-          await signOut();
-          router.push('/');
-        }}
+        onLogout={() => setShowLogoutModal(true)}
         onSettings={(view) => setCurrentView(view)}
       />
       {currentView === 'profile' ? (
@@ -75,6 +75,15 @@ export function GamificationStudentView() {
       ) : (
         <GamificationStudentDashboard usuario={usuario} />
       )}
-    </>
+
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={async () => {
+          await signOut();
+          router.push('/');
+        }}
+      />
+    </div>
   );
 }

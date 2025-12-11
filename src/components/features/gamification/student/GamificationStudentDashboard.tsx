@@ -8,7 +8,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UsuarioDB } from '@/types/auth.types';
-import { getUserProgress, getUserBadges } from '@/services/gamification-progress.service';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface GamificationStudentDashboardProps {
@@ -27,14 +26,34 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
 
   const loadProgress = async () => {
     try {
-      const [progressData, badgesData] = await Promise.all([
-        getUserProgress(usuario.id_usuario),
-        getUserBadges(usuario.id_usuario),
+      console.log('🎮 [StudentDashboard] Cargando progreso mediante API REST...');
+
+      // Llamar a las APIs en paralelo
+      const [progressResponse, badgesResponse] = await Promise.all([
+        fetch('/api/gamification/progress'),
+        fetch('/api/gamification/badges'),
       ]);
-      if (progressData) setProgress(progressData);
-      setBadges(badgesData);
+
+      if (!progressResponse.ok || !badgesResponse.ok) {
+        throw new Error('Error al obtener datos de progreso');
+      }
+
+      const [progressData, badgesData] = await Promise.all([
+        progressResponse.json(),
+        badgesResponse.json(),
+      ]);
+
+      console.log('🎮 [StudentDashboard] Datos recibidos - Progress:', progressData.progress, 'Badges:', badgesData.badges?.length);
+
+      if (progressData.success && progressData.progress) {
+        setProgress(progressData.progress);
+      }
+
+      if (badgesData.success && badgesData.badges) {
+        setBadges(badgesData.badges);
+      }
     } catch (error) {
-      console.error('Error loading progress:', error);
+      console.error('❌ [StudentDashboard] Error loading progress:', error);
     } finally {
       setLoading(false);
     }
@@ -75,10 +94,11 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <button
             onClick={() => router.push('/estudiante/gamification/missions')}
-            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+            aria-label="Ver misiones disponibles"
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95 transition-all hover:scale-105 text-left group"
           >
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">🎯</span>
+              <span className="text-5xl group-hover:scale-110 transition-transform" role="img" aria-label="Icono de misiones">🎯</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   Misiones
@@ -90,16 +110,17 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
             </div>
             <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold">
               <span>Ver misiones disponibles</span>
-              <span className="group-hover:translate-x-2 transition-transform">→</span>
+              <span className="group-hover:translate-x-2 transition-transform" aria-hidden="true">→</span>
             </div>
           </button>
 
           <button
             onClick={() => router.push('/estudiante/gamification/achievements')}
-            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+            aria-label="Ver logros y medallas"
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl hover:border-purple-400 dark:hover:border-purple-600 focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 active:scale-95 transition-all hover:scale-105 text-left group"
           >
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">🏆</span>
+              <span className="text-5xl group-hover:scale-110 transition-transform" role="img" aria-label="Icono de logros">🏆</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                   Logros
@@ -111,16 +132,17 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
             </div>
             <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
               <span>Ver logros y medallas</span>
-              <span className="group-hover:translate-x-2 transition-transform">→</span>
+              <span className="group-hover:translate-x-2 transition-transform" aria-hidden="true">→</span>
             </div>
           </button>
 
           <button
             onClick={() => router.push('/estudiante/gamification/progress')}
-            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl transition-all hover:scale-105 text-left group"
+            aria-label="Ver mi progreso"
+            className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-8 hover:shadow-xl hover:border-green-400 dark:hover:border-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 active:scale-95 transition-all hover:scale-105 text-left group"
           >
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-5xl">📊</span>
+              <span className="text-5xl group-hover:scale-110 transition-transform" role="img" aria-label="Icono de progreso">📊</span>
               <div>
                 <h3 className="text-2xl font-bold text-[#1F2937] dark:text-white group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                   Mi Progreso
@@ -132,7 +154,7 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
             </div>
             <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-semibold">
               <span>Ver mi progreso</span>
-              <span className="group-hover:translate-x-2 transition-transform">→</span>
+              <span className="group-hover:translate-x-2 transition-transform" aria-hidden="true">→</span>
             </div>
           </button>
         </div>

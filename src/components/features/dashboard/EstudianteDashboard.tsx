@@ -133,7 +133,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
-                🎮 Gamification
+                Actividades
               </h3>
               <p className="text-purple-700 dark:text-purple-300 text-sm">
                 Complete missions, earn points, and unlock badges!

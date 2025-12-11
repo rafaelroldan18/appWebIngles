@@ -161,9 +161,10 @@ export function BadgesTeacherView() {
             </h1>
             <button
               onClick={() => router.push('/docente/gamification')}
-              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+              aria-label="Volver al dashboard de gamificación"
+              className="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#334155] rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95"
             >
-              ← Volver
+              <span aria-hidden="true">←</span> Volver
             </button>
           </div>
         </div>
@@ -215,29 +216,30 @@ export function BadgesTeacherView() {
                 <button
                   key={badge.id}
                   onClick={() => handleBadgeClick(badge)}
-                  className={`w-full bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 p-4 text-left transition-all hover:shadow-xl ${
-                    selectedBadge?.id === badge.id
+                  aria-label={`Ver estudiantes con la insignia ${badge.name}`}
+                  aria-pressed={selectedBadge?.id === badge.id}
+                  className={`w-full bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 p-4 text-left transition-all hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95 ${selectedBadge?.id === badge.id
                       ? 'border-blue-500 dark:border-blue-400'
-                      : 'border-gray-200 dark:border-[#334155]'
-                  } ${!badge.is_active ? 'opacity-60' : ''}`}
+                      : 'border-gray-200 dark:border-[#334155] hover:border-blue-300 dark:hover:border-blue-700'
+                    } ${!badge.is_active ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start gap-4">
                     <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${getRarityColor(badge.rarity)} flex items-center justify-center flex-shrink-0`}>
-                      <Trophy className="w-8 h-8 text-white" />
+                      <Trophy className="w-8 h-8 text-white" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-lg font-bold text-[#1F2937] dark:text-white truncate">
                           {badge.name}
                         </h3>
-                        {getRarityIcon(badge.rarity)}
+                        <span aria-hidden="true">{getRarityIcon(badge.rarity)}</span>
                       </div>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
                         {badge.description}
                       </p>
                       <div className="flex items-center gap-4 text-sm">
                         <span className="flex items-center gap-1 text-gray-700 dark:text-gray-300">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-4 h-4" aria-hidden="true" />
                           {badge.users_earned} estudiantes
                         </span>
                         <span className="text-gray-600 dark:text-gray-400">

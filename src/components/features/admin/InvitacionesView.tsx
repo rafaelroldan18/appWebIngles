@@ -88,9 +88,10 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+            aria-label="Cerrar"
+            className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors focus:outline-none focus:ring-4 focus:ring-white/50 active:scale-90"
           >
-            <X className="w-6 h-6 text-white" />
+            <X className="w-6 h-6 text-white" aria-hidden="true" />
           </button>
         </div>
 
@@ -98,41 +99,37 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setFilter('todas')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'todas'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${filter === 'todas'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
             >
               Todas ({invitations.length})
             </button>
             <button
               onClick={() => setFilter('pendiente')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'pendiente'
-                  ? 'bg-orange-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${filter === 'pendiente'
+                ? 'bg-orange-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
             >
               Pendientes ({invitations.filter((i) => i.estado === 'pendiente').length})
             </button>
             <button
               onClick={() => setFilter('activada')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'activada'
-                  ? 'bg-green-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${filter === 'activada'
+                ? 'bg-green-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
             >
               Activadas ({invitations.filter((i) => i.estado === 'activada').length})
             </button>
             <button
               onClick={() => setFilter('expirada')}
-              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'expirada'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${filter === 'expirada'
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-600'
+                }`}
             >
               Expiradas ({invitations.filter((i) => i.estado === 'expirada').length})
             </button>
@@ -158,81 +155,86 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
                 {filteredInvitations.map((invitation) => (
                   <div
                     key={invitation.id_invitacion}
-                    className="border border-slate-200 dark:border-gray-700 rounded-xl p-4 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all bg-white dark:bg-gray-700"
+                    className="bg-white dark:bg-gray-700 border-2 border-slate-200 dark:border-gray-600 rounded-xl p-5 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                              invitation.rol === 'docente'
-                                ? 'bg-gradient-to-br from-blue-400 to-blue-600'
-                                : 'bg-gradient-to-br from-orange-400 to-orange-600'
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Left Section - Avatar and Info */}
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div
+                          className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${invitation.rol === 'docente'
+                            ? 'bg-gradient-to-br from-blue-500 to-blue-700'
+                            : 'bg-gradient-to-br from-orange-500 to-orange-700'
                             }`}
-                          >
-                            <User className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                              {invitation.nombre} {invitation.apellido}
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-gray-300">
-                              {invitation.correo_electronico}
-                            </p>
-                          </div>
+                        >
+                          <User className="w-7 h-7 text-white" aria-hidden="true" />
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 truncate">
+                            {invitation.nombre} {invitation.apellido}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-3 text-sm">
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
+                              <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
+                              <span className="truncate">{invitation.correo_electronico}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
+                              <Calendar className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
+                              <span>{new Date(invitation.fecha_creacion).toLocaleDateString('es-ES')}</span>
+                            </div>
+                            {invitation.estado === 'activada' && invitation.fecha_activacion && (
+                              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                                <CheckCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                                <span className="text-xs">
+                                  Activada: {new Date(invitation.fecha_activacion).toLocaleDateString('es-ES')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Section - Badges and Actions */}
+                      <div className="flex items-center gap-3">
+                        {/* Role Badge */}
+                        <div className="flex-shrink-0">
                           <span
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${getStatusColor(invitation.estado)}`}
-                          >
-                            {getStatusIcon(invitation.estado)}
-                            <span className="ml-1">{invitation.estado.toUpperCase()}</span>
-                          </span>
-                          <span
-                            className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
-                              invitation.rol === 'docente'
-                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-                                : 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
-                            }`}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${invitation.rol === 'docente'
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                              : 'bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300'
+                              }`}
                           >
                             {invitation.rol.toUpperCase()}
                           </span>
                         </div>
 
-                        <div className="flex flex-col gap-1 text-xs text-slate-600 dark:text-gray-300">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>
-                              Enviada: {new Date(invitation.fecha_creacion).toLocaleDateString('es-ES')}
+                        {/* Status Badge */}
+                        <div className="flex-shrink-0">
+                          {invitation.estado === 'activada' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg text-sm font-bold">
+                              <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                              ACTIVADA
                             </span>
-                            {invitation.estado === 'activada' && invitation.fecha_activacion && (
-                              <>
-                                <span>•</span>
-                                <span>
-                                  Activada:{' '}
-                                  {new Date(invitation.fecha_activacion).toLocaleDateString('es-ES')}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          {invitation.creador && (
-                            <div className="flex items-center gap-2 text-xs">
-                              <User className="w-3.5 h-3.5" />
-                              <span className="text-slate-500 dark:text-gray-400">
-                                Creada por: {invitation.creador.nombre} {invitation.creador.apellido}
-                              </span>
-                            </div>
+                          ) : invitation.estado === 'expirada' ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm font-bold">
+                              <XCircle className="w-4 h-4" aria-hidden="true" />
+                              EXPIRADA
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-bold">
+                              <Clock className="w-4 h-4" aria-hidden="true" />
+                              PENDIENTE
+                            </span>
                           )}
                         </div>
-                      </div>
 
-                      {(invitation.estado === 'pendiente' || invitation.estado === 'expirada') && (
-                        <div className="flex-shrink-0">
+                        {/* Delete Button */}
+                        {(invitation.estado === 'pendiente' || invitation.estado === 'expirada') && (
                           <button
                             onClick={() => handleDelete(invitation.id_invitacion)}
                             disabled={deleting === invitation.id_invitacion}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                            aria-label={`Eliminar invitación de ${invitation.nombre} ${invitation.apellido}`}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold text-sm transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 active:scale-95 flex items-center gap-2"
                             title="Eliminar invitación"
                           >
                             {deleting === invitation.id_invitacion ? (
@@ -242,13 +244,13 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
                               </>
                             ) : (
                               <>
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 <span>Eliminar</span>
                               </>
                             )}
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

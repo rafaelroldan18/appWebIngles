@@ -228,49 +228,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         </div>
 
         {/* Métricas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-6 sm:mb-8">
-          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
-                <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-              </div>
-              <div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.actividadesCreadas}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {estadisticas.totalActividades}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
-                <Users className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-              </div>
-              <div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.estudiantes}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {estadisticas.totalEstudiantes}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className={`${getCardClasses()} p-5 sm:p-6 hover:shadow-lg hover:scale-[1.02] transition-all sm:col-span-2 lg:col-span-1`}>
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center shadow-md`}>
-                <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-              </div>
-              <div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium`}>{t.asignaciones}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {estadisticas.actividadesAsignadas}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Actividades Card */}
         <div
@@ -283,7 +241,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
-                📚 Administrar actividades
+                Administrar actividades
               </h3>
               <p className="text-purple-700 dark:text-purple-300 text-sm">
                 Crea y administra misiones, actividades y monitorea el progreso de los estudiantes
@@ -298,17 +256,6 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
         {/* Acciones Rápidas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6 sm:mb-8">
-          <button className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
-                <PlusCircle className="w-6 h-6 sm:w-7 sm:h-7" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-base sm:text-lg font-bold">{t.crearActividad}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t.nuevaActividadGamificada}</p>
-              </div>
-            </div>
-          </button>
 
           <button onClick={() => setShowInviteStudent(true)} className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
             <div className="flex items-center gap-3 sm:gap-4">
@@ -346,29 +293,6 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             </div>
           </button>
 
-          <button className={`${getButtonSecondaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
-                <FileText className="w-6 h-6 sm:w-7 sm:h-7" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-base sm:text-lg font-bold">{t.generarReportes}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t.reportesAcademicos}</p>
-              </div>
-            </div>
-          </button>
-
-          <button className={`${getButtonPrimaryClasses()} rounded p-5 sm:p-6 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all`}>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7" />
-              </div>
-              <div className="text-left">
-                <h3 className="text-base sm:text-lg font-bold">{t.mensajes}</h3>
-                <p className="text-xs sm:text-sm opacity-90">{t.comunicacionEstudiantes}</p>
-              </div>
-            </div>
-          </button>
         </div>
 
         {/* Actividades Recientes */}

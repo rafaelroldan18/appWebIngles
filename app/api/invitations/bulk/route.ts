@@ -1,148 +1,184 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
 
+/**
+ * POST /api/invitations/bulk
+ * Procesa invitaciones masivas desde un archivo Excel/CSV
+ */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const { supabase } = createRouteHandlerClient(request);
 
+    // Verificar autenticación
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'No autenticado' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { data: usuario, error: userError } = await supabase
+    // Verificar que el usuario sea docente o administrador
+    const { data: currentUser, error: userError } = await supabase
       .from('usuarios')
       .select('id_usuario, rol')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !usuario) {
-      return NextResponse.json(
-        { success: false, error: 'Usuario no encontrado' },
-        { status: 404 }
-      );
+    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
+      return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
+    // Obtener los datos del body
     const body = await request.json();
-    const { invitaciones } = body;
+    const { students } = body;
 
-    if (!invitaciones || !Array.isArray(invitaciones) || invitaciones.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Lista de invitaciones inválida' },
-        { status: 400 }
-      );
+    if (!students || !Array.isArray(students) || students.length === 0) {
+      return NextResponse.json({ error: 'No se proporcionaron estudiantes' }, { status: 400 });
     }
 
-    const createdInvitations = [];
-    const errors = [];
+    // Validar estructura de datos
+    const errors: string[] = [];
+    const validStudents: any[] = [];
 
-    for (const inv of invitaciones) {
-      try {
-        const { correo_electronico, nombre, apellido, cedula, rol } = inv;
+    students.forEach((student, index) => {
+      const rowNumber = index + 2; // +2 porque la fila 1 es el header y empezamos en 0
 
-        if (!correo_electronico || !nombre || !apellido || !cedula || !rol) {
-          errors.push(`Invitación inválida para ${correo_electronico || 'email desconocido'}: campos requeridos faltantes`);
-          continue;
-        }
-
-        if (usuario.rol === 'docente' && rol !== 'estudiante') {
-          errors.push(`Invitación para ${correo_electronico}: los docentes solo pueden invitar estudiantes`);
-          continue;
-        }
-
-        const { data: existingInvitation } = await supabase
-          .from('invitaciones')
-          .select('id_invitacion')
-          .eq('correo_electronico', correo_electronico)
-          .eq('estado', 'pendiente')
-          .maybeSingle();
-
-        if (existingInvitation) {
-          errors.push(`Ya existe una invitación pendiente para ${correo_electronico}`);
-          continue;
-        }
-
-        const { data: existingUser } = await supabase
-          .from('usuarios')
-          .select('id_usuario')
-          .eq('correo_electronico', correo_electronico)
-          .maybeSingle();
-
-        if (existingUser) {
-          errors.push(`Ya existe un usuario con el correo ${correo_electronico}`);
-          continue;
-        }
-
-        const { data: codeData, error: codeError } = await supabase
-          .rpc('generate_invitation_code');
-
-        if (codeError || !codeData) {
-          errors.push(`Error al generar código para ${correo_electronico}`);
-          continue;
-        }
-
-        const { data: invitation, error: inviteError } = await supabase
-          .from('invitaciones')
-          .insert({
-            codigo_invitacion: codeData,
-            correo_electronico,
-            nombre,
-            apellido,
-            cedula,
-            rol,
-            creado_por: usuario.id_usuario,
-          })
-          .select()
-          .single();
-
-        if (inviteError) {
-          errors.push(`Error al crear invitación para ${correo_electronico}: ${inviteError.message}`);
-          continue;
-        }
-
-        const { error: userCreateError } = await supabase
-          .from('usuarios')
-          .insert({
-            correo_electronico,
-            nombre,
-            apellido,
-            cedula,
-            rol,
-            estado_cuenta: 'pendiente',
-            auth_user_id: null,
-          });
-
-        if (userCreateError) {
-          await supabase
-            .from('invitaciones')
-            .delete()
-            .eq('id_invitacion', invitation.id_invitacion);
-
-          errors.push(`Error al crear usuario pendiente para ${correo_electronico}`);
-          continue;
-        }
-
-        createdInvitations.push(invitation);
-      } catch (err) {
-        errors.push(`Error procesando invitación: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+      // Validar campos requeridos
+      if (!student.nombre || student.nombre.trim() === '') {
+        errors.push(`Fila ${rowNumber}: El nombre es requerido`);
+        return;
       }
+
+      if (!student.apellido || student.apellido.trim() === '') {
+        errors.push(`Fila ${rowNumber}: El apellido es requerido`);
+        return;
+      }
+
+      if (!student.cedula || student.cedula.trim() === '') {
+        errors.push(`Fila ${rowNumber}: La cédula es requerida`);
+        return;
+      }
+
+      if (!student.correo_electronico || student.correo_electronico.trim() === '') {
+        errors.push(`Fila ${rowNumber}: El correo electrónico es requerido`);
+        return;
+      }
+
+      // Validar formato de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(student.correo_electronico)) {
+        errors.push(`Fila ${rowNumber}: El correo electrónico no es válido`);
+        return;
+      }
+
+      // Validar cédula (solo números y guiones)
+      const cedulaRegex = /^[0-9-]+$/;
+      if (!cedulaRegex.test(student.cedula)) {
+        errors.push(`Fila ${rowNumber}: La cédula solo debe contener números y guiones`);
+        return;
+      }
+
+      validStudents.push({
+        nombre: student.nombre.trim(),
+        apellido: student.apellido.trim(),
+        cedula: student.cedula.trim(),
+        correo_electronico: student.correo_electronico.trim().toLowerCase(),
+      });
+    });
+
+    // Si hay errores de validación, retornarlos
+    if (errors.length > 0) {
+      return NextResponse.json({
+        error: 'Errores de validación',
+        details: errors,
+        validCount: validStudents.length,
+        errorCount: errors.length,
+      }, { status: 400 });
     }
+
+    // Verificar duplicados en el archivo
+    const emails = validStudents.map(s => s.correo_electronico);
+    const duplicateEmails = emails.filter((email, index) => emails.indexOf(email) !== index);
+
+    if (duplicateEmails.length > 0) {
+      return NextResponse.json({
+        error: 'Correos duplicados en el archivo',
+        details: [`Los siguientes correos están duplicados: ${[...new Set(duplicateEmails)].join(', ')}`],
+      }, { status: 400 });
+    }
+
+    // Verificar si ya existen invitaciones o usuarios con estos correos
+    const { data: existingInvitations } = await supabase
+      .from('invitaciones')
+      .select('correo_electronico')
+      .in('correo_electronico', emails)
+      .in('estado', ['pendiente', 'activada']);
+
+    const { data: existingUsers } = await supabase
+      .from('usuarios')
+      .select('correo_electronico')
+      .in('correo_electronico', emails);
+
+    const existingEmails = new Set([
+      ...(existingInvitations?.map(i => i.correo_electronico) || []),
+      ...(existingUsers?.map(u => u.correo_electronico) || []),
+    ]);
+
+    if (existingEmails.size > 0) {
+      return NextResponse.json({
+        error: 'Algunos correos ya están registrados o tienen invitaciones pendientes',
+        details: [`Correos existentes: ${Array.from(existingEmails).join(', ')}`],
+      }, { status: 400 });
+    }
+
+    // Crear las invitaciones
+    const invitationsToCreate = validStudents.map(student => ({
+      correo_electronico: student.correo_electronico,
+      nombre: student.nombre,
+      apellido: student.apellido,
+      cedula: student.cedula,
+      rol: 'estudiante',
+      codigo_invitacion: generateInvitationCode(),
+      creado_por: currentUser.id_usuario,
+      estado: 'pendiente',
+      fecha_creacion: new Date().toISOString(),
+      fecha_expiracion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
+    }));
+
+    const { data: createdInvitations, error: createError } = await supabase
+      .from('invitaciones')
+      .insert(invitationsToCreate)
+      .select();
+
+    if (createError) {
+      console.error('Error creating invitations:', createError);
+      return NextResponse.json({ error: 'Error al crear invitaciones' }, { status: 500 });
+    }
+
+    // TODO: Aquí se enviarían los correos electrónicos
+    // Por ahora solo retornamos el resultado
 
     return NextResponse.json({
-      success: createdInvitations.length > 0,
-      message: `${createdInvitations.length} invitaciones creadas exitosamente`,
+      success: true,
+      message: `Se crearon ${createdInvitations?.length || 0} invitaciones exitosamente`,
+      created: createdInvitations?.length || 0,
       invitations: createdInvitations,
-      errors: errors.length > 0 ? errors : undefined,
     });
+
   } catch (error) {
-    console.error('Error creating bulk invitations:', error);
+    console.error('Error in bulk invitations endpoint:', error);
     return NextResponse.json(
-      { success: false, error: 'Error al crear invitaciones masivas' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
+}
+
+// Función auxiliar para generar códigos de invitación
+function generateInvitationCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
 }

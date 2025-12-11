@@ -79,7 +79,13 @@ export function MissionCard({ mission, onStartContinue }: MissionCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-md border-2 border-gray-200 dark:border-[#334155] p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-md border-2 border-gray-200 dark:border-[#334155] p-6 hover:shadow-lg transition-shadow relative group">
+      {isCompleted && (
+        <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <span>✓</span>
+          <span>Completada</span>
+        </div>
+      )}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <span className="text-4xl">{getTypeIcon()}</span>
@@ -136,7 +142,13 @@ export function MissionCard({ mission, onStartContinue }: MissionCardProps) {
 
         <button
           onClick={onStartContinue}
-          className={`px-6 py-2 rounded-lg font-semibold text-white transition-colors ${getButtonColor()}`}
+          aria-label={`${getButtonText()} la misión ${missionData.title}`}
+          className={`px-6 py-2 rounded-lg font-semibold text-white transition-all focus:outline-none focus:ring-4 focus:ring-offset-2 active:scale-95 ${getButtonColor()} ${isCompleted
+              ? 'focus:ring-gray-300 dark:focus:ring-gray-700'
+              : isInProgress
+                ? 'focus:ring-blue-300 dark:focus:ring-blue-800'
+                : 'focus:ring-green-300 dark:focus:ring-green-800'
+            }`}
         >
           {getButtonText()}
         </button>

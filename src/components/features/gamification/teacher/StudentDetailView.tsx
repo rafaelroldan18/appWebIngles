@@ -1,467 +1,254 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface Student {
-  id: string;
-  nombre: string;
-  apellido: string;
-  email: string;
-  fecha_registro: string;
-}
-
-interface Progress {
-  puntaje_total: number;
-  nivel_actual: number;
-  actividades_completadas: number;
-  fecha_ultima_actualizacion: string | null;
-}
-
-interface Stats {
-  misiones_totales: number;
-  misiones_completadas: number;
-  promedio_calificacion: number;
-  tiempo_total_minutos: number;
-  actividades_intentadas: number;
-}
-
-interface Streak {
-  racha_actual: number;
-  racha_maxima: number;
-  dias_activos_totales: number;
-  ultima_actividad: string | null;
-}
-
-interface MissionAttempt {
-  id: string;
-  status: string;
-  score_percentage: number;
-  points_earned: number;
-  time_spent_seconds: number;
-  activities_completed: number;
-  total_activities: number;
-  started_at: string;
-  completed_at: string | null;
-  mission: {
-    title: string;
-    unit_number: number;
-    topic: string;
-    difficulty_level: string;
-  } | null;
-}
-
-interface Badge {
-  id: string;
-  earned_at: string;
-  badge: {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    badge_type: string;
-    rarity: string;
-    points_reward: number;
-  };
-}
-
-interface StudentDetailData {
-  student: Student;
-  progress: Progress;
-  stats: Stats;
-  streak: Streak;
-  missions: MissionAttempt[];
-  badges: Badge[];
-}
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface StudentDetailViewProps {
   studentId: string;
 }
 
+interface StudentInfo {
+  nombre: string;
+  email: string;
+  totalPoints: number;
+  level: number;
+  missionsCompleted: number;
+  activitiesCompleted: number;
+}
+
+interface MissionDetail {
+  id: string;
+  title: string;
+  description: string;
+  difficulty_level: string;
+  activitiesCompleted: number;
+  totalActivities: number;
+  pointsEarned: number;
+  status: 'not_started' | 'in_progress' | 'completed';
+  progressPercentage: number;
+  lastActivityAt?: string;
+}
+
 export default function StudentDetailView({ studentId }: StudentDetailViewProps) {
   const router = useRouter();
-  const [data, setData] = useState<StudentDetailData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'missions' | 'badges'>('overview');
+  const [loading, setLoading] = useState(true);
+  const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
+  const [missions, setMissions] = useState<MissionDetail[]>([]);
 
   useEffect(() => {
-    fetchStudentDetail();
+    loadStudentDetail();
   }, [studentId]);
 
-  const fetchStudentDetail = async () => {
+  async function loadStudentDetail() {
     try {
-      setIsLoading(true);
-      const response = await fetch(`/api/gamification/student-progress/${studentId}`);
+      console.log('📊 [StudentDetail] Cargando detalle mediante API REST para studentId:', studentId);
+
+      // Llamar a la API para obtener el detalle del estudiante
+      const response = await fetch(`/api/gamification/progress/student/${studentId}`);
 
       if (!response.ok) {
-        throw new Error('Error al cargar detalles del estudiante');
+        if (response.status === 404) {
+          console.error('❌ [StudentDetail] Estudiante no encontrado');
+          router.push('/docente/gamification/student-progress');
+          return;
+        }
+        throw new Error('Error al obtener detalle del estudiante');
       }
 
-      const result = await response.json();
-      setData(result);
+      const data = await response.json();
+      console.log('📊 [StudentDetail] Datos recibidos:', data);
+
+      if (data.success) {
+        // Establecer información del estudiante
+        setStudentInfo({
+          nombre: `${data.student.nombre} ${data.student.apellido}`,
+          email: data.student.email,
+          totalPoints: data.student.totalPoints,
+          level: data.student.level,
+          missionsCompleted: data.student.missionsCompleted,
+          activitiesCompleted: data.student.activitiesCompleted,
+        });
+
+        // Establecer misiones con progreso
+        setMissions(data.missions);
+      }
     } catch (error) {
-      console.error('Error fetching student detail:', error);
+      console.error('❌ [StudentDetail] Error loading student detail:', error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'facil':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-      case 'medio':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-      case 'dificil':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-    }
-  };
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case 'common':
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-      case 'rare':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-      case 'epic':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400';
-      case 'legendary':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-      case 'in_progress':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-      case 'failed':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-      default:
-        return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Completada';
-      case 'in_progress':
-        return 'En Progreso';
-      case 'failed':
-        return 'Fallida';
-      case 'abandoned':
-        return 'Abandonada';
-      default:
-        return status;
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Cargando detalles del estudiante...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center">
+        <LoadingSpinner message="Cargando detalle del estudiante..." size="large" />
       </div>
     );
   }
 
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400 text-lg">No se pudo cargar la información del estudiante</p>
-          <button
-            onClick={() => router.back()}
-            className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            Volver
-          </button>
-        </div>
-      </div>
-    );
+  if (!studentInfo) {
+    return null;
   }
+
+  const pointsToNextLevel = (studentInfo.level * 100) - studentInfo.totalPoints;
+  const levelProgress = studentInfo.totalPoints % 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <button
-            onClick={() => router.back()}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-4 flex items-center gap-2 transition-colors"
-          >
-            <span>←</span> Volver a la lista
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/docente/gamification/student-progress')}
+          aria-label="Volver a lista de estudiantes"
+          className="mb-6 flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-semibold transition-all focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Volver a lista de estudiantes</span>
+        </button>
 
-          <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-6 text-white">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl font-bold">
-                {data.student.nombre.charAt(0)}{data.student.apellido.charAt(0)}
+        {/* Student Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-purple-700 dark:from-blue-800 dark:to-purple-900 rounded-xl p-8 text-white mb-8 shadow-lg">
+          <h1 className="text-4xl font-bold mb-2">{studentInfo.nombre}</h1>
+          <p className="text-lg opacity-90 mb-6">{studentInfo.email}</p>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm opacity-80 mb-1">Nivel</p>
+              <p className="text-3xl font-bold">{studentInfo.level}</p>
+              <div className="mt-2">
+                <div className="w-full bg-white/30 rounded-full h-2">
+                  <div
+                    className="bg-white h-2 rounded-full transition-all"
+                    style={{ width: `${levelProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs opacity-75 mt-1">{pointsToNextLevel} para siguiente nivel</p>
               </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-1">
-                  {data.student.nombre} {data.student.apellido}
-                </h1>
-                <p className="opacity-90">{data.student.email}</p>
-                <p className="text-sm opacity-75 mt-1">
-                  Registrado: {formatDate(data.student.fecha_registro)}
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="text-5xl font-bold">{data.progress.nivel_actual}</div>
-                <div className="text-sm opacity-75">Nivel Actual</div>
-              </div>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm opacity-80 mb-1">Puntos Totales</p>
+              <p className="text-3xl font-bold">{studentInfo.totalPoints}</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm opacity-80 mb-1">Misiones Completadas</p>
+              <p className="text-3xl font-bold">{studentInfo.missionsCompleted}</p>
+            </div>
+
+            <div className="bg-white/10 rounded-lg p-4">
+              <p className="text-sm opacity-80 mb-1">Actividades Completadas</p>
+              <p className="text-3xl font-bold">{studentInfo.activitiesCompleted}</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6">
-            <div className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Puntos Totales</div>
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {data.progress.puntaje_total.toLocaleString()}
-            </div>
-          </div>
-          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6">
-            <div className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Misiones Completadas</div>
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {data.stats.misiones_completadas} / {data.stats.misiones_totales}
-            </div>
-          </div>
-          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6">
-            <div className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Racha Actual</div>
-            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 flex items-center gap-2">
-              <span>🔥</span> {data.streak.racha_actual}
-            </div>
-          </div>
-          <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6">
-            <div className="text-gray-600 dark:text-gray-400 text-sm font-semibold mb-2">Promedio</div>
-            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-              {data.stats.promedio_calificacion}%
-            </div>
-          </div>
-        </div>
+        {/* Missions Progress */}
+        <div className="bg-white dark:bg-[#1E293B] rounded-xl shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6">
+          <h2 className="text-2xl font-bold text-[#1F2937] dark:text-white mb-6">
+            Progreso por Misión
+          </h2>
 
-        <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] mb-8">
-          <div className="flex border-b border-gray-200 dark:border-[#334155]">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`flex-1 py-4 px-6 font-semibold transition-colors ${
-                activeTab === 'overview'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              Resumen
-            </button>
-            <button
-              onClick={() => setActiveTab('missions')}
-              className={`flex-1 py-4 px-6 font-semibold transition-colors ${
-                activeTab === 'missions'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              Misiones
-            </button>
-            <button
-              onClick={() => setActiveTab('badges')}
-              className={`flex-1 py-4 px-6 font-semibold transition-colors ${
-                activeTab === 'badges'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              Insignias
-            </button>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
-                    <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-3">Estadísticas de Racha</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Racha Actual:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">{data.streak.racha_actual} días</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Racha Máxima:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">{data.streak.racha_maxima} días</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Días Activos Totales:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">{data.streak.dias_activos_totales}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Última Actividad:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">
-                          {data.streak.ultima_actividad ? new Date(data.streak.ultima_actividad).toLocaleDateString('es-ES') : 'N/A'}
-                        </span>
-                      </div>
+          <div className="space-y-4">
+            {missions.map((mission) => (
+              <div
+                key={mission.id}
+                className={`p-6 rounded-lg border-2 ${mission.status === 'completed'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                  : mission.status === 'in_progress'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                    : 'bg-gray-50 dark:bg-[#0F172A] border-gray-200 dark:border-[#334155]'
+                  }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-[#1F2937] dark:text-white">
+                        {mission.title}
+                      </h3>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${mission.status === 'completed'
+                          ? 'bg-green-500 text-white'
+                          : mission.status === 'in_progress'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-400 text-white'
+                          }`}
+                      >
+                        {mission.status === 'completed'
+                          ? 'Completada'
+                          : mission.status === 'in_progress'
+                            ? 'En Progreso'
+                            : 'No Iniciada'}
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold ${mission.difficulty_level === 'facil'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : mission.difficulty_level === 'medio'
+                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          }`}
+                      >
+                        {mission.difficulty_level === 'facil'
+                          ? 'Fácil'
+                          : mission.difficulty_level === 'medio'
+                            ? 'Medio'
+                            : 'Difícil'}
+                      </span>
                     </div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      {mission.description}
+                    </p>
+                    {mission.lastActivityAt && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Última actividad:{' '}
+                        {new Date(mission.lastActivityAt).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    )}
                   </div>
+                  <div className="text-right ml-4">
+                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {mission.pointsEarned}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">puntos</p>
+                  </div>
+                </div>
 
-                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border-2 border-green-200 dark:border-green-800">
-                    <h3 className="text-lg font-bold text-[#1F2937] dark:text-white mb-3">Estadísticas de Tiempo</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Tiempo Total:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">
-                          {Math.floor(data.stats.tiempo_total_minutos / 60)}h {data.stats.tiempo_total_minutos % 60}m
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Actividades Intentadas:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">{data.stats.actividades_intentadas}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">Promedio por Misión:</span>
-                        <span className="font-semibold text-[#1F2937] dark:text-white">
-                          {data.stats.misiones_totales > 0
-                            ? `${Math.round(data.stats.tiempo_total_minutos / data.stats.misiones_totales)}m`
-                            : 'N/A'
-                          }
-                        </span>
-                      </div>
-                    </div>
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                      Actividades: {mission.activitiesCompleted} / {mission.totalActivities}
+                    </span>
+                    <span className="text-gray-700 dark:text-gray-300 font-bold">
+                      {mission.progressPercentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                    <div
+                      className={`h-3 rounded-full transition-all ${mission.status === 'completed'
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600'
+                        : 'bg-gradient-to-r from-blue-500 to-cyan-600'
+                        }`}
+                      style={{ width: `${mission.progressPercentage}%` }}
+                    />
                   </div>
                 </div>
               </div>
-            )}
+            ))}
 
-            {activeTab === 'missions' && (
-              <div>
-                <h3 className="text-xl font-bold text-[#1F2937] dark:text-white mb-4">Historial de Misiones</h3>
-                {data.missions.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                    No ha completado ninguna misión aún
-                  </p>
-                ) : (
-                  <div className="space-y-4">
-                    {data.missions.map((mission) => (
-                      <div
-                        key={mission.id}
-                        className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4 border-2 border-gray-200 dark:border-[#334155]"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-[#1F2937] dark:text-white text-lg">
-                              {mission.mission?.title || 'Misión Desconocida'}
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Unidad {mission.mission?.unit_number} - {mission.mission?.topic}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getDifficultyColor(mission.mission?.difficulty_level || '')}`}>
-                              {mission.mission?.difficulty_level?.toUpperCase()}
-                            </span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(mission.status)}`}>
-                              {getStatusText(mission.status)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Calificación</div>
-                            <div className="text-lg font-bold text-[#1F2937] dark:text-white">
-                              {mission.score_percentage}%
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Puntos</div>
-                            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                              {mission.points_earned}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Actividades</div>
-                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              {mission.activities_completed}/{mission.total_activities}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tiempo</div>
-                            <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                              {formatTime(mission.time_spent_seconds)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
-                          Completada: {formatDate(mission.completed_at)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'badges' && (
-              <div>
-                <h3 className="text-xl font-bold text-[#1F2937] dark:text-white mb-4">
-                  Insignias Ganadas ({data.badges.length})
-                </h3>
-                {data.badges.length === 0 ? (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-                    No ha ganado ninguna insignia aún
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {data.badges.map((userBadge) => (
-                      <div
-                        key={userBadge.id}
-                        className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4 border-2 border-gray-200 dark:border-[#334155] text-center"
-                      >
-                        <div className="text-5xl mb-3">{userBadge.badge.icon}</div>
-                        <h4 className="font-bold text-[#1F2937] dark:text-white mb-1">
-                          {userBadge.badge.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          {userBadge.badge.description}
-                        </p>
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getRarityColor(userBadge.badge.rarity)}`}>
-                          {userBadge.badge.rarity.toUpperCase()}
-                        </span>
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
-                          Ganada: {new Date(userBadge.earned_at).toLocaleDateString('es-ES')}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {missions.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 dark:text-gray-400 text-lg">
+                  No hay misiones disponibles
+                </p>
               </div>
             )}
           </div>

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
 
+// Configuración de caché: revalidar cada 30 segundos
+export const revalidate = 30;
+
 export async function GET(request: NextRequest) {
   try {
     const { supabase } = createRouteHandlerClient(request);

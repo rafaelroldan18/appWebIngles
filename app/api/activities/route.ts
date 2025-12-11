@@ -25,11 +25,20 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      return Response.json({ error: error.message }, { status: 400 });
+      console.error('Error fetching activities:', error);
+      return Response.json({
+        error: error.message,
+        details: error.details,
+        hint: error.hint
+      }, { status: 400 });
     }
 
     return Response.json(data);
   } catch (error) {
-    return Response.json({ error: 'Error en el servidor' }, { status: 500 });
+    console.error('Server error in activities API:', error);
+    return Response.json({
+      error: 'Error en el servidor',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

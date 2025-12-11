@@ -25,9 +25,10 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         {onBack && (
           <button
             onClick={onBack}
-            className={`w-10 h-10 ${colors.background.card} ${colors.border.light} hover:${colors.background.hover} rounded-lg flex items-center justify-center transition-colors shadow-sm`}
+            aria-label="Regresar al dashboard"
+            className={`w-10 h-10 ${colors.background.card} ${colors.border.light} hover:${colors.background.hover} hover:border-blue-400 dark:hover:border-blue-600 rounded-lg flex items-center justify-center transition-all shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-90`}
           >
-            <ArrowLeft className={`w-5 h-5 ${colors.text.secondary}`} />
+            <ArrowLeft className={`w-5 h-5 ${colors.text.secondary}`} aria-hidden="true" />
           </button>
         )}
         <h1 className={`text-lg sm:text-xl lg:text-2xl font-bold ${colors.text.title}`}>{t.profile.title}</h1>
@@ -46,11 +47,11 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 <Star className="w-5 h-5 text-white" />
               </div>
             </div>
-            
+
             <h2 className={`text-lg sm:text-xl font-bold ${colors.text.title} mb-1`}>
               {usuario?.nombre} {usuario?.apellido}
             </h2>
-            
+
             <span className={`inline-block px-4 py-2 bg-gradient-to-r ${getRolColor()} text-white rounded-full text-sm font-bold shadow-md mb-4`}>
               {t.roles[usuario?.rol as keyof typeof t.roles]?.toUpperCase() || usuario?.rol.toUpperCase()}
             </span>
@@ -106,13 +107,12 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.accountStatus}</p>
-                  <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${
-                    usuario?.estado_cuenta === 'activo' 
+                  <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${usuario?.estado_cuenta === 'activo'
                       ? `${colors.status.success.bg} ${colors.status.success.text}`
                       : usuario?.estado_cuenta === 'pendiente'
-                      ? `${colors.status.info.bg} ${colors.status.info.text}`
-                      : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
-                  }`}>
+                        ? `${colors.status.info.bg} ${colors.status.info.text}`
+                        : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
+                    }`}>
                     {t.status[usuario?.estado_cuenta as keyof typeof t.status]?.toUpperCase() || usuario?.estado_cuenta.toUpperCase()}
                   </span>
                 </div>
