@@ -30,12 +30,12 @@ export function MissionsListView() {
       return;
     }
 
-    if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada');
-    } else if (usuario.estado_cuenta === 'pendiente') {
+    } else if (usuario.account_status === 'pendiente') {
       router.replace('/cuenta-pendiente');
-    } else if (usuario.rol !== 'estudiante') {
-      router.replace(`/${usuario.rol}`);
+    } else if (usuario.role !== 'estudiante') {
+      router.replace(`/${usuario.role}`);
     } else {
       loadMissions();
     }
@@ -46,7 +46,7 @@ export function MissionsListView() {
 
     try {
       setLoading(true);
-      const data = await getMissionsWithProgress(usuario.id_usuario);
+      const data = await getMissionsWithProgress(usuario.user_id);
       setMissions(data);
     } catch (err) {
       console.error('Error loading missions:', err);
@@ -110,7 +110,7 @@ export function MissionsListView() {
     );
   }
 
-  if (!user || !usuario || usuario.rol !== 'estudiante') {
+  if (!user || !usuario || usuario.role !== 'estudiante') {
     return null;
   }
 

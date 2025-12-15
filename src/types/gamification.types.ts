@@ -329,13 +329,13 @@ export interface LevelThresholdsSettings {
 // ============================================================================
 
 export interface UserProgress {
-  id_progreso: string;
-  id_estudiante: string;
-  actividades_completadas: number;
-  puntaje_total: number;
-  nivel_actual: number;
-  fecha_ultima_actualizacion: string;
-  misiones_completadas?: number;
+  progress_id: string;
+  student_id: string;
+  activities_completed: number;
+  total_score: number;
+  current_level: number;
+  last_updated_at: string;
+  missions_completed?: number;
 }
 
 

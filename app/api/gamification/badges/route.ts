@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
 
+export const dynamic = 'force-dynamic';
 // Configuración de caché: revalidar cada 60 segundos (badges cambian menos frecuentemente)
 export const revalidate = 60;
 
@@ -21,8 +22,8 @@ export async function GET(request: NextRequest) {
 
         // Obtener el usuario de la base de datos
         const { data: currentUser, error: userError } = await supabase
-            .from('usuarios')
-            .select('id_usuario, rol')
+            .from('users')
+            .select('user_id, role')
             .eq('auth_user_id', user.id)
             .maybeSingle();
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
         }
 
-        const userId = currentUser.id_usuario;
+        const userId = currentUser.user_id;
 
         // Obtener las insignias del usuario con información completa
         const { data: userBadges, error: badgesError } = await supabase

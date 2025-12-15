@@ -39,7 +39,7 @@ export function SettingsTeacherView() {
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      localStorage.setItem(`teacher_settings_${usuario?.id_usuario}`, JSON.stringify(settings));
+      localStorage.setItem(`teacher_settings_${usuario?.user_id}`, JSON.stringify(settings));
 
       setMessage({
         type: 'success',
@@ -86,7 +86,7 @@ export function SettingsTeacherView() {
   };
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem(`teacher_settings_${usuario?.id_usuario}`);
+    const savedSettings = localStorage.getItem(`teacher_settings_${usuario?.user_id}`);
     if (savedSettings) {
       try {
         setSettings(JSON.parse(savedSettings));
@@ -94,7 +94,7 @@ export function SettingsTeacherView() {
         console.error('Error loading settings:', error);
       }
     }
-  }, [usuario?.id_usuario]);
+  }, [usuario?.user_id]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">

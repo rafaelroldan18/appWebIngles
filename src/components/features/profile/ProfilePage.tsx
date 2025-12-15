@@ -12,7 +12,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   const { t } = useLanguage();
 
   const getRolColor = () => {
-    switch (usuario?.rol) {
+    switch (usuario?.role) {
       case 'administrador': return colors.accent.danger.gradient;
       case 'docente': return colors.accent.info.gradient;
       default: return colors.accent.success.gradient;
@@ -40,7 +40,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             <div className="relative inline-block mb-4">
               <div className={`w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br ${colors.primary.gradient} rounded-full flex items-center justify-center shadow-xl`}>
                 <span className="text-white font-bold text-3xl sm:text-4xl">
-                  {usuario?.nombre.charAt(0).toUpperCase()}
+                  {usuario?.first_name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className={`absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br ${colors.secondary.gradient} rounded-full flex items-center justify-center border-4 ${colors.background.card} shadow-lg`}>
@@ -49,11 +49,11 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             </div>
 
             <h2 className={`text-lg sm:text-xl font-bold ${colors.text.title} mb-1`}>
-              {usuario?.nombre} {usuario?.apellido}
+              {usuario?.first_name} {usuario?.last_name}
             </h2>
 
             <span className={`inline-block px-4 py-2 bg-gradient-to-r ${getRolColor()} text-white rounded-full text-sm font-bold shadow-md mb-4`}>
-              {t.roles[usuario?.rol as keyof typeof t.roles]?.toUpperCase() || usuario?.rol.toUpperCase()}
+              {t.roles[usuario?.role as keyof typeof t.roles]?.toUpperCase() || usuario?.role.toUpperCase()}
             </span>
 
             <div className={`mt-6 pt-6 border-t-2 ${colors.border.light}`}>
@@ -62,7 +62,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 <span className="text-sm">{t.profile.memberSince}</span>
               </div>
               <p className={`${colors.text.primary} font-semibold mt-1 text-sm`}>
-                {new Date(usuario?.fecha_registro || '').toLocaleDateString('es-ES', {
+                {new Date(usuario?.registration_date || '').toLocaleDateString('es-ES', {
                   month: 'long',
                   year: 'numeric'
                 })}
@@ -87,7 +87,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.email}</p>
-                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.correo_electronico}</p>
+                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.email}</p>
                 </div>
               </div>
 
@@ -97,7 +97,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.idCard}</p>
-                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.cedula}</p>
+                  <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.id_card}</p>
                 </div>
               </div>
 
@@ -107,13 +107,13 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.accountStatus}</p>
-                  <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${usuario?.estado_cuenta === 'activo'
+                  <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${usuario?.account_status === 'activo'
                       ? `${colors.status.success.bg} ${colors.status.success.text}`
-                      : usuario?.estado_cuenta === 'pendiente'
+                      : usuario?.account_status === 'pendiente'
                         ? `${colors.status.info.bg} ${colors.status.info.text}`
                         : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
                     }`}>
-                    {t.status[usuario?.estado_cuenta as keyof typeof t.status]?.toUpperCase() || usuario?.estado_cuenta.toUpperCase()}
+                    {t.status[usuario?.account_status as keyof typeof t.status]?.toUpperCase() || usuario?.account_status.toUpperCase()}
                   </span>
                 </div>
               </div>

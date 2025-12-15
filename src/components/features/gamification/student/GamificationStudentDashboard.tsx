@@ -22,35 +22,43 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
 
   useEffect(() => {
     loadProgress();
-  }, [usuario.id_usuario]);
+  }, [usuario.user_id]);
 
   const loadProgress = async () => {
     try {
-      console.log('🎮 [StudentDashboard] Cargando progreso mediante API REST...');
+      console.log('🎮 [StudentDashboard] Cargando progreso para user_id:', usuario.user_id);
 
-      // Llamar a las APIs en paralelo
-      const [progressResponse, badgesResponse] = await Promise.all([
-        fetch('/api/gamification/progress'),
-        fetch('/api/gamification/badges'),
-      ]);
+      // Usar el endpoint correcto que tiene Service Role Client
+      const response = await fetch('/api/users/stats/student');
 
-      if (!progressResponse.ok || !badgesResponse.ok) {
-        throw new Error('Error al obtener datos de progreso');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ [StudentDashboard] Error del servidor:', errorData);
+        throw new Error(errorData.error || 'Error al obtener datos de progreso');
       }
 
-      const [progressData, badgesData] = await Promise.all([
-        progressResponse.json(),
-        badgesResponse.json(),
-      ]);
+      const data = await response.json();
+      console.log('📥 [StudentDashboard] Respuesta completa:', data);
 
-      console.log('🎮 [StudentDashboard] Datos recibidos - Progress:', progressData.progress, 'Badges:', badgesData.badges?.length);
+      if (data.success && data.stats) {
+        const progressData = {
+          totalPoints: data.stats.total_points || 0,
+          level: data.stats.level || 1,
+          missionsCompleted: data.stats.missions_completed || 0,
+          activitiesCompleted: data.stats.activities_completed || 0,
+          pointsInCurrentLevel: (data.stats.total_points || 0) % 100,
+          pointsToNextLevel: 100 - ((data.stats.total_points || 0) % 100),
+        };
 
-      if (progressData.success && progressData.progress) {
-        setProgress(progressData.progress);
-      }
+        console.log('✅ [StudentDashboard] Progreso procesado:', progressData);
+        setProgress(progressData);
 
-      if (badgesData.success && badgesData.badges) {
-        setBadges(badgesData.badges);
+        // Los badges vienen en el mismo endpoint
+        const badgesCount = data.stats.badges_count || 0;
+        setBadges(new Array(badgesCount).fill({}));
+        console.log('✅ [StudentDashboard] Badges:', badgesCount);
+      } else {
+        console.warn('⚠️ [StudentDashboard] Respuesta sin stats:', data);
       }
     } catch (error) {
       console.error('❌ [StudentDashboard] Error loading progress:', error);
@@ -67,7 +75,7 @@ export default function GamificationStudentDashboard({ usuario }: GamificationSt
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-8 text-white mb-8">
-          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.nombre}!</h2>
+          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.first_name}!</h2>
           <p className="text-lg opacity-90 mb-4">
             Completa misiones, gana puntos y sube de nivel
           </p>

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
 
 /**
@@ -18,12 +18,12 @@ export async function POST(request: NextRequest) {
 
     // Verificar que el usuario sea docente o administrador
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
+    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -43,45 +43,45 @@ export async function POST(request: NextRequest) {
       const rowNumber = index + 2; // +2 porque la fila 1 es el header y empezamos en 0
 
       // Validar campos requeridos
-      if (!student.nombre || student.nombre.trim() === '') {
-        errors.push(`Fila ${rowNumber}: El nombre es requerido`);
+      if (!student.first_name || student.first_name.trim() === '') {
+        errors.push(`Fila ${rowNumber}: El first_name es requerido`);
         return;
       }
 
-      if (!student.apellido || student.apellido.trim() === '') {
-        errors.push(`Fila ${rowNumber}: El apellido es requerido`);
+      if (!student.last_name || student.last_name.trim() === '') {
+        errors.push(`Fila ${rowNumber}: El last_name es requerido`);
         return;
       }
 
-      if (!student.cedula || student.cedula.trim() === '') {
+      if (!student.id_card || student.id_card.trim() === '') {
         errors.push(`Fila ${rowNumber}: La cédula es requerida`);
         return;
       }
 
-      if (!student.correo_electronico || student.correo_electronico.trim() === '') {
+      if (!student.email || student.email.trim() === '') {
         errors.push(`Fila ${rowNumber}: El correo electrónico es requerido`);
         return;
       }
 
       // Validar formato de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(student.correo_electronico)) {
+      if (!emailRegex.test(student.email)) {
         errors.push(`Fila ${rowNumber}: El correo electrónico no es válido`);
         return;
       }
 
       // Validar cédula (solo números y guiones)
       const cedulaRegex = /^[0-9-]+$/;
-      if (!cedulaRegex.test(student.cedula)) {
+      if (!cedulaRegex.test(student.id_card)) {
         errors.push(`Fila ${rowNumber}: La cédula solo debe contener números y guiones`);
         return;
       }
 
       validStudents.push({
-        nombre: student.nombre.trim(),
-        apellido: student.apellido.trim(),
-        cedula: student.cedula.trim(),
-        correo_electronico: student.correo_electronico.trim().toLowerCase(),
+        first_name: student.first_name.trim(),
+        last_name: student.last_name.trim(),
+        id_card: student.id_card.trim(),
+        email: student.email.trim().toLowerCase(),
       });
     });
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar duplicados en el archivo
-    const emails = validStudents.map(s => s.correo_electronico);
+    const emails = validStudents.map(s => s.email);
     const duplicateEmails = emails.filter((email, index) => emails.indexOf(email) !== index);
 
     if (duplicateEmails.length > 0) {
@@ -108,19 +108,19 @@ export async function POST(request: NextRequest) {
 
     // Verificar si ya existen invitaciones o usuarios con estos correos
     const { data: existingInvitations } = await supabase
-      .from('invitaciones')
-      .select('correo_electronico')
-      .in('correo_electronico', emails)
-      .in('estado', ['pendiente', 'activada']);
+      .from('invitations')
+      .select('email')
+      .in('email', emails)
+      .in('status', ['pendiente', 'activada']);
 
     const { data: existingUsers } = await supabase
-      .from('usuarios')
-      .select('correo_electronico')
-      .in('correo_electronico', emails);
+      .from('users')
+      .select('email')
+      .in('email', emails);
 
     const existingEmails = new Set([
-      ...(existingInvitations?.map(i => i.correo_electronico) || []),
-      ...(existingUsers?.map(u => u.correo_electronico) || []),
+      ...(existingInvitations?.map(i => i.email) || []),
+      ...(existingUsers?.map(u => u.email) || []),
     ]);
 
     if (existingEmails.size > 0) {
@@ -132,20 +132,20 @@ export async function POST(request: NextRequest) {
 
     // Crear las invitaciones
     const invitationsToCreate = validStudents.map(student => ({
-      correo_electronico: student.correo_electronico,
-      nombre: student.nombre,
-      apellido: student.apellido,
-      cedula: student.cedula,
-      rol: 'estudiante',
-      codigo_invitacion: generateInvitationCode(),
-      creado_por: currentUser.id_usuario,
-      estado: 'pendiente',
-      fecha_creacion: new Date().toISOString(),
-      fecha_expiracion: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
+      email: student.email,
+      first_name: student.first_name,
+      last_name: student.last_name,
+      id_card: student.id_card,
+      role: 'estudiante',
+      invitation_code: generateInvitationCode(),
+      created_by_user_id: currentUser.user_id,
+      status: 'pendiente',
+      created_date: new Date().toISOString(),
+      expiration_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
     }));
 
     const { data: createdInvitations, error: createError } = await supabase
-      .from('invitaciones')
+      .from('invitations')
       .insert(invitationsToCreate)
       .select();
 

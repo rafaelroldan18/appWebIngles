@@ -4,17 +4,8 @@ import { AuthService } from '@/services/auth.service';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { commonValidations } from '@/lib/utils/formValidation';
+import { Usuario } from '@/types/user.types';
 import { Users, X, Mail, Calendar, CheckCircle, XCircle, ToggleLeft, ToggleRight, Trash2, UserPlus, CreditCard, Clock } from 'lucide-react';
-
-interface Usuario {
-  id_usuario: string;
-  nombre: string;
-  apellido: string;
-  cedula?: string;
-  correo_electronico: string;
-  estado_cuenta: string;
-  fecha_registro: string;
-}
 
 interface GestionarEstudiantesProps {
   onClose: () => void;
@@ -28,17 +19,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
 
   const validation = useFormValidation({
     initialValues: {
-      nombre: '',
-      apellido: '',
-      cedula: '',
-      correo_electronico: '',
+      first_name: '',
+      last_name: '',
+      id_card: '',
+      email: '',
       password: '',
     },
     validationRules: {
-      nombre: commonValidations.name,
-      apellido: commonValidations.name,
-      cedula: commonValidations.idCard,
-      correo_electronico: commonValidations.email,
+      first_name: commonValidations.name,
+      last_name: commonValidations.name,
+      id_card: commonValidations.idCard,
+      email: commonValidations.email,
       password: commonValidations.password,
     },
   });
@@ -87,11 +78,11 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
 
     try {
       await AuthService.register({
-        email: validation.values.correo_electronico,
+        email: validation.values.email,
         password: validation.values.password,
-        nombre: validation.values.nombre,
-        apellido: validation.values.apellido,
-        cedula: validation.values.cedula,
+        first_name: validation.values.first_name,
+        last_name: validation.values.last_name,
+        id_card: validation.values.id_card,
         rol: 'estudiante'
       });
 
@@ -136,130 +127,160 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
               <p className="text-slate-500 dark:text-gray-400 text-lg">{t.noHayUsuarios || 'No hay estudiantes registrados'}</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {estudiantes.map((estudiante) => (
-                <div
-                  key={estudiante.id_usuario}
-                  className="bg-white dark:bg-gray-700 border-2 border-slate-200 dark:border-gray-600 rounded-xl p-5 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Left Section - Avatar and Info */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                        <span className="text-white font-bold text-xl">
-                          {estudiante.nombre.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2 truncate">
-                          {estudiante.nombre} {estudiante.apellido}
-                        </h3>
-
-                        {/* Grid de información */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                          {/* Email */}
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                            <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
-                            <span className="truncate font-medium">{estudiante.correo_electronico}</span>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-gray-700 border-b-2 border-slate-200 dark:border-gray-600">
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Estudiante
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Email
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Cédula
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Fecha de Registro
+                    </th>
+                    <th className="text-center px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Estado
+                    </th>
+                    <th className="text-center px-4 py-3 text-sm font-bold text-slate-700 dark:text-gray-200">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {estudiantes.map((estudiante) => (
+                    <tr
+                      key={estudiante.user_id}
+                      className="border-b border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      {/* Estudiante */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-sm">
+                              {estudiante.first_name.charAt(0).toUpperCase()}
+                            </span>
                           </div>
+                          <div>
+                            <p className="font-semibold text-slate-800 dark:text-white">
+                              {estudiante.first_name} {estudiante.last_name}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                          {/* Cédula */}
-                          {estudiante.cedula && (
-                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                              <CreditCard className="w-4 h-4 text-purple-500 flex-shrink-0" aria-hidden="true" />
-                              <span className="font-medium">CI: {estudiante.cedula}</span>
-                            </div>
-                          )}
+                      {/* Email */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          <span className="text-sm text-slate-600 dark:text-gray-300">
+                            {estudiante.email}
+                          </span>
+                        </div>
+                      </td>
 
-                          {/* Fecha de Registro */}
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                            <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" aria-hidden="true" />
-                            <span className="font-medium">
-                              Registrado: {new Date(estudiante.fecha_registro).toLocaleDateString('es-ES', {
+                      {/* Cédula */}
+                      <td className="px-4 py-4">
+                        {estudiante.id_card ? (
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                            <span className="text-sm text-slate-600 dark:text-gray-300">
+                              {estudiante.id_card}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-slate-400 dark:text-gray-500">N/A</span>
+                        )}
+                      </td>
+
+                      {/* Fecha de Registro */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <div className="text-sm">
+                            <p className="text-slate-600 dark:text-gray-300">
+                              {new Date(estudiante.registration_date).toLocaleDateString('es-ES', {
                                 day: '2-digit',
                                 month: 'short',
                                 year: 'numeric'
                               })}
-                            </span>
-                          </div>
-
-                          {/* Hora de Registro */}
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                            <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" aria-hidden="true" />
-                            <span className="font-medium">
-                              {new Date(estudiante.fecha_registro).toLocaleTimeString('es-ES', {
+                            </p>
+                            <p className="text-xs text-slate-400 dark:text-gray-500">
+                              {new Date(estudiante.registration_date).toLocaleTimeString('es-ES', {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
-                            </span>
+                            </p>
                           </div>
                         </div>
-                      </div>
-                    </div>
+                      </td>
 
-                    {/* Right Section - Status and Actions */}
-                    <div className="flex items-center gap-3">
-                      {/* Status Badge */}
-                      <div className="flex-shrink-0">
-                        {estudiante.estado_cuenta === 'activo' ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg text-sm font-bold">
-                            <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                      {/* Estado */}
+                      <td className="px-4 py-4 text-center">
+                        {estudiante.account_status === 'activo' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg text-xs font-bold">
+                            <CheckCircle className="w-3.5 h-3.5" />
                             ACTIVO
                           </span>
-                        ) : estudiante.estado_cuenta === 'pendiente' ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-bold">
-                            <XCircle className="w-4 h-4" aria-hidden="true" />
+                        ) : estudiante.account_status === 'pendiente' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-bold">
+                            <Clock className="w-3.5 h-3.5" />
                             PENDIENTE
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-gray-600 border-2 border-slate-300 dark:border-gray-500 text-slate-700 dark:text-gray-300 rounded-lg text-sm font-bold">
-                            <XCircle className="w-4 h-4" aria-hidden="true" />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-gray-600 border border-slate-300 dark:border-gray-500 text-slate-700 dark:text-gray-300 rounded-lg text-xs font-bold">
+                            <XCircle className="w-3.5 h-3.5" />
                             INACTIVO
                           </span>
                         )}
-                      </div>
+                      </td>
 
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        {estudiante.estado_cuenta === 'pendiente' ? (
+                      {/* Acciones */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          {estudiante.account_status === 'pendiente' ? (
+                            <button
+                              onClick={async () => {
+                                await UserService.updateStatus(estudiante.user_id, 'activo');
+                                loadEstudiantes();
+                              }}
+                              aria-label={`Aprobar a ${estudiante.first_name} ${estudiante.last_name}`}
+                              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-semibold text-xs shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-300 active:scale-95"
+                            >
+                              {t.aprobar}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => toggleStatus(estudiante.user_id, estudiante.account_status)}
+                              aria-label={`${estudiante.account_status === 'activo' ? 'Desactivar' : 'Activar'} a ${estudiante.first_name} ${estudiante.last_name}`}
+                              className="p-2 hover:bg-slate-100 dark:hover:bg-gray-600 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-blue-300 active:scale-90"
+                              title={estudiante.account_status === 'activo' ? 'Desactivar' : 'Activar'}
+                            >
+                              {estudiante.account_status === 'activo' ? (
+                                <ToggleRight className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <ToggleLeft className="w-5 h-5 text-slate-400 dark:text-gray-500" />
+                              )}
+                            </button>
+                          )}
                           <button
-                            onClick={async () => {
-                              await UserService.updateStatus(estudiante.id_usuario, 'activo');
-                              loadEstudiantes();
-                            }}
-                            aria-label={`Aprobar a ${estudiante.nombre} ${estudiante.apellido}`}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-semibold text-sm shadow-sm hover:shadow-md focus:outline-none focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 active:scale-95"
+                            onClick={() => deleteStudent(estudiante.user_id)}
+                            aria-label={`Eliminar a ${estudiante.first_name} ${estudiante.last_name}`}
+                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-red-300 active:scale-90"
+                            title="Eliminar"
                           >
-                            {t.aprobar}
+                            <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                           </button>
-                        ) : (
-                          <button
-                            onClick={() => toggleStatus(estudiante.id_usuario, estudiante.estado_cuenta)}
-                            aria-label={`${estudiante.estado_cuenta === 'activo' ? 'Desactivar' : 'Activar'} a ${estudiante.nombre} ${estudiante.apellido}`}
-                            className="p-2.5 hover:bg-slate-100 dark:hover:bg-gray-600 rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-90"
-                            title={estudiante.estado_cuenta === 'activo' ? 'Desactivar' : 'Activar'}
-                          >
-                            {estudiante.estado_cuenta === 'activo' ? (
-                              <ToggleRight className="w-6 h-6 text-green-600 dark:text-green-400" aria-hidden="true" />
-                            ) : (
-                              <ToggleLeft className="w-6 h-6 text-slate-400 dark:text-gray-500" aria-hidden="true" />
-                            )}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteStudent(estudiante.id_usuario)}
-                          aria-label={`Eliminar a ${estudiante.nombre} ${estudiante.apellido}`}
-                          className="p-2.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 active:scale-90"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -287,17 +308,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                 <input
                   type="text"
                   placeholder={t.loginFirstName || 'Nombre'}
-                  value={validation.values.nombre}
-                  onChange={(e) => validation.handleChange('nombre', e.target.value)}
-                  onBlur={() => validation.handleBlur('nombre')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.nombre && validation.touched.nombre
+                  value={validation.values.first_name}
+                  onChange={(e) => validation.handleChange('first_name', e.target.value)}
+                  onBlur={() => validation.handleBlur('first_name')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.first_name && validation.touched.first_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
                     }`}
                 />
-                {validation.errors.nombre && validation.touched.nombre && (
+                {validation.errors.first_name && validation.touched.first_name && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.nombre}
+                    {validation.errors.first_name}
                   </p>
                 )}
               </div>
@@ -305,17 +326,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                 <input
                   type="text"
                   placeholder={t.loginLastName || 'Apellido'}
-                  value={validation.values.apellido}
-                  onChange={(e) => validation.handleChange('apellido', e.target.value)}
-                  onBlur={() => validation.handleBlur('apellido')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.apellido && validation.touched.apellido
+                  value={validation.values.last_name}
+                  onChange={(e) => validation.handleChange('last_name', e.target.value)}
+                  onBlur={() => validation.handleBlur('last_name')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.last_name && validation.touched.last_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
                     }`}
                 />
-                {validation.errors.apellido && validation.touched.apellido && (
+                {validation.errors.last_name && validation.touched.last_name && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.apellido}
+                    {validation.errors.last_name}
                   </p>
                 )}
               </div>
@@ -323,17 +344,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                 <input
                   type="text"
                   placeholder={t.loginIdCard || 'Cédula'}
-                  value={validation.values.cedula}
-                  onChange={(e) => validation.handleChange('cedula', e.target.value)}
-                  onBlur={() => validation.handleBlur('cedula')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.cedula && validation.touched.cedula
+                  value={validation.values.id_card}
+                  onChange={(e) => validation.handleChange('id_card', e.target.value)}
+                  onBlur={() => validation.handleBlur('id_card')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.id_card && validation.touched.id_card
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
                     }`}
                 />
-                {validation.errors.cedula && validation.touched.cedula && (
+                {validation.errors.id_card && validation.touched.id_card && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.cedula}
+                    {validation.errors.id_card}
                   </p>
                 )}
               </div>
@@ -341,17 +362,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                 <input
                   type="email"
                   placeholder={t.loginEmail || 'Correo Electrónico'}
-                  value={validation.values.correo_electronico}
-                  onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
-                  onBlur={() => validation.handleBlur('correo_electronico')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.correo_electronico && validation.touched.correo_electronico
+                  value={validation.values.email}
+                  onChange={(e) => validation.handleChange('email', e.target.value)}
+                  onBlur={() => validation.handleBlur('email')}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.email && validation.touched.email
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-green-500 focus:ring-green-500/20'
                     }`}
                 />
-                {validation.errors.correo_electronico && validation.touched.correo_electronico && (
+                {validation.errors.email && validation.touched.email && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.correo_electronico}
+                    {validation.errors.email}
                   </p>
                 )}
               </div>

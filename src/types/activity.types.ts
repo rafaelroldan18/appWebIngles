@@ -22,9 +22,9 @@ export interface Asignacion {
 }
 
 export interface Progreso {
-  id_progreso: string;
-  id_estudiante: string;
-  actividades_completadas: number;
-  puntaje_total: number;
-  nivel_actual: number;
+  progress_id: string;
+  student_id: string;
+  activities_completed: number;
+  total_score: number;
+  current_level: number;
 }

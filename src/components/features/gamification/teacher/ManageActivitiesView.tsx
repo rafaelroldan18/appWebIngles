@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   getMissionById,
-  getActivitiesForMission,
+  getActivitiesByMission,
   createActivity,
   updateActivity,
   deleteActivity,
@@ -57,7 +57,7 @@ export function ManageActivitiesView({ missionId }: ManageActivitiesViewProps) {
         return;
       }
 
-      const activitiesData = await getActivitiesForMission(missionId);
+      const activitiesData = await getActivitiesByMission(missionId);
 
       setMission(missionData);
       setActivities(activitiesData || []);
@@ -286,10 +286,11 @@ export function ManageActivitiesView({ missionId }: ManageActivitiesViewProps) {
       </div>
 
       {/* Activity Form Modal */}
-      {showForm && (
+      {showForm && usuario && (
         <ActivityFormModal
           missionId={missionId}
           activity={editingActivity}
+          userId={usuario.user_id}
           onClose={handleCloseForm}
           onSave={handleSaveActivity}
         />
@@ -302,11 +303,12 @@ export function ManageActivitiesView({ missionId }: ManageActivitiesViewProps) {
 interface ActivityFormModalProps {
   missionId: string;
   activity: Activity | null;
+  userId: string;
   onClose: () => void;
   onSave: () => void;
 }
 
-function ActivityFormModal({ missionId, activity, onClose, onSave }: ActivityFormModalProps) {
+function ActivityFormModal({ missionId, activity, userId, onClose, onSave }: ActivityFormModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -348,7 +350,7 @@ function ActivityFormModal({ missionId, activity, onClose, onSave }: ActivityFor
       if (activity) {
         await updateActivity(activity.id, activityData);
       } else {
-        await createActivity(activityData);
+        await createActivity(activityData, userId);
       }
 
       onSave();

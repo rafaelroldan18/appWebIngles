@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Trophy, Users, Award, Star, Crown, Medal, Plus } from 'lucide-react';
-import { createClient } from '@/lib/supabase-browser';
 
 interface Badge {
   id: string;
@@ -63,47 +62,14 @@ export function BadgesTeacherView() {
   const loadStudentBadges = async (badgeId: string) => {
     setLoadingStudents(true);
     try {
-      const supabase = createClient();
+      const res = await fetch(`/api/gamification/achievements/${badgeId}/students`);
+      if (!res.ok) throw new Error('Error al cargar estudiantes');
 
-      const { data: userBadges, error: ubError } = await supabase
-        .from('gamification_user_badges')
-        .select('id, user_id, badge_id, earned_at')
-        .eq('badge_id', badgeId);
-
-      if (ubError) throw ubError;
-
-      if (!userBadges || userBadges.length === 0) {
-        setStudentBadges([]);
-        return;
-      }
-
-      const userIds = userBadges.map(ub => ub.user_id);
-
-      const { data: users, error: usersError } = await supabase
-        .from('usuarios')
-        .select('id_usuario, nombre, apellido, correo_electronico')
-        .in('id_usuario', userIds)
-        .eq('rol', 'estudiante');
-
-      if (usersError) throw usersError;
-
-      const userMap = new Map(
-        users?.map(u => [u.id_usuario, `${u.nombre} ${u.apellido}`]) || []
-      );
-
-      const emailMap = new Map(
-        users?.map(u => [u.id_usuario, u.correo_electronico]) || []
-      );
-
-      const enrichedBadges: StudentBadge[] = userBadges.map(ub => ({
-        ...ub,
-        student_name: userMap.get(ub.user_id) || 'Desconocido',
-        student_email: emailMap.get(ub.user_id) || ''
-      }));
-
-      setStudentBadges(enrichedBadges);
+      const data = await res.json();
+      setStudentBadges(data.students || []);
     } catch (err) {
       console.error('Error loading student badges:', err);
+      setStudentBadges([]);
     } finally {
       setLoadingStudents(false);
     }
@@ -219,8 +185,8 @@ export function BadgesTeacherView() {
                   aria-label={`Ver estudiantes con la insignia ${badge.name}`}
                   aria-pressed={selectedBadge?.id === badge.id}
                   className={`w-full bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 p-4 text-left transition-all hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95 ${selectedBadge?.id === badge.id
-                      ? 'border-blue-500 dark:border-blue-400'
-                      : 'border-gray-200 dark:border-[#334155] hover:border-blue-300 dark:hover:border-blue-700'
+                    ? 'border-blue-500 dark:border-blue-400'
+                    : 'border-gray-200 dark:border-[#334155] hover:border-blue-300 dark:hover:border-blue-700'
                     } ${!badge.is_active ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start gap-4">

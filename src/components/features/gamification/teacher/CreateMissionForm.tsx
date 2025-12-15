@@ -102,7 +102,7 @@ export function CreateMissionForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!usuario?.id_usuario) {
+    if (!usuario?.user_id) {
       setError('User not authenticated');
       return;
     }
@@ -116,7 +116,7 @@ export function CreateMissionForm() {
     setError(null);
 
     try {
-      await createMission(formData, usuario.id_usuario);
+      await createMission(formData, usuario.user_id);
       router.push('/docente/gamification/missions');
     } catch (err) {
       console.error('Error creating mission:', err);

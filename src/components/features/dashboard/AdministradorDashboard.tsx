@@ -156,7 +156,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
           {/* Bienvenida */}
           <div className="mb-6 sm:mb-8">
             <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.title} mb-1 sm:mb-2`}>
-              {t.bienvenido}, {usuario?.nombre}!
+              {t.bienvenido}, {usuario?.first_name}!
             </h2>
             <p className={`text-sm sm:text-base ${colors.text.primary}`}>{t.panelAdministracionSistema}</p>
           </div>
@@ -339,61 +339,61 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                       </tr>
                     </thead>
                     <tbody>
-                      {usuarios.filter(user => filtroRol === 'todos' || user.rol === filtroRol).map((user) => (
-                        <tr key={user.id_usuario} className="border-b border-[#E5E7EB] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#334155] transition-colors">
+                      {usuarios.filter(user => filtroRol === 'todos' || user.role === filtroRol).map((user) => (
+                        <tr key={user.user_id} className="border-b border-[#E5E7EB] dark:border-[#334155] hover:bg-[#F8FAFC] dark:hover:bg-[#334155] transition-colors">
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
                               <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center flex-shrink-0`}>
                                 <span className="text-white font-bold text-sm">
-                                  {user.nombre.charAt(0).toUpperCase()}
+                                  {user.first_name.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                               <div className="min-w-0">
                                 <p className={`font-semibold ${colors.text.title} text-sm truncate`}>
-                                  {user.nombre} {user.apellido}
+                                  {user.first_name} {user.last_name}
                                 </p>
-                                <p className={`text-xs ${colors.text.secondary} md:hidden truncate`}>{user.correo_electronico}</p>
+                                <p className={`text-xs ${colors.text.secondary} md:hidden truncate`}>{user.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden md:table-cell">{user.correo_electronico}</td>
+                          <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden md:table-cell">{user.email}</td>
                           <td className="py-4 px-4">
-                            <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getRolColor(user.rol)}`}>
-                              {user.rol === 'estudiante' ? t.roles.student.toUpperCase() : user.rol === 'docente' ? t.roles.teacher.toUpperCase() : t.roles.admin.toUpperCase()}
+                            <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getRolColor(user.role)}`}>
+                              {user.role === 'estudiante' ? t.roles.student.toUpperCase() : user.role === 'docente' ? t.roles.teacher.toUpperCase() : t.roles.admin.toUpperCase()}
                             </span>
                           </td>
                           <td className="py-4 px-4">
-                            <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getEstadoColor(user.estado_cuenta)}`}>
-                              {user.estado_cuenta === 'activo' ? t.status.active.toUpperCase() : user.estado_cuenta === 'pendiente' ? t.status.pending.toUpperCase() : t.status.inactive.toUpperCase()}
+                            <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getEstadoColor(user.account_status)}`}>
+                              {user.account_status === 'activo' ? t.status.active.toUpperCase() : user.account_status === 'pendiente' ? t.status.pending.toUpperCase() : t.status.inactive.toUpperCase()}
                             </span>
                           </td>
                           <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden lg:table-cell">
-                            {new Date(user.fecha_registro).toLocaleDateString('es-ES')}
+                            {new Date(user.registration_date).toLocaleDateString('es-ES')}
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-1 sm:gap-2">
-                              {user.rol === 'administrador' || user.id_usuario === usuario?.id_usuario ? (
+                              {user.role === 'administrador' || user.user_id === usuario?.user_id ? (
                                 <span className="text-xs text-[#9CA3AF] dark:text-[#9CA3AF] italic">{t.sinAcciones}</span>
                               ) : (
                                 <>
-                                  {user.estado_cuenta === 'pendiente' ? (
+                                  {user.account_status === 'pendiente' ? (
                                     <button
                                       onClick={async () => {
-                                        await UserService.updateStatus(user.id_usuario, 'activo');
+                                        await UserService.updateStatus(user.user_id, 'activo');
                                         loadData();
                                       }}
-                                      aria-label={`Aprobar usuario ${user.nombre} ${user.apellido}`}
+                                      aria-label={`Aprobar usuario ${user.first_name} ${user.last_name}`}
                                       className={`px-2 sm:px-3 py-1 ${getButtonSecondaryClasses()} rounded-lg focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 active:scale-95 transition-all text-xs font-semibold`}
                                     >
                                       {t.aprobar}
                                     </button>
                                   ) : (
                                     <button
-                                      onClick={() => toggleUserStatus(user.id_usuario, user.estado_cuenta)}
-                                      aria-label={`${user.estado_cuenta === 'activo' ? 'Desactivar' : 'Activar'} usuario ${user.nombre} ${user.apellido}`}
+                                      onClick={() => toggleUserStatus(user.user_id, user.account_status)}
+                                      aria-label={`${user.account_status === 'activo' ? 'Desactivar' : 'Activar'} usuario ${user.first_name} ${user.last_name}`}
                                       className="p-1.5 sm:p-2 hover:bg-[#F8FAFC] dark:hover:bg-[#334155] rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-90 transition-all"
                                     >
-                                      {user.estado_cuenta === 'activo' ? (
+                                      {user.account_status === 'activo' ? (
                                         <ToggleRight className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 dark:text-green-400" aria-hidden="true" />
                                       ) : (
                                         <ToggleLeft className="w-4 h-4 sm:w-5 sm:h-5 text-[#9CA3AF] dark:text-[#9CA3AF]" aria-hidden="true" />
@@ -405,14 +405,14 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                                       setSelectedUser(user);
                                       setShowRoleModal(true);
                                     }}
-                                    aria-label={`Cambiar rol de ${user.nombre} ${user.apellido}`}
+                                    aria-label={`Cambiar rol de ${user.first_name} ${user.last_name}`}
                                     className={`p-1.5 sm:p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-90 transition-all`}
                                   >
                                     <Edit className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 dark:text-blue-400" aria-hidden="true" />
                                   </button>
                                   <button
-                                    onClick={() => deleteUser(user.id_usuario)}
-                                    aria-label={`Eliminar usuario ${user.nombre} ${user.apellido}`}
+                                    onClick={() => deleteUser(user.user_id)}
+                                    aria-label={`Eliminar usuario ${user.first_name} ${user.last_name}`}
                                     className={`p-1.5 sm:p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 active:scale-90 transition-all`}
                                   >
                                     <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 dark:text-red-400" aria-hidden="true" />

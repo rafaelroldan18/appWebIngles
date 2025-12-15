@@ -18,9 +18,9 @@ export function CuentaPendienteView() {
       return
     }
     
-    if (usuario.estado_cuenta === 'activo') {
-      router.replace(`/${usuario.rol}`)
-    } else if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'activo') {
+      router.replace(`/${usuario.role}`)
+    } else if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada')
     }
   }, [user, usuario, loading, router])

@@ -1,27 +1,17 @@
 // ============================================================================
-// GAMIFICATION API
-// Reusable functions for gamification operations
+// GAMIFICATION API - REST VERSION
+// All functions use REST API endpoints (no direct Supabase queries)
 // ============================================================================
 
-import { createClient } from '@/lib/supabase-browser';
 import type {
   Mission,
   Activity,
-  MissionAttempt,
-  ActivityAttempt,
   Badge,
   UserBadge,
-  PointsTransaction,
-  Streak,
-  UserProgress,
   MissionWithProgress,
-  ActivityWithAttempts,
-  UserGamificationStats,
   CreateMissionInput,
   CreateActivityInput,
-  StartMissionInput,
   CompleteActivityInput,
-  CompleteMissionInput,
 } from '@/types/gamification.types';
 
 // ============================================================================
@@ -29,117 +19,162 @@ import type {
 // ============================================================================
 
 /**
- * Fetch all active missions, optionally filtered by difficulty or type
+ * Fetch all active missions
  */
 export async function getActiveMissions(filters?: {
   difficulty?: string;
-  mission_type?: string;
 }): Promise<Mission[]> {
-  const supabase = createClient();
+  try {
+    const response = await fetch('/api/gamification/missions');
 
-  let query = supabase
-    .from('gamification_missions')
-    .select('*')
-    .eq('is_active', true)
-    .order('unit_number', { ascending: true })
-    .order('order_index', { ascending: true });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener misiones');
+    }
 
-  if (filters?.difficulty) {
-    query = query.eq('difficulty_level', filters.difficulty);
+    const data = await response.json();
+
+    if (!data.success || !data.missions) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    let missions = data.missions;
+
+    // Apply filters if provided
+    if (filters?.difficulty) {
+      missions = missions.filter((m: Mission) => m.difficulty_level === filters.difficulty);
+    }
+
+    return missions;
+  } catch (error) {
+    console.error('Error fetching active missions:', error);
+    throw error;
   }
-
-  if (filters?.mission_type) {
-    query = query.eq('mission_type', filters.mission_type);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return data || [];
 }
 
 /**
- * Fetch missions with user progress for a specific user
+ * Fetch missions with user progress
  */
 export async function getMissionsWithProgress(
   userId: string
 ): Promise<MissionWithProgress[]> {
-  const supabase = createClient();
+  try {
+    const response = await fetch('/api/gamification/progress/missions');
 
-  const { data: missions, error: missionsError } = await supabase
-    .from('gamification_missions')
-    .select('*')
-    .eq('is_active', true)
-    .order('unit_number', { ascending: true })
-    .order('order_index', { ascending: true });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener misiones');
+    }
 
-  if (missionsError) throw missionsError;
+    const data = await response.json();
 
-  const missionsWithProgress: MissionWithProgress[] = await Promise.all(
-    (missions || []).map(async (mission) => {
-      const { data: activities } = await supabase
-        .from('gamification_activities')
-        .select('id')
-        .eq('mission_id', mission.id)
-        .eq('is_active', true);
+    if (!data.success || !data.missions) {
+      throw new Error('Respuesta inválida del servidor');
+    }
 
-      const { data: attempt } = await supabase
-        .from('gamification_mission_attempts')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('mission_id', mission.id)
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // Transform API response to MissionWithProgress format
+    const missionsWithProgress: MissionWithProgress[] = data.missions.map((mission: any) => ({
+      mission: {
+        id: mission.id,
+        title: mission.title,
+        description: mission.description,
+        difficulty_level: mission.difficulty_level,
+        base_points: mission.base_points,
+        unit_number: mission.unit_number,
+        topic: mission.topic,
+        mission_type: mission.mission_type,
+        estimated_duration_minutes: mission.estimated_duration_minutes,
+        is_active: mission.is_active,
+        order_index: mission.order_index,
+        created_at: mission.created_at,
+        updated_at: mission.updated_at,
+      },
+      activities_count: mission.totalActivities || 0,
+      user_attempt: mission.status !== 'not_started' ? {
+        id: mission.id,
+        user_id: userId,
+        mission_id: mission.id,
+        status: mission.status,
+        score_percentage: mission.progressPercentage || 0,
+        points_earned: mission.pointsEarned || 0,
+        time_spent_seconds: 0,
+        activities_completed: mission.activitiesCompleted || 0,
+        total_activities: mission.totalActivities || 0,
+        started_at: new Date().toISOString(),
+        completed_at: mission.status === 'completed' ? mission.lastActivityAt : null,
+        last_activity_at: mission.lastActivityAt || null,
+      } : undefined,
+      is_unlocked: true,
+    }));
 
-      return {
-        mission,
-        activities_count: activities?.length || 0,
-        user_attempt: attempt || undefined,
-        is_unlocked: true,
-      };
-    })
-  );
-
-  return missionsWithProgress;
+    return missionsWithProgress;
+  } catch (error) {
+    throw error;
+  }
 }
 
 /**
- * Fetch a single mission by ID
+ * Get a specific mission by ID
  */
 export async function getMissionById(missionId: string): Promise<Mission> {
-  const supabase = createClient();
+  try {
+    const response = await fetch(`/api/gamification/missions/${missionId}`);
 
-  const { data, error } = await supabase
-    .from('gamification_missions')
-    .select('*')
-    .eq('id', missionId)
-    .single();
+    if (!response.ok) {
+      let errorMessage = 'Error al obtener misión';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // Response body is empty or not JSON
+        console.warn('Failed to parse error response');
+      }
+      throw new Error(errorMessage);
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.mission) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.mission;
+  } catch (error) {
+    console.error('Error fetching mission:', error);
+    throw error;
+  }
 }
 
 /**
- * Create a new mission (teachers/admins only)
+ * Create a new mission
  */
 export async function createMission(
   input: CreateMissionInput,
   createdBy: string
 ): Promise<Mission> {
-  const supabase = createClient();
+  try {
+    const response = await fetch('/api/gamification/missions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, created_by: createdBy }),
+    });
 
-  const { data, error} = await supabase
-    .from('gamification_missions')
-    .insert({
-      ...input,
-      created_by: createdBy,
-    })
-    .select()
-    .single();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al crear misión');
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.mission) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.mission;
+  } catch (error) {
+    console.error('Error creating mission:', error);
+    throw error;
+  }
 }
 
 /**
@@ -149,75 +184,48 @@ export async function updateMission(
   missionId: string,
   updates: Partial<CreateMissionInput>
 ): Promise<Mission> {
-  const supabase = createClient();
+  try {
+    const response = await fetch(`/api/gamification/missions/${missionId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
 
-  const { data, error } = await supabase
-    .from('gamification_missions')
-    .update(updates)
-    .eq('id', missionId)
-    .select()
-    .single();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al actualizar misión');
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.mission) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.mission;
+  } catch (error) {
+    console.error('Error updating mission:', error);
+    throw error;
+  }
 }
 
 /**
  * Delete a mission
  */
 export async function deleteMission(missionId: string): Promise<void> {
-  const supabase = createClient();
+  try {
+    const response = await fetch(`/api/gamification/missions/${missionId}`, {
+      method: 'DELETE',
+    });
 
-  const { error } = await supabase
-    .from('gamification_missions')
-    .delete()
-    .eq('id', missionId);
-
-  if (error) throw error;
-}
-
-/**
- * Get mission statistics
- */
-export async function getMissionStatistics(missionId: string): Promise<{
-  total_attempts: number;
-  total_completions: number;
-  average_score: number;
-  average_points: number;
-  unique_students: number;
-}> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .select('*')
-    .eq('mission_id', missionId);
-
-  if (error) throw error;
-
-  const attempts = data || [];
-  const completions = attempts.filter((a) => a.status === 'completed');
-  const uniqueStudents = new Set(attempts.map((a) => a.user_id)).size;
-
-  const averageScore =
-    completions.length > 0
-      ? completions.reduce((sum, a) => sum + (a.score_percentage || 0), 0) /
-        completions.length
-      : 0;
-
-  const averagePoints =
-    completions.length > 0
-      ? completions.reduce((sum, a) => sum + (a.points_earned || 0), 0) /
-        completions.length
-      : 0;
-
-  return {
-    total_attempts: attempts.length,
-    total_completions: completions.length,
-    average_score: Math.round(averageScore),
-    average_points: Math.round(averagePoints),
-    unique_students: uniqueStudents,
-  };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al eliminar misión');
+    }
+  } catch (error) {
+    console.error('Error deleting mission:', error);
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -225,95 +233,91 @@ export async function getMissionStatistics(missionId: string): Promise<{
 // ============================================================================
 
 /**
- * Fetch all activities for a specific mission
+ * Get a specific activity by ID
  */
-export async function getActivitiesForMission(
-  missionId: string
-): Promise<Activity[]> {
-  const supabase = createClient();
+export async function getActivityById(activityId: string): Promise<Activity> {
+  try {
+    const response = await fetch(`/api/gamification/activities/${activityId}`);
 
-  const { data, error } = await supabase
-    .from('gamification_activities')
-    .select('*')
-    .eq('mission_id', missionId)
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener actividad');
+    }
 
-  if (error) throw error;
-  return data || [];
+    const data = await response.json();
+
+    if (!data.success || !data.activity) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.activity;
+  } catch (error) {
+    console.error('Error fetching activity:', error);
+    throw error;
+  }
 }
 
 /**
- * Alias for getActivitiesForMission (for consistency)
+ * Get all activities for a specific mission
  */
-export async function getActivitiesByMission(
-  missionId: string
-): Promise<Activity[]> {
-  return getActivitiesForMission(missionId);
+export async function getActivitiesByMission(missionId: string): Promise<Activity[]> {
+  try {
+    const response = await fetch(`/api/gamification/activities?mission_id=${missionId}`);
+
+    if (!response.ok) {
+      let errorMessage = 'Error al obtener actividades';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        console.warn('Failed to parse error response');
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.activities) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.activities;
+  } catch (error) {
+    console.error('Error fetching activities:', error);
+    throw error;
+  }
 }
 
 /**
- * Fetch activities with user attempts for a specific user and mission
- */
-export async function getActivitiesWithAttempts(
-  userId: string,
-  missionId: string
-): Promise<ActivityWithAttempts[]> {
-  const supabase = createClient();
-
-  const { data: activities, error: activitiesError } = await supabase
-    .from('gamification_activities')
-    .select('*')
-    .eq('mission_id', missionId)
-    .eq('is_active', true)
-    .order('order_index', { ascending: true });
-
-  if (activitiesError) throw activitiesError;
-
-  const activitiesWithAttempts: ActivityWithAttempts[] = await Promise.all(
-    (activities || []).map(async (activity) => {
-      const { data: attempts } = await supabase
-        .from('gamification_activity_attempts')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('activity_id', activity.id)
-        .order('attempted_at', { ascending: false });
-
-      const best_score =
-        attempts && attempts.length > 0
-          ? Math.max(...attempts.map((a) => a.score_percentage))
-          : 0;
-
-      const is_completed = attempts && attempts.some((a) => a.is_correct);
-
-      return {
-        activity,
-        user_attempts: attempts || [],
-        best_score,
-        is_completed,
-      };
-    })
-  );
-
-  return activitiesWithAttempts;
-}
-
-/**
- * Create a new activity (teachers/admins only)
+ * Create a new activity
  */
 export async function createActivity(
-  input: CreateActivityInput
+  input: CreateActivityInput,
+  createdBy: string
 ): Promise<Activity> {
-  const supabase = createClient();
+  try {
+    const response = await fetch('/api/gamification/activities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...input, created_by: createdBy }),
+    });
 
-  const { data, error } = await supabase
-    .from('gamification_activities')
-    .insert(input)
-    .select()
-    .single();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al crear actividad');
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.activity) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.activity;
+  } catch (error) {
+    console.error('Error creating activity:', error);
+    throw error;
+  }
 }
 
 /**
@@ -323,366 +327,79 @@ export async function updateActivity(
   activityId: string,
   updates: Partial<CreateActivityInput>
 ): Promise<Activity> {
-  const supabase = createClient();
+  try {
+    const response = await fetch(`/api/gamification/activities/${activityId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
 
-  const { data, error } = await supabase
-    .from('gamification_activities')
-    .update(updates)
-    .eq('id', activityId)
-    .select()
-    .single();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al actualizar actividad');
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.activity) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.activity;
+  } catch (error) {
+    console.error('Error updating activity:', error);
+    throw error;
+  }
 }
 
 /**
  * Delete an activity
  */
 export async function deleteActivity(activityId: string): Promise<void> {
-  const supabase = createClient();
+  try {
+    const response = await fetch(`/api/gamification/activities/${activityId}`, {
+      method: 'DELETE',
+    });
 
-  const { error } = await supabase
-    .from('gamification_activities')
-    .delete()
-    .eq('id', activityId);
-
-  if (error) throw error;
-}
-
-// ============================================================================
-// MISSION ATTEMPTS
-// ============================================================================
-
-/**
- * Start a new mission attempt for a user
- */
-export async function startMission(
-  input: StartMissionInput
-): Promise<MissionAttempt> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .insert({
-      user_id: input.user_id,
-      mission_id: input.mission_id,
-      status: 'in_progress',
-      total_activities: input.total_activities,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Update mission attempt progress
- */
-export async function updateMissionProgress(
-  attemptId: string,
-  updates: Partial<MissionAttempt>
-): Promise<MissionAttempt> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .update(updates)
-    .eq('id', attemptId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Complete a mission attempt and award points
- */
-export async function completeMission(
-  input: CompleteMissionInput
-): Promise<MissionAttempt> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .update({
-      status: 'completed',
-      score_percentage: input.score_percentage,
-      points_earned: input.points_earned,
-      time_spent_seconds: input.time_spent_seconds,
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', input.attempt_id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  return data;
-}
-
-/**
- * Get user's current mission attempt
- */
-export async function getCurrentMissionAttempt(
-  userId: string,
-  missionId: string
-): Promise<MissionAttempt | null> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('mission_id', missionId)
-    .order('started_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Get all mission attempts for a user and mission
- */
-export async function getMissionAttempts(
-  userId: string,
-  missionId: string
-): Promise<MissionAttempt[]> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('mission_id', missionId)
-    .order('started_at', { ascending: false });
-
-  if (error) throw error;
-  return data || [];
-}
-
-// ============================================================================
-// ACTIVITY ATTEMPTS
-// ============================================================================
-
-/**
- * Record an activity attempt
- */
-export async function recordActivityAttempt(
-  input: CompleteActivityInput
-): Promise<ActivityAttempt> {
-  const supabase = createClient();
-
-  const { data: existingAttempts } = await supabase
-    .from('gamification_activity_attempts')
-    .select('attempt_number')
-    .eq('user_id', input.user_id)
-    .eq('activity_id', input.activity_id)
-    .order('attempt_number', { ascending: false })
-    .limit(1);
-
-  const attemptNumber =
-    existingAttempts && existingAttempts.length > 0
-      ? existingAttempts[0].attempt_number + 1
-      : 1;
-
-  const { data, error } = await supabase
-    .from('gamification_activity_attempts')
-    .insert({
-      ...input,
-      attempt_number: attemptNumber,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  if (input.mission_attempt_id && input.is_correct) {
-    const { data: currentAttempt } = await supabase
-      .from('gamification_mission_attempts')
-      .select('activities_completed, time_spent_seconds')
-      .eq('id', input.mission_attempt_id)
-      .single();
-
-    if (currentAttempt) {
-      await supabase
-        .from('gamification_mission_attempts')
-        .update({
-          activities_completed: currentAttempt.activities_completed + 1,
-          time_spent_seconds:
-            currentAttempt.time_spent_seconds + input.time_spent_seconds,
-          last_activity_at: new Date().toISOString(),
-        })
-        .eq('id', input.mission_attempt_id);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al eliminar actividad');
     }
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+    throw error;
   }
-
-  return data;
-}
-
-// ============================================================================
-// POINTS & PROGRESS
-// ============================================================================
-
-/**
- * Get user's accumulated points and progress
- */
-export async function getUserProgress(
-  userId: string
-): Promise<UserProgress | null> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('progreso_estudiantes')
-    .select('*')
-    .eq('id_estudiante', userId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
 }
 
 /**
- * Get completed missions with points earned for a user
+ * Complete an activity
  */
-export async function getCompletedMissionsWithPoints(userId: string): Promise<
-  Array<{
-    mission_id: string;
-    mission_title: string;
-    completed_at: string;
-    points_earned: number;
-    score_percentage: number;
-  }>
-> {
-  const supabase = createClient();
+export async function completeActivity(
+  input: CompleteActivityInput
+): Promise<any> {
+  try {
+    const response = await fetch('/api/gamification/progress/activities/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
 
-  const { data, error } = await supabase
-    .from('gamification_mission_attempts')
-    .select(
-      `
-      mission_id,
-      completed_at,
-      points_earned,
-      score_percentage,
-      gamification_missions!inner (
-        title
-      )
-    `
-    )
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .not('completed_at', 'is', null)
-    .order('completed_at', { ascending: false });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al completar actividad');
+    }
 
-  if (error) throw error;
+    const data = await response.json();
 
-  return (
-    data?.map((item: any) => ({
-      mission_id: item.mission_id,
-      mission_title: item.gamification_missions.title,
-      completed_at: item.completed_at,
-      points_earned: item.points_earned,
-      score_percentage: item.score_percentage,
-    })) || []
-  );
-}
+    if (!data.success) {
+      throw new Error('Respuesta inválida del servidor');
+    }
 
-/**
- * Get user's complete gamification stats
- */
-export async function getUserGamificationStats(
-  userId: string
-): Promise<UserGamificationStats> {
-  const supabase = createClient();
-
-  const [progressData, badgesData, missionsData, perfectScoresData] =
-    await Promise.all([
-      supabase
-        .from('progreso_estudiantes')
-        .select('*')
-        .eq('id_estudiante', userId)
-        .maybeSingle(),
-
-      supabase
-        .from('gamification_user_badges')
-        .select('id')
-        .eq('user_id', userId),
-
-      supabase
-        .from('gamification_mission_attempts')
-        .select('id, score_percentage')
-        .eq('user_id', userId)
-        .eq('status', 'completed'),
-
-      supabase
-        .from('gamification_activity_attempts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('score_percentage', 100),
-    ]);
-
-  const progress = progressData.data;
-  const badges = badgesData.data || [];
-  const missions = missionsData.data || [];
-  const perfectScores = perfectScoresData.data || [];
-
-  const averageScore =
-    missions.length > 0
-      ? missions.reduce((sum, m) => sum + (m.score_percentage || 0), 0) /
-        missions.length
-      : 0;
-
-  return {
-    totalPoints: progress?.puntaje_total || 0,
-    currentLevel: progress?.nivel_actual || 1,
-    activitiesCompleted: progress?.actividades_completadas || 0,
-    missionsCompleted: missions.length,
-    badgesEarned: badges.length,
-    perfectScores: perfectScores.length,
-    averageScore: Math.round(averageScore),
-  };
-}
-
-/**
- * Record a points transaction
- */
-export async function recordPointsTransaction(
-  transaction: Omit<PointsTransaction, 'id' | 'created_at'>
-): Promise<PointsTransaction> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_points_transactions')
-    .insert(transaction)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-/**
- * Get user's points transaction history
- */
-export async function getPointsHistory(
-  userId: string,
-  limit: number = 20
-): Promise<PointsTransaction[]> {
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('gamification_points_transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) throw error;
-  return data || [];
+    return data;
+  } catch (error) {
+    console.error('Error completing activity:', error);
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -690,105 +407,109 @@ export async function getPointsHistory(
 // ============================================================================
 
 /**
- * Get all active badges
+ * Get all available badges
  */
-export async function getActiveBadges(): Promise<Badge[]> {
-  const supabase = createClient();
+export async function getBadges(): Promise<Badge[]> {
+  try {
+    const response = await fetch('/api/gamification/achievements');
 
-  const { data, error } = await supabase
-    .from('gamification_badges')
-    .select('*')
-    .eq('is_active', true)
-    .order('rarity', { ascending: true })
-    .order('criteria_value', { ascending: true });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener insignias');
+    }
 
-  if (error) throw error;
-  return data || [];
+    const data = await response.json();
+
+    if (!data.success || !data.badges) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.badges;
+  } catch (error) {
+    console.error('Error fetching badges:', error);
+    throw error;
+  }
 }
 
 /**
  * Get user's earned badges
  */
-export async function getUserBadges(userId: string): Promise<UserBadge[]> {
-  const supabase = createClient();
+export async function getUserBadges(): Promise<UserBadge[]> {
+  try {
+    const response = await fetch('/api/gamification/achievements/user');
 
-  const { data, error } = await supabase
-    .from('gamification_user_badges')
-    .select(
-      `
-      *,
-      badge:gamification_badges(*)
-    `
-    )
-    .eq('user_id', userId)
-    .order('earned_at', { ascending: false });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener insignias del usuario');
+    }
 
-  if (error) throw error;
-  return (data as any[])?.map((item) => ({
-    ...item,
-    badge: item.badge,
-  })) || [];
-}
+    const data = await response.json();
 
-/**
- * Award a badge to a user
- */
-export async function awardBadge(
-  userId: string,
-  badgeId: string,
-  progressSnapshot: Record<string, any>
-): Promise<UserBadge> {
-  const supabase = createClient();
+    if (!data.success || !data.badges) {
+      throw new Error('Respuesta inválida del servidor');
+    }
 
-  const { data, error } = await supabase
-    .from('gamification_user_badges')
-    .insert({
-      user_id: userId,
-      badge_id: badgeId,
-      progress_at_earning: progressSnapshot,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  const { data: badge } = await supabase
-    .from('gamification_badges')
-    .select('points_reward')
-    .eq('id', badgeId)
-    .single();
-
-  if (badge && badge.points_reward > 0) {
-    await recordPointsTransaction({
-      user_id: userId,
-      points_change: badge.points_reward,
-      transaction_type: 'badge_earned',
-      source_type: 'badge',
-      source_id: badgeId,
-      description: `Badge earned: ${badge.points_reward} points`,
-    });
+    return data.badges;
+  } catch (error) {
+    console.error('Error fetching user badges:', error);
+    throw error;
   }
-
-  return data;
 }
 
 // ============================================================================
-// STREAKS
+// LEADERBOARD
 // ============================================================================
 
 /**
- * Get user's streak information
+ * Get leaderboard
  */
-export async function getUserStreak(userId: string): Promise<Streak | null> {
-  const supabase = createClient();
+export async function getLeaderboard(limit: number = 10): Promise<any[]> {
+  try {
+    const response = await fetch(`/api/gamification/leaderboard?limit=${limit}`);
 
-  const { data, error } = await supabase
-    .from('gamification_streaks')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener clasificación');
+    }
 
-  if (error) throw error;
-  return data;
+    const data = await response.json();
+
+    if (!data.success || !data.leaderboard) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.leaderboard;
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    throw error;
+  }
 }
 
+// ============================================================================
+// USER STATS
+// ============================================================================
+
+/**
+ * Get user statistics
+ */
+export async function getUserStats(): Promise<any> {
+  try {
+    const response = await fetch('/api/users/stats/student');
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Error al obtener estadísticas');
+    }
+
+    const data = await response.json();
+
+    if (!data.success || !data.stats) {
+      throw new Error('Respuesta inválida del servidor');
+    }
+
+    return data.stats;
+  } catch (error) {
+    console.error('Error fetching user stats:', error);
+    throw error;
+  }
+}

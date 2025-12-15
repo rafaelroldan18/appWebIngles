@@ -48,9 +48,9 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
       await AuthService.register({
         email: validation.values.correo_electronico,
         password: validation.values.password,
-        nombre: validation.values.nombre,
-        apellido: validation.values.apellido,
-        cedula: validation.values.cedula,
+        first_name: validation.values.nombre,
+        last_name: validation.values.apellido,
+        id_card: validation.values.cedula,
         rol: rol as any
       });
 
@@ -118,11 +118,10 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 value={validation.values.nombre}
                 onChange={(e) => validation.handleChange('nombre', e.target.value)}
                 onBlur={() => validation.handleBlur('nombre')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.nombre && validation.touched.nombre
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.nombre && validation.touched.nombre
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                  }`}
               />
               {validation.errors.nombre && validation.touched.nombre && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -140,11 +139,10 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 value={validation.values.apellido}
                 onChange={(e) => validation.handleChange('apellido', e.target.value)}
                 onBlur={() => validation.handleBlur('apellido')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.apellido && validation.touched.apellido
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.apellido && validation.touched.apellido
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                  }`}
               />
               {validation.errors.apellido && validation.touched.apellido && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -162,11 +160,10 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 value={validation.values.cedula}
                 onChange={(e) => validation.handleChange('cedula', e.target.value)}
                 onBlur={() => validation.handleBlur('cedula')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.cedula && validation.touched.cedula
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.cedula && validation.touched.cedula
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                  }`}
               />
               {validation.errors.cedula && validation.touched.cedula && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -184,11 +181,10 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 value={validation.values.correo_electronico}
                 onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
                 onBlur={() => validation.handleBlur('correo_electronico')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.correo_electronico && validation.touched.correo_electronico
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.correo_electronico && validation.touched.correo_electronico
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                  }`}
               />
               {validation.errors.correo_electronico && validation.touched.correo_electronico && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -206,11 +202,10 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 value={validation.values.password}
                 onChange={(e) => validation.handleChange('password', e.target.value)}
                 onBlur={() => validation.handleBlur('password')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.password && validation.touched.password
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.password && validation.touched.password
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                  }`}
               />
               {validation.errors.password && validation.touched.password && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">

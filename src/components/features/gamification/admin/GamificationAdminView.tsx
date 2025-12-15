@@ -24,12 +24,12 @@ export function GamificationAdminView() {
     }
 
     // TODO: Check account status
-    if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada');
-    } else if (usuario.estado_cuenta === 'pendiente') {
+    } else if (usuario.account_status === 'pendiente') {
       router.replace('/cuenta-pendiente');
-    } else if (usuario.rol !== 'administrador') {
-      router.replace(`/${usuario.rol}/gamification`);
+    } else if (usuario.role !== 'administrador') {
+      router.replace(`/${usuario.role}/gamification`);
     }
   }, [user, usuario, loading, router]);
 
@@ -46,7 +46,7 @@ export function GamificationAdminView() {
   }
 
   // TODO: Verify user and role before rendering
-  if (!user || !usuario || usuario.rol !== 'administrador') {
+  if (!user || !usuario || usuario.role !== 'administrador') {
     return null;
   }
 

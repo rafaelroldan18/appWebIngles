@@ -34,11 +34,11 @@ export default function ProtectedRoute({
       }
 
       // Si hay roles permitidos, verificar que el usuario tenga uno de ellos
-      if (allowedRoles && !allowedRoles.includes(usuario.rol)) {
-        // Redirigir al dashboard correspondiente según su rol
-        if (usuario.rol === 'administrador') {
+      if (allowedRoles && !allowedRoles.includes(usuario.role)) {
+        // Redirigir al dashboard correspondiente según su role
+        if (usuario.role === 'administrador') {
           router.push('/dashboard/admin');
-        } else if (usuario.rol === 'docente') {
+        } else if (usuario.role === 'docente') {
           router.push('/dashboard/docente');
         } else {
           router.push('/dashboard/estudiante');
@@ -59,7 +59,7 @@ export default function ProtectedRoute({
     return null;
   }
 
-  if (allowedRoles && !allowedRoles.includes(usuario.rol)) {
+  if (allowedRoles && !allowedRoles.includes(usuario.role)) {
     return null;
   }
 

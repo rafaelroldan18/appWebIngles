@@ -9,8 +9,6 @@ import { Mission, Activity, MissionAttempt } from '@/types/gamification.types';
 import {
   getMissionById,
   getActivitiesByMission,
-  startMission,
-  getMissionAttempts,
 } from '@/lib/gamification/gamificationApi';
 
 interface MissionPlayViewProps {
@@ -29,13 +27,13 @@ export function MissionPlayView({ missionId }: MissionPlayViewProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (usuario?.id_usuario) {
+    if (usuario?.user_id) {
       loadMissionData();
     }
-  }, [usuario?.id_usuario, missionId]);
+  }, [usuario?.user_id, missionId]);
 
   const loadMissionData = async () => {
-    if (!usuario?.id_usuario) return;
+    if (!usuario?.user_id) return;
 
     setLoading(true);
     setError(null);
@@ -55,22 +53,45 @@ export function MissionPlayView({ missionId }: MissionPlayViewProps) {
       }
       setActivities(activitiesData);
 
-      const attempts = await getMissionAttempts(usuario.id_usuario, missionId);
-      const ongoingAttempt = attempts.find((a) => !a.completed_at);
+      // Get current mission attempt from API
+      const attemptRes = await fetch(`/api/gamification/progress/missions/${missionId}/attempt`);
 
-      if (ongoingAttempt) {
-        setMissionAttempt(ongoingAttempt);
+      if (attemptRes.ok) {
+        const attemptJson = await attemptRes.json();
+        const ongoingAttempt = attemptJson.attempt;
+
+        if (ongoingAttempt && ongoingAttempt.status === 'in_progress') {
+          setMissionAttempt(ongoingAttempt);
+        } else {
+          // Create new attempt
+          const resp = await fetch('/api/gamification/progress/missions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mission_id: missionId }),
+          });
+          const json = await resp.json();
+          if (!resp.ok) {
+            throw new Error(json?.error || 'No se pudo iniciar la misión');
+          }
+          setMissionAttempt(json.attempt);
+        }
       } else {
-        const newAttempt = await startMission({
-          user_id: usuario.id_usuario,
-          mission_id: missionId,
-          total_activities: activitiesData.length,
+        // No attempt exists, create one
+        const resp = await fetch('/api/gamification/progress/missions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mission_id: missionId }),
         });
-        setMissionAttempt(newAttempt);
+        const json = await resp.json();
+        if (!resp.ok) {
+          throw new Error(json?.error || 'No se pudo iniciar la misión');
+        }
+        setMissionAttempt(json.attempt);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading mission data:', err);
-      setError('Failed to load mission. Please try again.');
+      const msg = err?.message || 'Failed to load mission. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -111,7 +132,7 @@ export function MissionPlayView({ missionId }: MissionPlayViewProps) {
       mission={mission}
       activities={activities}
       missionAttempt={missionAttempt}
-      userId={usuario.id_usuario}
+      userId={usuario.user_id}
       onComplete={handleMissionComplete}
     />
   );

@@ -17,20 +17,23 @@ export async function GET(
     }
 
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
+    const isSelf = currentUser?.user_id === studentId;
+    const isStaff = ['docente', 'administrador'].includes(currentUser?.role || '');
+
+    if (userError || !currentUser || (!isStaff && !isSelf)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
     const { data: student, error: studentError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, nombre, apellido, correo_electronico, rol, fecha_registro')
-      .eq('id_usuario', studentId)
-      .eq('rol', 'estudiante')
+      .from('users')
+      .select('user_id, first_name, last_name, email, role, registration_date')
+      .eq('user_id', studentId)
+      .eq('role', 'estudiante')
       .maybeSingle();
 
     if (studentError || !student) {
@@ -46,9 +49,9 @@ export async function GET(
       transactionsResult
     ] = await Promise.all([
       supabase
-        .from('progreso_estudiantes')
+        .from('student_progress')
         .select('*')
-        .eq('id_estudiante', studentId)
+        .eq('student_id', studentId)
         .maybeSingle(),
 
       supabase
@@ -157,17 +160,17 @@ export async function GET(
     return NextResponse.json({
       success: true,
       student: {
-        id: student.id_usuario,
-        nombre: student.nombre,
-        apellido: student.apellido,
-        email: student.correo_electronico,
-        fecha_registro: student.fecha_registro
+        id: student.user_id,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: student.email,
+        registration_date: student.registration_date
       },
       progress: {
-        puntaje_total: progressResult.data?.puntaje_total || 0,
-        nivel_actual: progressResult.data?.nivel_actual || 1,
-        actividades_completadas: progressResult.data?.actividades_completadas || 0,
-        fecha_ultima_actualizacion: progressResult.data?.fecha_ultima_actualizacion || null
+        puntaje_total: progressResult.data?.total_score || 0,
+        nivel_actual: progressResult.data?.current_level || 1,
+        actividades_completadas: progressResult.data?.activities_completed || 0,
+        fecha_ultima_actualizacion: progressResult.data?.last_updated_at || null
       },
       stats: {
         misiones_totales: missionAttemptsResult.data?.length || 0,

@@ -13,12 +13,12 @@ export function LoginView() {
     if (loading) return
     
     if (user && usuario) {
-      if (usuario.estado_cuenta === 'inactivo') {
+      if (usuario.account_status === 'inactivo') {
         router.replace('/cuenta-deshabilitada')
-      } else if (usuario.estado_cuenta === 'pendiente') {
+      } else if (usuario.account_status === 'pendiente') {
         router.replace('/cuenta-pendiente')
       } else {
-        router.replace(`/${usuario.rol}`)
+        router.replace(`/${usuario.role}`)
       }
     }
   }, [user, usuario, loading, router])

@@ -17,7 +17,7 @@ export default function CuentaPendiente() {
         </h1>
         
         <p className={`text-sm sm:text-base ${colors.text.secondary} mb-4 sm:mb-6 leading-relaxed`}>
-          Tu cuenta ha sido creada exitosamente, pero está pendiente de aprobación por {usuario?.rol === 'estudiante' ? 'un docente' : 'un administrador'}.
+          Tu cuenta ha sido creada exitosamente, pero está pendiente de aprobación por {usuario?.role === 'estudiante' ? 'un docente' : 'un administrador'}.
         </p>
         
         <div className={`${colors.status.info.bg} ${colors.status.info.border} rounded-xl p-4 mb-4 sm:mb-6`}>

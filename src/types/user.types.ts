@@ -3,14 +3,14 @@ export type AccountStatus = 'activo' | 'inactivo' | 'pendiente';
 
 export interface Usuario {
   id: string;
-  id_usuario: string;
-  nombre: string;
-  apellido: string;
-  correo_electronico: string;
-  cedula: string;
-  rol: UserRole;
-  estado_cuenta: AccountStatus;
-  fecha_registro: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  id_card: string;
+  role: UserRole;
+  account_status: AccountStatus;
+  registration_date: string;
   auth_user_id: string;
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge, UserBadge } from '@/types/gamification.types';
-import { getBadgeCriteriaDescription } from '@/lib/gamification/achievement-validator';
+import { getBadgeCriteriaDescription } from '@/lib/gamification/badgeUtils';
 
 interface BadgeCardProps {
   badge: Badge;
@@ -45,11 +45,10 @@ export function BadgeCard({ badge, userBadge, progress = 0 }: BadgeCardProps) {
 
   return (
     <div
-      className={`relative rounded-lg border-2 p-6 transition-all ${
-        isEarned
+      className={`relative rounded-lg border-2 p-6 transition-all ${isEarned
           ? `${getRarityColor(badge.rarity)} shadow-lg`
           : 'bg-gray-50 dark:bg-[#1E293B] border-gray-200 dark:border-[#334155] opacity-60'
-      }`}
+        }`}
     >
       {isEarned && (
         <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
@@ -82,11 +81,10 @@ export function BadgeCard({ badge, userBadge, progress = 0 }: BadgeCardProps) {
 
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
           <div
-            className={`h-2 rounded-full transition-all ${
-              isEarned
+            className={`h-2 rounded-full transition-all ${isEarned
                 ? 'bg-green-500'
                 : 'bg-blue-500'
-            }`}
+              }`}
             style={{ width: `${isEarned ? 100 : progress}%` }}
           />
         </div>

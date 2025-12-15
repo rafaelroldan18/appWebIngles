@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createBrowserClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
     );
 
     const body = await request.json();
-    const { codigo_invitacion } = body;
+    const { invitation_code } = body;
 
-    if (!codigo_invitacion) {
+    if (!invitation_code) {
       return NextResponse.json(
         { success: false, error: 'Código de invitación requerido' },
         { status: 400 }
@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     await supabase.rpc('mark_expired_invitations');
 
     const { data: invitation, error } = await supabase
-      .from('invitaciones')
+      .from('invitations')
       .select('*')
-      .eq('codigo_invitacion', codigo_invitacion.toUpperCase())
+      .eq('invitation_code', invitation_code.toUpperCase())
       .maybeSingle();
 
     if (error) {
@@ -41,14 +41,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (invitation.estado === 'activada') {
+    if (invitation.status === 'activada') {
       return NextResponse.json(
         { success: false, error: 'Esta invitación ya ha sido activada' },
         { status: 400 }
       );
     }
 
-    if (invitation.estado === 'expirada') {
+    if (invitation.status === 'expirada') {
       return NextResponse.json(
         { success: false, error: 'Esta invitación ha expirado' },
         { status: 400 }

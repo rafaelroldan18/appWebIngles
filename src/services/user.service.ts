@@ -12,8 +12,8 @@ export class UserService {
     return response.json();
   }
 
-  static async getByRole(rol: UserRole): Promise<Usuario[]> {
-    const response = await fetch(`/api/users?rol=${rol}`);
+  static async getByRole(role: UserRole): Promise<Usuario[]> {
+    const response = await fetch(`/api/users?role=${role}`);
     
     if (!response.ok) {
       const error = await response.json();
@@ -27,7 +27,7 @@ export class UserService {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado_cuenta: status }),
+      body: JSON.stringify({ account_status: status }),
     });
 
     if (!response.ok) {
@@ -40,7 +40,7 @@ export class UserService {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rol: role }),
+      body: JSON.stringify({ role: role }),
     });
 
     if (!response.ok) {

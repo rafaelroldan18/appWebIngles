@@ -1,9 +1,9 @@
-import { createSupabaseClient } from '@/lib/supabase-api';
+﻿import { createSupabaseClient } from '@/lib/supabase-api';
 import { NextRequest } from 'next/server';
 
 export async function PUT(request: NextRequest) {
   try {
-    const { nombre, apellido } = await request.json();
+    const { first_name, last_name } = await request.json();
     const supabase = await createSupabaseClient(request);
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -12,8 +12,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const { error } = await supabase
-      .from('usuarios')
-      .update({ nombre, apellido })
+      .from('users')
+      .update({ first_name, last_name })
       .eq('auth_user_id', user.id);
 
     if (error) {

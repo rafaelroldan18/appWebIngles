@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // API ROUTE: REGISTER
 // Endpoint para registro de nuevos usuarios
 // ============================================================================
@@ -10,10 +10,10 @@ import type { RegisterRequest } from '@/types/auth.types';
 export async function POST(request: NextRequest) {
   try {
     const body: RegisterRequest = await request.json();
-    const { email, password, nombre, apellido, cedula, rol } = body;
+    const { email, password, first_name, last_name, id_card, rol } = body;
 
     // Validaciones
-    if (!email || !password || !nombre || !apellido || !cedula || !rol) {
+    if (!email || !password || !first_name || !last_name || !id_card || !rol) {
       return Response.json({ error: 'Todos los campos son obligatorios' }, { status: 400 });
     }
 
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
     // Validar que solo exista un administrador
     if (rol === 'administrador') {
       const { count } = await supabase
-        .from('usuarios')
+        .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('rol', 'administrador');
+        .eq('role', 'administrador');
 
       if (count && count > 0) {
         return Response.json({ error: 'Ya existe un administrador registrado, modifique su tipo de cuenta' }, { status: 400 });
@@ -57,15 +57,15 @@ export async function POST(request: NextRequest) {
     // Crear registro en tabla usuarios manualmente
     // Administrador se activa automáticamente, otros quedan pendientes
     const { error: dbError } = await supabase
-      .from('usuarios')
+      .from('users')
       .insert({
         auth_user_id: authData.user.id,
-        correo_electronico: email,
-        nombre,
-        apellido,
-        cedula,
-        rol,
-        estado_cuenta: rol === 'administrador' ? 'activo' : 'pendiente',
+        email: email,
+        first_name,
+        last_name,
+        id_card,
+        role: rol,
+        account_status: rol === 'administrador' ? 'activo' : 'pendiente',
       });
 
     if (dbError) {
@@ -76,15 +76,15 @@ export async function POST(request: NextRequest) {
     // Si es estudiante, crear registro de progreso
     if (rol === 'estudiante') {
       const { data: usuarioData } = await supabase
-        .from('usuarios')
-        .select('id_usuario')
+        .from('users')
+        .select('user_id')
         .eq('auth_user_id', authData.user.id)
         .single();
 
       if (usuarioData) {
         await supabase
-          .from('progreso_estudiantes')
-          .insert({ id_estudiante: usuarioData.id_usuario });
+          .from('student_progress')
+          .insert({ student_id: usuarioData.user_id });
       }
     }
 
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({
       success: true,
-      message: rol === 'administrador' 
+      message: rol === 'administrador'
         ? 'Cuenta de administrador creada exitosamente. Puedes iniciar sesión.'
         : 'Cuenta creada exitosamente. Espera la aprobación del administrador.',
     });

@@ -18,21 +18,21 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, o
   const pathname = usePathname();
 
   const getActivitiesPath = () => {
-    if (usuario.rol === 'estudiante') return '/estudiante/gamification';
-    if (usuario.rol === 'docente') return '/docente/gamification';
-    if (usuario.rol === 'administrador') return '/administrador/gamification';
+    if (usuario.role === 'estudiante') return '/estudiante/gamification';
+    if (usuario.role === 'docente') return '/docente/gamification';
+    if (usuario.role === 'administrador') return '/administrador/gamification';
     return '/';
   };
 
   const getDashboardPath = () => {
-    return `/${usuario.rol}`;
+    return `/${usuario.role}`;
   };
 
   const isActivitiesActive = pathname?.includes('/gamification');
   const isDashboardActive = !isActivitiesActive;
 
-  const showNavButtons = usuario.rol === 'estudiante' || usuario.rol === 'docente';
-  const showActivitiesButton = usuario.rol === 'estudiante';
+  const showNavButtons = usuario.role === 'estudiante' || usuario.role === 'docente';
+  const showActivitiesButton = usuario.role === 'estudiante';
 
   return (
     <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">

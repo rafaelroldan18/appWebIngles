@@ -2,52 +2,52 @@ export type InvitationRole = 'docente' | 'estudiante';
 export type InvitationStatus = 'pendiente' | 'activada' | 'expirada';
 
 export interface InvitationCreator {
-  id_usuario: string;
-  nombre: string;
-  apellido: string;
-  correo_electronico: string;
-  rol: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
 }
 
 export interface Invitation {
-  id_invitacion: string;
-  codigo_invitacion: string;
-  correo_electronico: string;
-  nombre: string;
-  apellido: string;
-  cedula: string;
-  rol: InvitationRole;
-  estado: InvitationStatus;
-  creado_por: string;
+  invitation_id: string;
+  invitation_code: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  id_card: string;
+  role: InvitationRole;
+  status: InvitationStatus;
+  created_by_user_id: string;
   creador?: InvitationCreator;
-  fecha_creacion: string;
-  fecha_expiracion: string;
-  fecha_activacion: string | null;
-  id_usuario: string | null;
+  created_date: string;
+  expiration_date: string;
+  activation_date: string | null;
+  user_id: string | null;
 }
 
 export interface CreateInvitationRequest {
-  correo_electronico: string;
-  nombre: string;
-  apellido: string;
-  cedula: string;
-  rol: InvitationRole;
+  email: string;
+  first_name: string;
+  last_name: string;
+  id_card: string;
+  role: InvitationRole;
 }
 
 export interface CreateBulkInvitationsRequest {
-  invitaciones: CreateInvitationRequest[];
+  invitations: CreateInvitationRequest[];
 }
 
 export interface ValidateInvitationRequest {
-  codigo_invitacion: string;
+  invitation_code: string;
 }
 
 export interface ActivateInvitationRequest {
-  codigo_invitacion: string;
+  invitation_code: string;
   password: string;
-  nombre?: string;
-  apellido?: string;
-  cedula?: string;
+  first_name?: string;
+  last_name?: string;
+  id_card?: string;
 }
 
 export interface InvitationResponse {

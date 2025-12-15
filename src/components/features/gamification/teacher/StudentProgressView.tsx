@@ -8,7 +8,8 @@ import { StudentDetailModal } from './StudentDetailModal';
 
 interface StudentProgress {
   id: string;
-  nombre: string;
+  first_name: string;
+  last_name: string;
   email: string;
   totalPoints: number;
   level: number;
@@ -55,12 +56,13 @@ export default function StudentProgressView() {
         // Mapear los datos de la API al formato del componente
         const studentsWithProgress = data.students.map((student: any) => ({
           id: student.id,
-          nombre: `${student.nombre} ${student.apellido}`,
+          first_name: student.first_name,
+          last_name: student.last_name,
           email: student.email,
-          totalPoints: student.puntaje_total,
-          level: student.nivel_actual,
-          missionsCompleted: student.misiones_completadas,
-          activitiesCompleted: student.actividades_completadas,
+          totalPoints: student.total_score,
+          level: student.current_level,
+          missionsCompleted: student.missions_completed,
+          activitiesCompleted: student.activities_completed,
         }));
 
         console.log('👨‍🏫 [TeacherProgress] Estudiantes procesados:', studentsWithProgress.length);
@@ -79,7 +81,8 @@ export default function StudentProgressView() {
 
   const filteredStudents = students.filter(
     (student) =>
-      student.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -208,7 +211,7 @@ export default function StudentProgressView() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-semibold text-[#1F2937] dark:text-white">
-                          {student.nombre}
+                          {student.first_name}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">{student.email}</p>
                       </div>
@@ -237,9 +240,9 @@ export default function StudentProgressView() {
                       <button
                         onClick={() => {
                           setSelectedStudentId(student.id);
-                          setSelectedStudentName(student.nombre);
+                          setSelectedStudentName(student.first_name);
                         }}
-                        aria-label={`Ver detalle de ${student.nombre}`}
+                        aria-label={`Ver detalle de ${student.first_name}`}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95 transition-all"
                       >
                         Ver Detalle

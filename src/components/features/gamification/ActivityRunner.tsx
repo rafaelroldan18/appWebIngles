@@ -30,7 +30,7 @@ import { GroupSortActivity } from './activities/GroupSortActivity';
 import { SpinWheelActivity } from './activities/SpinWheelActivity';
 import { WordPuzzleActivity } from './activities/WordPuzzleActivity';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { completeActivity } from '@/services/gamification-progress.service';
+// Usaremos el endpoint server-side para completar actividades y evitar RLS
 
 interface ActivityResult {
   activityId: string;
@@ -84,25 +84,28 @@ export function ActivityRunner({
       setIsSubmitting(true);
       setError(null);
 
-      const response = await completeActivity({
-        userId,
-        activityId: currentActivity.id,
-        missionId: mission.id,
-        userAnswers,
-        isCorrect,
-        scorePercentage,
-        timeSpentSeconds: timeSpent,
+      const resp = await fetch('/api/gamification/progress/activities/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_id: currentActivity.id,
+          mission_id: mission.id,
+          user_answers: userAnswers,
+          is_correct: isCorrect,
+          score_percentage: scorePercentage,
+          time_spent_seconds: timeSpent,
+        }),
       });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to complete activity');
+      const response = await resp.json();
+      if (!resp.ok || !response?.success) {
+        throw new Error(response?.error || 'Failed to complete activity');
       }
 
       const result: ActivityResult = {
         activityId: currentActivity.id,
         isCorrect,
         scorePercentage,
-        pointsEarned: response.pointsEarned,
+        pointsEarned: response?.pointsEarned || 10,
         timeSpentSeconds: timeSpent,
         userAnswers,
       };
@@ -114,7 +117,7 @@ export function ActivityRunner({
         setNewBadges((prev) => [...prev, ...response.newBadges]);
       }
 
-      if (isLastActivity || response.missionCompleted) {
+      if (response.missionCompleted) {
         const totalPoints = updatedResults.reduce(
           (sum, r) => sum + r.pointsEarned,
           0
@@ -145,25 +148,28 @@ export function ActivityRunner({
       setIsSubmitting(true);
       setError(null);
 
-      const response = await completeActivity({
-        userId,
-        activityId: currentActivity.id,
-        missionId: mission.id,
-        userAnswers: result.userAnswers,
-        isCorrect,
-        scorePercentage: result.scorePercentage,
-        timeSpentSeconds: timeSpent,
+      const resp = await fetch('/api/gamification/progress/activities/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_id: currentActivity.id,
+          mission_id: mission.id,
+          user_answers: result.userAnswers,
+          is_correct: isCorrect,
+          score_percentage: result.scorePercentage,
+          time_spent_seconds: timeSpent,
+        }),
       });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to complete activity');
+      const response = await resp.json();
+      if (!resp.ok || !response?.success) {
+        throw new Error(response?.error || 'Failed to complete activity');
       }
 
       const activityResult: ActivityResult = {
         activityId: currentActivity.id,
         isCorrect,
         scorePercentage: result.scorePercentage,
-        pointsEarned: response.pointsEarned,
+        pointsEarned: response?.pointsEarned || 10,
         timeSpentSeconds: timeSpent,
         userAnswers: result.userAnswers,
       };
@@ -175,7 +181,7 @@ export function ActivityRunner({
         setNewBadges((prev) => [...prev, ...response.newBadges]);
       }
 
-      if (isLastActivity || response.missionCompleted) {
+      if (response.missionCompleted) {
         const totalPoints = updatedResults.reduce(
           (sum, r) => sum + r.pointsEarned,
           0
@@ -195,105 +201,6 @@ export function ActivityRunner({
     }
   };
 
-
-  if (isCompleted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center p-4">
-        <div className="max-w-2xl w-full bg-white dark:bg-[#1E293B] rounded-lg shadow-2xl border-2 border-gray-200 dark:border-[#334155] p-8 text-center">
-          <div className="text-6xl mb-4 animate-bounce">🎉</div>
-          <h2 className="text-3xl font-bold text-[#1F2937] dark:text-white mb-4">
-            ¡Misión Completada!
-          </h2>
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-6">
-            {mission.title}
-          </p>
-
-          <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-lg p-6 mb-6 border-2 border-yellow-300 dark:border-yellow-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Puntos Ganados
-            </p>
-            <p className="text-5xl font-bold text-yellow-600 dark:text-yellow-400">
-              +{totalPointsEarned}
-            </p>
-          </div>
-
-          {newBadges.length > 0 && (
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 mb-6 border-2 border-purple-300 dark:border-purple-700">
-              <h3 className="text-xl font-bold text-[#1F2937] dark:text-white mb-4">
-                🎊 ¡Nuevas Insignias Desbloqueadas!
-              </h3>
-              <div className="space-y-3">
-                {newBadges.map((badge, index) => (
-                  <div
-                    key={badge.badgeId || index}
-                    className="flex items-center gap-3 bg-white dark:bg-[#1E293B] rounded-lg p-4"
-                  >
-                    <div className="text-3xl">{badge.icon}</div>
-                    <div className="flex-1 text-left">
-                      <p className="font-bold text-[#1F2937] dark:text-white">
-                        {badge.name}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {badge.description}
-                      </p>
-                      {badge.points_reward > 0 && (
-                        <p className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-1">
-                          +{badge.points_reward} bonus points
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Actividades Completadas
-              </p>
-              <p className="text-2xl font-bold text-[#1F2937] dark:text-white">
-                {results.length} / {activities.length}
-              </p>
-            </div>
-            <div className="bg-gray-50 dark:bg-[#0F172A] rounded-lg p-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                Respuestas Correctas
-              </p>
-              <p className="text-2xl font-bold text-[#1F2937] dark:text-white">
-                {results.filter((r) => r.isCorrect).length}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              onClick={() => router.push('/estudiante/gamification/missions')}
-              className="flex-1 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 active:scale-95"
-            >
-              ← Volver a Misiones
-            </button>
-            <button
-              onClick={onComplete}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white font-semibold rounded-lg transition-all transform hover:scale-105 active:scale-95"
-            >
-              Ver Mi Progreso →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isSubmitting) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center">
-        <LoadingSpinner message="Guardando tu respuesta..." size="large" />
-      </div>
-    );
-  }
-
   const handlePrevious = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
@@ -310,6 +217,75 @@ export function ActivityRunner({
 
   const canGoPrevious = currentIndex > 0;
   const canSkip = currentIndex < activities.length - 1 && results.length > currentIndex;
+
+  // Guard: Show completion screen
+  if (isCompleted) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-green-200 dark:border-green-800 p-8 text-center">
+          <div className="mb-6">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">🎉</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              ¡Misión Completada!
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">{mission.title}</p>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-6">
+              +{totalPointsEarned} puntos
+            </div>
+            {newBadges.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2">¡Nuevas insignias desbloqueadas!</h3>
+                <div className="flex justify-center gap-4">
+                  {newBadges.map((badge) => (
+                    <div key={badge.id} className="text-center">
+                      <div className="text-4xl mb-2">{badge.icon || '🏆'}</div>
+                      <p className="text-sm font-medium">{badge.name}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => router.push('/estudiante/gamification')}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Volver a Misiones
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Guard: Show loading state
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A] flex items-center justify-center">
+        <LoadingSpinner message="Guardando tu respuesta..." size="large" />
+      </div>
+    );
+  }
+
+  // Guard: No current activity (safety check)
+  if (!currentActivity) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-200 dark:border-yellow-800 rounded-lg p-6 text-center">
+          <p className="text-yellow-800 dark:text-yellow-200">
+            No hay actividades disponibles para esta misión.
+          </p>
+          <button
+            onClick={() => router.push('/estudiante/gamification')}
+            className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Volver a Misiones
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">

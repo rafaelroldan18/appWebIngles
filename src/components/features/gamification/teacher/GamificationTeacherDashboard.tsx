@@ -14,7 +14,7 @@ export default function GamificationTeacherDashboard({ usuario }: GamificationTe
     <div className="min-h-screen bg-gradient-to-br from-neutral-100 via-white to-neutral-100 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#0F172A]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-lg p-8 text-white mb-8">
-          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.nombre}!</h2>
+          <h2 className="text-3xl font-bold mb-2">¡Bienvenido, {usuario.first_name}!</h2>
           <p className="text-lg opacity-90">
             Administra misiones, monitorea el progreso de los estudiantes y configura las actividades
           </p>

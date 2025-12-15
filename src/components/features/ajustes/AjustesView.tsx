@@ -26,5 +26,5 @@ export function AjustesView() {
     )
   }
 
-  return <SettingsPage onBack={() => router.push(`/${usuario.rol}`)} />
+  return <SettingsPage onBack={() => router.push(`/${usuario.role}`)} />
 }

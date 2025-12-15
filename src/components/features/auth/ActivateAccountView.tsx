@@ -21,16 +21,14 @@ export function ActivateAccountView() {
 
   const validation = useFormValidation({
     initialValues: {
-      nombre: '',
-      apellido: '',
-      cedula: '',
+      first_name: '',
+      last_name: '',
+      id_card: '',
+      email: '',
       password: '',
       confirmPassword: '',
     },
     validationRules: {
-      nombre: commonValidations.name,
-      apellido: commonValidations.name,
-      cedula: commonValidations.idCard,
       password: commonValidations.password,
       confirmPassword: {
         required: true,
@@ -52,14 +50,15 @@ export function ActivateAccountView() {
       setError('');
 
       const result = await InvitationService.validate({
-        codigo_invitacion: invitationCode,
+        invitation_code: invitationCode,
       });
 
       if (result.success && result.invitation) {
         setInvitation(result.invitation);
-        validation.handleChange('nombre', result.invitation.nombre);
-        validation.handleChange('apellido', result.invitation.apellido);
-        validation.handleChange('cedula', result.invitation.cedula);
+        validation.handleChange('first_name', result.invitation.first_name);
+        validation.handleChange('last_name', result.invitation.last_name);
+        validation.handleChange('id_card', result.invitation.id_card);
+        validation.handleChange('email', result.invitation.email);
         setStep('form');
       }
     } catch (err) {
@@ -96,11 +95,11 @@ export function ActivateAccountView() {
       setError('');
 
       const result = await InvitationService.activate({
-        codigo_invitacion: invitation!.codigo_invitacion,
+        invitation_code: invitation!.invitation_code,
         password: validation.values.password,
-        nombre: validation.values.nombre,
-        apellido: validation.values.apellido,
-        cedula: validation.values.cedula,
+        first_name: validation.values.first_name,
+        last_name: validation.values.last_name,
+        id_card: validation.values.id_card,
       });
 
       if (result.success) {
@@ -179,82 +178,61 @@ export function ActivateAccountView() {
           )}
 
           {step === 'form' && invitation && (
-            <form onSubmit={handleActivate} className="space-y-4">
+            <form onSubmit={handleActivate} className="space-y-5">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-xs text-blue-800 dark:text-blue-300">
-                  Activando cuenta como <span className="font-bold">{invitation.rol === 'docente' ? 'DOCENTE' : 'ESTUDIANTE'}</span>
+                  Activando cuenta como <span className="font-bold">{invitation.role === 'docente' ? 'DOCENTE' : 'ESTUDIANTE'}</span>
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                  <User className="w-4 h-4 inline-block mr-1" />
-                  Nombre
-                </label>
-                <input
-                  type="text"
-                  value={validation.values.nombre}
-                  onChange={(e) => validation.handleChange('nombre', e.target.value)}
-                  onBlur={() => validation.handleBlur('nombre')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                    validation.errors.nombre && validation.touched.nombre
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                  }`}
-                />
-                {validation.errors.nombre && validation.touched.nombre && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.nombre}
-                  </p>
-                )}
+              {/* Datos de la invitación - Solo lectura como texto */}
+              <div className="bg-slate-50 dark:bg-gray-800 rounded-lg p-4 space-y-3 border border-slate-200 dark:border-gray-700">
+                <h3 className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">
+                  Tus datos personales: 
+                </h3>
+
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">Nombre</p>
+                    <p className="text-base font-semibold text-slate-800 dark:text-white">
+                      {validation.values.first_name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">Apellido</p>
+                    <p className="text-base font-semibold text-slate-800 dark:text-white">
+                      {validation.values.last_name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">Cédula</p>
+                    <p className="text-base font-semibold text-slate-800 dark:text-white">
+                      {validation.values.id_card}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">Correo Electrónico</p>
+                    <p className="text-base font-semibold text-slate-800 dark:text-white">
+                      {validation.values.email}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                  <User className="w-4 h-4 inline-block mr-1" />
-                  Apellido
-                </label>
-                <input
-                  type="text"
-                  value={validation.values.apellido}
-                  onChange={(e) => validation.handleChange('apellido', e.target.value)}
-                  onBlur={() => validation.handleBlur('apellido')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                    validation.errors.apellido && validation.touched.apellido
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                  }`}
-                />
-                {validation.errors.apellido && validation.touched.apellido && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.apellido}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                  <CreditCard className="w-4 h-4 inline-block mr-1" />
-                  Cédula
-                </label>
-                <input
-                  type="text"
-                  value={validation.values.cedula}
-                  onChange={(e) => validation.handleChange('cedula', e.target.value)}
-                  onBlur={() => validation.handleBlur('cedula')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                    validation.errors.cedula && validation.touched.cedula
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                  }`}
-                />
-                {validation.errors.cedula && validation.touched.cedula && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {validation.errors.cedula}
-                  </p>
-                )}
-              </div>
-
+              {/* Campos editables - Contraseñas */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
                   <Lock className="w-4 h-4 inline-block mr-1" />
@@ -266,11 +244,11 @@ export function ActivateAccountView() {
                     value={validation.values.password}
                     onChange={(e) => validation.handleChange('password', e.target.value)}
                     onBlur={() => validation.handleBlur('password')}
-                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white pr-10 ${
-                      validation.errors.password && validation.touched.password
+                    placeholder="Ingresa tu contraseña"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white pr-10 ${validation.errors.password && validation.touched.password
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                         : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                    }`}
+                      }`}
                   />
                   <button
                     type="button"
@@ -297,11 +275,11 @@ export function ActivateAccountView() {
                   value={validation.values.confirmPassword}
                   onChange={(e) => validation.handleChange('confirmPassword', e.target.value)}
                   onBlur={() => validation.handleBlur('confirmPassword')}
-                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                    validation.errors.confirmPassword && validation.touched.confirmPassword
+                  placeholder="Confirma tu contraseña"
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.confirmPassword && validation.touched.confirmPassword
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                       : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                  }`}
+                    }`}
                 />
                 {validation.errors.confirmPassword && validation.touched.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">

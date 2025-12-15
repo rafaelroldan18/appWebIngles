@@ -88,8 +88,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       
       try {
         const [actividadesData, stats] = await Promise.all([
-          ActivityService.getByCreator(usuario.id_usuario, 5),
-          ActivityService.getCreatorStats(usuario.id_usuario)
+          ActivityService.getByCreator(usuario.user_id, 5),
+          ActivityService.getCreatorStats(usuario.user_id)
         ]);
         setActividades(actividadesData);
         setEstadisticas({
@@ -222,7 +222,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         {/* Bienvenida */}
         <div className="mb-6 sm:mb-8">
           <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.title} mb-1 sm:mb-2`}>
-            {t.bienvenidoProfesor} {usuario?.nombre}!
+            {t.bienvenidoProfesor} {usuario?.first_name}!
           </h2>
           <p className={`text-sm sm:text-base ${colors.text.primary}`}>{t.gestionaActividadesEstudiantes}</p>
         </div>

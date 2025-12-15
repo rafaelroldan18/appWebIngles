@@ -23,8 +23,8 @@ export default function AccountTab() {
   // Validación para el formulario de perfil
   const profileValidation = useFormValidation({
     initialValues: {
-      nombre: usuario?.nombre || '',
-      apellido: usuario?.apellido || '',
+      first_name: usuario?.first_name || '',
+      last_name: usuario?.last_name || '',
     },
     validationRules: {
       nombre: commonValidations.name,
@@ -49,8 +49,8 @@ export default function AccountTab() {
     },
   });
 
-  const isReadOnly = usuario?.rol === 'estudiante';
-  const hasChanges = profileValidation.values.nombre !== usuario?.nombre || profileValidation.values.apellido !== usuario?.apellido;
+  const isReadOnly = usuario?.role === 'estudiante';
+  const hasChanges = profileValidation.values.first_name !== usuario?.first_name || profileValidation.values.last_name !== usuario?.last_name;
 
   const handleSave = async () => {
     // Validar campos del perfil
@@ -112,7 +112,7 @@ export default function AccountTab() {
           <div className="relative">
             <div className={`w-24 h-24 bg-gradient-to-br ${colors.primary.gradient} rounded-full flex items-center justify-center`}>
               <span className="text-white font-bold text-3xl">
-                {usuario?.nombre.charAt(0).toUpperCase()}
+                {usuario?.first_name.charAt(0).toUpperCase()}
               </span>
             </div>
             {!isReadOnly && (
@@ -122,10 +122,10 @@ export default function AccountTab() {
             )}
           </div>
           <div>
-            <h3 className={`text-xl font-bold ${colors.text.title}`}>{usuario?.nombre} {usuario?.apellido}</h3>
-            <p className={`${colors.text.secondary}`}>{usuario?.correo_electronico}</p>
+            <h3 className={`text-xl font-bold ${colors.text.title}`}>{usuario?.first_name} {usuario?.last_name}</h3>
+            <p className={`${colors.text.secondary}`}>{usuario?.email}</p>
             <span className={`inline-block mt-2 px-3 py-1 bg-gradient-to-r ${colors.primary.gradient} text-white rounded-full text-xs font-semibold`}>
-              {usuario?.rol.toUpperCase()}
+              {usuario?.role.toUpperCase()}
             </span>
           </div>
         </div>
@@ -135,19 +135,19 @@ export default function AccountTab() {
             <label className={`block text-sm font-medium ${colors.text.secondary} mb-2`}>{t.accountFirstName}</label>
             <input
               type="text"
-              value={profileValidation.values.nombre}
-              onChange={(e) => profileValidation.handleChange('nombre', e.target.value)}
-              onBlur={() => profileValidation.handleBlur('nombre')}
+              value={profileValidation.values.first_name}
+              onChange={(e) => profileValidation.handleChange('first_name', e.target.value)}
+              onBlur={() => profileValidation.handleBlur('first_name')}
               disabled={isReadOnly}
               className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${
-                profileValidation.errors.nombre && profileValidation.touched.nombre && !isReadOnly
+                profileValidation.errors.first_name && profileValidation.touched.first_name && !isReadOnly
                   ? 'border-red-500 focus:border-red-500'
                   : `focus:${colors.border.focus}`
               }`}
             />
-            {profileValidation.errors.nombre && profileValidation.touched.nombre && !isReadOnly && (
+            {profileValidation.errors.first_name && profileValidation.touched.first_name && !isReadOnly && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                {profileValidation.errors.nombre}
+                {profileValidation.errors.first_name}
               </p>
             )}
           </div>
@@ -156,19 +156,19 @@ export default function AccountTab() {
             <label className={`block text-sm font-medium ${colors.text.secondary} mb-2`}>{t.accountLastName}</label>
             <input
               type="text"
-              value={profileValidation.values.apellido}
-              onChange={(e) => profileValidation.handleChange('apellido', e.target.value)}
-              onBlur={() => profileValidation.handleBlur('apellido')}
+              value={profileValidation.values.last_name}
+              onChange={(e) => profileValidation.handleChange('last_name', e.target.value)}
+              onBlur={() => profileValidation.handleBlur('last_name')}
               disabled={isReadOnly}
               className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${
-                profileValidation.errors.apellido && profileValidation.touched.apellido && !isReadOnly
+                profileValidation.errors.last_name && profileValidation.touched.last_name && !isReadOnly
                   ? 'border-red-500 focus:border-red-500'
                   : `focus:${colors.border.focus}`
               }`}
             />
-            {profileValidation.errors.apellido && profileValidation.touched.apellido && !isReadOnly && (
+            {profileValidation.errors.last_name && profileValidation.touched.last_name && !isReadOnly && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                {profileValidation.errors.apellido}
+                {profileValidation.errors.last_name}
               </p>
             )}
           </div>

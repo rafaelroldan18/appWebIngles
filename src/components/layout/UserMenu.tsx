@@ -36,11 +36,11 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
         className="flex items-center gap-2 hover:opacity-80 transition-all"
       >
         <span className="hidden lg:inline text-sm text-[#6B7280] dark:text-[#E5E7EB] font-semibold">
-          {usuario.nombre}
+          {usuario.first_name}
         </span>
         <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-primary to-primary-dark rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-[#334155]">
           <span className="text-white font-bold text-sm lg:text-base">
-            {usuario.nombre.charAt(0).toUpperCase()}
+            {usuario.first_name.charAt(0).toUpperCase()}
           </span>
         </div>
       </button>
@@ -51,15 +51,15 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary-dark rounded-full flex items-center justify-center shadow-md">
                 <span className="text-white font-bold text-lg sm:text-xl">
-                  {usuario.nombre.charAt(0).toUpperCase()}
+                  {usuario.first_name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-[#111827] dark:text-white truncate text-sm sm:text-base">
-                  {usuario.nombre} {usuario.apellido}
+                  {usuario.first_name} {usuario.last_name}
                 </p>
                 <p className="text-xs sm:text-sm text-[#6B7280] dark:text-[#E5E7EB] truncate">
-                  {usuario.correo_electronico}
+                  {usuario.email}
                 </p>
               </div>
             </div>

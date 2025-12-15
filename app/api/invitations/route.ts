@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 
 export async function GET(request: NextRequest) {
@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: usuario, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
@@ -29,19 +29,19 @@ export async function GET(request: NextRequest) {
 
     // Filter invitations by creator - each user only sees their own invitations
     const { data: invitations, error } = await supabase
-      .from('invitaciones')
+      .from('invitations')
       .select(`
         *,
-        creador:creado_por (
-          id_usuario,
-          nombre,
-          apellido,
-          correo_electronico,
-          rol
+        creador:created_by_user_id (
+          user_id,
+          first_name,
+          last_name,
+          email,
+          role
         )
       `)
-      .eq('creado_por', usuario.id_usuario)
-      .order('fecha_creacion', { ascending: false });
+      .eq('created_by_user_id', usuario.user_id)
+      .order('created_date', { ascending: false });
 
     if (error) {
       return NextResponse.json(
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: usuario, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
@@ -90,16 +90,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { correo_electronico, nombre, apellido, cedula, rol } = body;
+    const { email, first_name, last_name, id_card, role } = body;
 
-    if (!correo_electronico || !nombre || !apellido || !cedula || !rol) {
+    if (!email || !first_name || !last_name || !id_card || !role) {
       return NextResponse.json(
         { success: false, error: 'Todos los campos son requeridos' },
         { status: 400 }
       );
     }
 
-    if (usuario.rol === 'docente' && rol !== 'estudiante') {
+    if (usuario.role === 'docente' && role !== 'estudiante') {
       return NextResponse.json(
         { success: false, error: 'Los docentes solo pueden invitar estudiantes' },
         { status: 403 }
@@ -107,10 +107,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: existingInvitation } = await supabase
-      .from('invitaciones')
-      .select('id_invitacion')
-      .eq('correo_electronico', correo_electronico)
-      .eq('estado', 'pendiente')
+      .from('invitations')
+      .select('invitation_id')
+      .eq('email', email)
+      .eq('status', 'pendiente')
       .maybeSingle();
 
     if (existingInvitation) {
@@ -121,9 +121,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: existingUser } = await supabase
-      .from('usuarios')
-      .select('id_usuario')
-      .eq('correo_electronico', correo_electronico)
+      .from('users')
+      .select('user_id')
+      .eq('email', email)
       .maybeSingle();
 
     if (existingUser) {
@@ -144,15 +144,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: invitation, error: inviteError } = await supabase
-      .from('invitaciones')
+      .from('invitations')
       .insert({
-        codigo_invitacion: codeData,
-        correo_electronico,
-        nombre,
-        apellido,
-        cedula,
-        rol,
-        creado_por: usuario.id_usuario,
+        invitation_code: codeData,
+        email,
+        first_name,
+        last_name,
+        id_card,
+        role,
+        created_by_user_id: usuario.user_id,
       })
       .select()
       .single();
@@ -166,23 +166,23 @@ export async function POST(request: NextRequest) {
     }
 
     const { error: userCreateError } = await supabase
-      .from('usuarios')
+      .from('users')
       .insert({
-        correo_electronico,
-        nombre,
-        apellido,
-        cedula,
-        rol,
-        estado_cuenta: 'pendiente',
+        email,
+        first_name,
+        last_name,
+        id_card,
+        role,
+        account_status: 'pendiente',
         auth_user_id: null,
       });
 
     if (userCreateError) {
       console.error('Error creating pending user:', userCreateError);
       await supabase
-        .from('invitaciones')
+        .from('invitations')
         .delete()
-        .eq('id_invitacion', invitation.id_invitacion);
+        .eq('invitation_id', invitation.invitation_id);
 
       return NextResponse.json(
         { success: false, error: `Error al crear usuario pendiente: ${userCreateError.message}` },

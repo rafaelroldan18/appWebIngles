@@ -19,16 +19,16 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
 
   const validation = useFormValidation({
     initialValues: {
-      nombre: '',
-      apellido: '',
-      cedula: '',
-      correo_electronico: '',
+      first_name: '',
+      last_name: '',
+      id_card: '',
+      email: '',
     },
     validationRules: {
-      nombre: commonValidations.name,
-      apellido: commonValidations.name,
-      cedula: commonValidations.idCard,
-      correo_electronico: commonValidations.email,
+      first_name: commonValidations.name,
+      last_name: commonValidations.name,
+      id_card: commonValidations.idCard,
+      email: commonValidations.email,
     },
   });
 
@@ -43,15 +43,15 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
     try {
       setLoading(true);
       const result = await InvitationService.create({
-        correo_electronico: validation.values.correo_electronico,
-        nombre: validation.values.nombre,
-        apellido: validation.values.apellido,
-        cedula: validation.values.cedula,
-        rol: 'docente',
+        email: validation.values.email,
+        first_name: validation.values.first_name,
+        last_name: validation.values.last_name,
+        id_card: validation.values.id_card,
+        role: 'docente',
       });
 
       if (result.success && result.invitation) {
-        setInvitationCode(result.invitation.codigo_invitacion);
+        setInvitationCode(result.invitation.invitation_code);
         setShowSuccess(true);
       }
     } catch (err) {
@@ -104,7 +104,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 ¡Invitación enviada con éxito!
               </h4>
               <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
-                Se ha enviado un correo electrónico a <strong>{validation.values.correo_electronico}</strong> con el enlace de registro y las instrucciones para activar su cuenta.
+                Se ha enviado un correo electrónico a <strong>{validation.values.email}</strong> con el enlace de registro y las instrucciones para activar su cuenta.
               </p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left">
                 <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-2">
@@ -130,18 +130,18 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <input
                 type="text"
                 placeholder="Nombre"
-                value={validation.values.nombre}
-                onChange={(e) => validation.handleChange('nombre', e.target.value)}
-                onBlur={() => validation.handleBlur('nombre')}
+                value={validation.values.first_name}
+                onChange={(e) => validation.handleChange('first_name', e.target.value)}
+                onBlur={() => validation.handleBlur('first_name')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.nombre && validation.touched.nombre
+                  validation.errors.first_name && validation.touched.first_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.nombre && validation.touched.nombre && (
+              {validation.errors.first_name && validation.touched.first_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.nombre}
+                  {validation.errors.first_name}
                 </p>
               )}
             </div>
@@ -150,18 +150,18 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <input
                 type="text"
                 placeholder="Apellido"
-                value={validation.values.apellido}
-                onChange={(e) => validation.handleChange('apellido', e.target.value)}
-                onBlur={() => validation.handleBlur('apellido')}
+                value={validation.values.last_name}
+                onChange={(e) => validation.handleChange('last_name', e.target.value)}
+                onBlur={() => validation.handleBlur('last_name')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.apellido && validation.touched.apellido
+                  validation.errors.last_name && validation.touched.last_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.apellido && validation.touched.apellido && (
+              {validation.errors.last_name && validation.touched.last_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.apellido}
+                  {validation.errors.last_name}
                 </p>
               )}
             </div>
@@ -170,18 +170,18 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <input
                 type="text"
                 placeholder="Cédula"
-                value={validation.values.cedula}
-                onChange={(e) => validation.handleChange('cedula', e.target.value)}
-                onBlur={() => validation.handleBlur('cedula')}
+                value={validation.values.id_card}
+                onChange={(e) => validation.handleChange('id_card', e.target.value)}
+                onBlur={() => validation.handleBlur('id_card')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.cedula && validation.touched.cedula
+                  validation.errors.id_card && validation.touched.id_card
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.cedula && validation.touched.cedula && (
+              {validation.errors.id_card && validation.touched.id_card && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.cedula}
+                  {validation.errors.id_card}
                 </p>
               )}
             </div>
@@ -190,18 +190,18 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <input
                 type="email"
                 placeholder="Correo Electrónico"
-                value={validation.values.correo_electronico}
-                onChange={(e) => validation.handleChange('correo_electronico', e.target.value)}
-                onBlur={() => validation.handleBlur('correo_electronico')}
+                value={validation.values.email}
+                onChange={(e) => validation.handleChange('email', e.target.value)}
+                onBlur={() => validation.handleBlur('email')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.correo_electronico && validation.touched.correo_electronico
+                  validation.errors.email && validation.touched.email
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.correo_electronico && validation.touched.correo_electronico && (
+              {validation.errors.email && validation.touched.email && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.correo_electronico}
+                  {validation.errors.email}
                 </p>
               )}
             </div>

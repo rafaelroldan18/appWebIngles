@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // API ROUTE: LOGIN
 // Endpoint para inicio de sesión
 // ============================================================================
@@ -36,24 +36,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener datos del usuario de la base de datos
-    const { data: usuario, error: dbError } = await supabase
-      .from('usuarios')
+    console.log('🔍 Buscando usuario con auth_user_id:', authData.user.id);
+
+    const { data: users, error: dbError } = await supabase
+      .from('users')
       .select('*')
       .eq('auth_user_id', authData.user.id)
       .single();
 
-    if (dbError || !usuario) {
+    console.log('📊 Resultado de búsqueda:', { users, dbError });
+
+    if (dbError || !users) {
+      console.error('❌ Error o usuario no encontrado:', dbError);
       await supabase.auth.signOut();
       return NextResponse.json({ error: 'Usuario no encontrado en la base de datos' }, { status: 404 });
     }
 
-    // Validar estado de la cuenta
-    if (usuario.estado_cuenta === 'inactivo') {
+    // Validar status de la cuenta
+    if (users.account_status === 'inactivo') {
       await supabase.auth.signOut();
       return NextResponse.json({ error: 'Tu cuenta ha sido desactivada' }, { status: 403 });
     }
 
-    if (usuario.estado_cuenta === 'pendiente') {
+    if (users.account_status === 'pendiente') {
       await supabase.auth.signOut();
       return NextResponse.json({ error: 'Tu cuenta aún no ha sido aprobada por un administrador' }, { status: 403 });
     }
@@ -62,7 +67,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       authData.user.id,
       {
-        app_metadata: { rol: usuario.rol }
+        app_metadata: { rol: users.role }
       }
     );
 
@@ -74,11 +79,11 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true,
       user: {
-        id: usuario.id_usuario,
-        email: usuario.correo_electronico,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
-        rol: usuario.rol,
+        id: users.user_id,
+        email: users.email,
+        first_name: users.first_name,
+        last_name: users.last_name,
+        role: users.role,
       },
     });
 

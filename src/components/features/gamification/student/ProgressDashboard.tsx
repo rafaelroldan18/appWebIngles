@@ -37,31 +37,41 @@ export function ProgressDashboard() {
 
   async function loadProgress() {
     try {
-      console.log('📈 [ProgressDashboard] Cargando progreso mediante API REST...');
+      console.log('📈 [ProgressDashboard] Cargando progreso del estudiante...');
 
-      // Llamar a la API para obtener el progreso general del usuario
-      const progressResponse = await fetch('/api/gamification/progress');
+      // Usar el endpoint correcto que calcula desde mission_attempts
+      const statsResponse = await fetch('/api/users/stats/student');
 
-      if (!progressResponse.ok) {
-        if (progressResponse.status === 401) {
+      if (!statsResponse.ok) {
+        if (statsResponse.status === 401) {
           console.log('❌ [ProgressDashboard] No autorizado, redirigiendo a login');
           router.push('/login');
           return;
         }
-        throw new Error('Error al obtener progreso del usuario');
+        const errorData = await statsResponse.json();
+        console.error('❌ [ProgressDashboard] Error del servidor:', errorData);
+        throw new Error(errorData.error || 'Error al obtener progreso del usuario');
       }
 
-      const progressData = await progressResponse.json();
-      console.log('📈 [ProgressDashboard] Progreso recibido:', progressData.progress);
+      const statsData = await statsResponse.json();
+      console.log('📈 [ProgressDashboard] Stats recibidos:', statsData);
 
-      if (progressData.success && progressData.progress) {
-        setUserStats(progressData.progress);
+      if (statsData.success && statsData.stats) {
+        const stats: UserStats = {
+          totalPoints: statsData.stats.total_points || 0,
+          level: statsData.stats.level || 1,
+          missionsCompleted: statsData.stats.missions_completed || 0,
+          activitiesCompleted: statsData.stats.activities_completed || 0,
+        };
+        console.log('✅ [ProgressDashboard] Stats procesados:', stats);
+        setUserStats(stats);
       }
 
       // Llamar a la API para obtener el progreso de las misiones
       const missionsResponse = await fetch('/api/gamification/progress/missions');
 
       if (!missionsResponse.ok) {
+        console.error('❌ [ProgressDashboard] Error al obtener misiones');
         throw new Error('Error al obtener progreso de misiones');
       }
 

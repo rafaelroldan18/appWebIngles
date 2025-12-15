@@ -18,9 +18,9 @@ export async function getCurrentUser(request?: NextRequest): Promise<AuthSession
       return null;
     }
 
-    // Obtener datos de la tabla usuarios
+    // Obtener datos de la tabla users
     const { data: usuario, error: dbError } = await supabase
-      .from('usuarios')
+      .from('users')
       .select('*')
       .eq('auth_user_id', user.id)
       .single();
@@ -52,7 +52,7 @@ export async function requireAuth(request?: NextRequest): Promise<AuthSession> {
 export async function requireRole(allowedRoles: string[], request?: NextRequest): Promise<AuthSession> {
   const session = await requireAuth(request);
 
-  if (!allowedRoles.includes(session.usuario.rol)) {
+  if (!allowedRoles.includes(session.usuario.role)) {
     throw new Error('No tienes permisos para acceder a este recurso');
   }
 

@@ -17,12 +17,12 @@ export function DocenteView() {
       return
     }
     
-    if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada')
-    } else if (usuario.estado_cuenta === 'pendiente') {
+    } else if (usuario.account_status === 'pendiente') {
       router.replace('/cuenta-pendiente')
-    } else if (usuario.rol !== 'docente') {
-      router.replace(`/${usuario.rol}`)
+    } else if (usuario.role !== 'docente') {
+      router.replace(`/${usuario.role}`)
     }
   }, [user, usuario, loading, router])
 
@@ -37,7 +37,7 @@ export function DocenteView() {
     )
   }
 
-  if (!user || !usuario || usuario.rol !== 'docente') {
+  if (!user || !usuario || usuario.role !== 'docente') {
     return null
   }
 

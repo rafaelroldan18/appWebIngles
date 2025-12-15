@@ -33,10 +33,10 @@ export function MissionsListView() {
   const [filterType, setFilterType] = useState<string>('all');
 
   useEffect(() => {
-    if (usuario?.id_usuario) {
+    if (usuario?.user_id) {
       loadMissions();
     }
-  }, [usuario?.id_usuario]);
+  }, [usuario?.user_id]);
 
   useEffect(() => {
     applyFilters();

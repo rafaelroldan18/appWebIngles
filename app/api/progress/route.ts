@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '@/lib/supabase-api';
+﻿import { createSupabaseClient } from '@/lib/supabase-api';
 import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
     const supabase = await createSupabaseClient(request);
 
     const { data, error } = await supabase
-      .from('progreso_estudiantes')
+      .from('student_progress')
       .select('*')
-      .eq('id_estudiante', studentId)
+      .eq('student_id', studentId)
       .maybeSingle();
 
     if (error) {

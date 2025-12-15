@@ -62,7 +62,7 @@ export default function StudentDetailView({ studentId }: StudentDetailViewProps)
       if (data.success) {
         // Establecer información del estudiante
         setStudentInfo({
-          nombre: `${data.student.nombre} ${data.student.apellido}`,
+          nombre: `${data.student.first_name} ${data.student.last_name}`,
           email: data.student.email,
           totalPoints: data.student.totalPoints,
           level: data.student.level,

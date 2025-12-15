@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: usuario, error: dbError } = await supabase
-      .from('usuarios')
+      .from('users')
       .select('*')
       .eq('auth_user_id', user.id)
       .maybeSingle();

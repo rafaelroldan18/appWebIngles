@@ -17,12 +17,12 @@ export function EstudianteView() {
       return
     }
     
-    if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada')
-    } else if (usuario.estado_cuenta === 'pendiente') {
+    } else if (usuario.account_status === 'pendiente') {
       router.replace('/cuenta-pendiente')
-    } else if (usuario.rol !== 'estudiante') {
-      router.replace(`/${usuario.rol}`)
+    } else if (usuario.role !== 'estudiante') {
+      router.replace(`/${usuario.role}`)
     }
   }, [user, usuario, loading, router])
 
@@ -37,7 +37,7 @@ export function EstudianteView() {
     )
   }
 
-  if (!user || !usuario || usuario.rol !== 'estudiante') {
+  if (!user || !usuario || usuario.role !== 'estudiante') {
     return null
   }
 

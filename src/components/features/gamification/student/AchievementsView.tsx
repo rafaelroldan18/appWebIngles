@@ -6,8 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { BadgeCard } from './BadgeCard';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Badge, UserBadge } from '@/types/gamification.types';
-import { createClient } from '@/lib/supabase-browser';
-import { calculateBadgeProgress } from '@/lib/gamification/achievement-validator';
 
 interface BadgeWithProgress {
   badge: Badge;
@@ -24,53 +22,45 @@ export function AchievementsView() {
   const [filter, setFilter] = useState<'all' | 'earned' | 'locked'>('all');
 
   useEffect(() => {
-    if (usuario?.id_usuario) {
+    if (usuario?.user_id) {
       loadAchievements();
     }
-  }, [usuario?.id_usuario]);
+  }, [usuario?.user_id]);
 
   const loadAchievements = async () => {
-    if (!usuario?.id_usuario) return;
+    if (!usuario?.user_id) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const supabase = createClient();
+      // Get all badges
+      const badgesRes = await fetch('/api/gamification/achievements');
+      if (!badgesRes.ok) throw new Error('Error al cargar insignias');
+      const badgesData = await badgesRes.json();
+      const allBadges = badgesData.badges || [];
 
-      const { data: allBadges, error: badgesError } = await supabase
-        .from('gamification_badges')
-        .select('*')
-        .eq('is_active', true)
-        .order('rarity', { ascending: false });
-
-      if (badgesError) throw badgesError;
-
-      const { data: userBadges, error: userBadgesError } = await supabase
-        .from('gamification_user_badges')
-        .select('*')
-        .eq('user_id', usuario.id_usuario);
-
-      if (userBadgesError) throw userBadgesError;
+      // Get user's earned badges
+      const userBadgesRes = await fetch('/api/gamification/achievements/user');
+      if (!userBadgesRes.ok) throw new Error('Error al cargar insignias del usuario');
+      const userBadgesData = await userBadgesRes.json();
+      const userBadges = userBadgesData.badges || [];
 
       const userBadgeMap = new Map(
-        userBadges?.map((ub) => [ub.badge_id, ub]) || []
+        userBadges.map((ub: any) => [ub.id, ub])
       );
 
-      const badgesWithProgress: BadgeWithProgress[] = await Promise.all(
-        (allBadges || []).map(async (badge) => {
-          const userBadge = userBadgeMap.get(badge.id);
-          const progress = userBadge
-            ? 100
-            : await calculateBadgeProgress(badge, usuario.id_usuario);
+      const badgesWithProgress: BadgeWithProgress[] = allBadges.map((badge: Badge) => {
+        const userBadge = userBadgeMap.get(badge.id);
+        // If user has the badge, progress is 100%, otherwise we don't calculate it client-side
+        const progress = userBadge ? 100 : 0;
 
-          return {
-            badge,
-            userBadge,
-            progress,
-          };
-        })
-      );
+        return {
+          badge,
+          userBadge,
+          progress,
+        };
+      });
 
       badgesWithProgress.sort((a, b) => {
         if (a.userBadge && !b.userBadge) return -1;
@@ -172,31 +162,28 @@ export function AchievementsView() {
         <div className="flex gap-3 mb-6">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              filter === 'all'
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${filter === 'all'
                 ? 'bg-blue-600 text-white shadow-lg'
                 : 'bg-white dark:bg-[#1E293B] text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-[#334155]'
-            }`}
+              }`}
           >
             Todos ({totalCount})
           </button>
           <button
             onClick={() => setFilter('earned')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              filter === 'earned'
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${filter === 'earned'
                 ? 'bg-green-600 text-white shadow-lg'
                 : 'bg-white dark:bg-[#1E293B] text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-[#334155]'
-            }`}
+              }`}
           >
             Desbloqueados ({earnedCount})
           </button>
           <button
             onClick={() => setFilter('locked')}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              filter === 'locked'
+            className={`px-4 py-2 rounded-lg font-semibold transition-all ${filter === 'locked'
                 ? 'bg-gray-600 text-white shadow-lg'
                 : 'bg-white dark:bg-[#1E293B] text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-[#334155]'
-            }`}
+              }`}
           >
             Bloqueados ({totalCount - earnedCount})
           </button>

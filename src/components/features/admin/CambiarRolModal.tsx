@@ -14,7 +14,7 @@ interface Props {
 
 export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
   const { t } = useLanguage();
-  const [selectedRole, setSelectedRole] = useState<UserRole>(user.rol);
+  const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -31,7 +31,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
     setError('');
 
     try {
-      await UserService.updateRole(user.id_usuario, selectedRole);
+      await UserService.updateRole(user.user_id, selectedRole);
       onSuccess();
       onClose();
     } catch (err) {
@@ -62,9 +62,9 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
         <div className="p-6">
           <div className="mb-5 p-4 bg-slate-50 dark:bg-gray-700 rounded-lg border border-slate-200 dark:border-gray-600">
             <p className="text-sm font-semibold text-slate-800 dark:text-white">
-              {user.nombre} {user.apellido}
+              {user.first_name} {user.last_name}
             </p>
-            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{user.correo_electronico}</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mt-1">{user.email}</p>
           </div>
 
           <form onSubmit={handleSubmit}>

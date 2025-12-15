@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * GET /api/invitations/template?format=csv|xlsx
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
         const format = searchParams.get('format') || 'csv';
 
         // Crear contenido CSV con ejemplo
-        const csvContent = `nombre,apellido,cedula,correo_electronico
+        const csvContent = `first_name,last_name,id_card,email
 Juan,Pérez,1234567890,juan.perez@ejemplo.com
 María,González,0987654321,maria.gonzalez@ejemplo.com
 Carlos,Rodríguez,1122334455,carlos.rodriguez@ejemplo.com`;

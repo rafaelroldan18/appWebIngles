@@ -15,7 +15,7 @@ interface AuthContextType {
   usuario: UsuarioDB | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, nombre: string, apellido: string, cedula: string, rol: UserRole) => Promise<void>;
+  signUp: (email: string, password: string, first_name: string, last_name: string, id_card: string, rol: UserRole) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -70,18 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (
     email: string,
     password: string,
-    nombre: string,
-    apellido: string,
-    cedula: string,
+    first_name: string,
+    last_name: string,
+    id_card: string,
     rol: UserRole
   ) => {
     try {
       await AuthService.register({
         email,
         password,
-        nombre,
-        apellido,
-        cedula,
+        first_name,
+        last_name,
+        id_card,
         rol,
       });
     } catch (error) {

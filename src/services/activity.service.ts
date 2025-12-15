@@ -2,41 +2,26 @@ import type { Actividad, Asignacion } from '@/types';
 
 export class ActivityService {
   static async getByCreator(creatorId: string, limit?: number): Promise<Actividad[]> {
-    const params = new URLSearchParams({ creatorId });
-    if (limit) params.append('limit', limit.toString());
-
-    const response = await fetch(`/api/activities?${params}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error);
-    }
-    
-    return response.json();
+    // Legacy endpoint removed - return empty array
+    // Use gamification activities instead
+    console.info('ActivityService.getByCreator: Legacy activities system not in use');
+    return [];
   }
 
   static async getAssignmentsByStudent(studentId: string, limit?: number): Promise<Asignacion[]> {
-    const params = new URLSearchParams({ studentId });
-    if (limit) params.append('limit', limit.toString());
-
-    const response = await fetch(`/api/activities/assignments?${params}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error);
-    }
-    
-    return response.json();
+    // Legacy endpoint removed - return empty array
+    // Use gamification system instead
+    console.info('ActivityService.getAssignmentsByStudent: Legacy activities system not in use');
+    return [];
   }
 
   static async getCreatorStats(creatorId: string) {
-    const response = await fetch(`/api/activities/stats?creatorId=${creatorId}`);
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error);
-    }
-    
-    return response.json();
+    // Legacy endpoint removed - return default stats
+    // Use gamification stats instead
+    console.info('ActivityService.getCreatorStats: Legacy activities system not in use');
+    return {
+      totalActividades: 0,
+      actividadesAsignadas: 0,
+    };
   }
 }

@@ -18,8 +18,8 @@ export async function DELETE(
     }
 
     const { data: usuario, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
@@ -33,9 +33,9 @@ export async function DELETE(
     const { id } = await params;
 
     const { data: invitation, error: fetchError } = await supabase
-      .from('invitaciones')
-      .select('id_invitacion, estado, creado_por, correo_electronico')
-      .eq('id_invitacion', id)
+      .from('invitations')
+      .select('invitation_id, status, created_by_user_id, email')
+      .eq('invitation_id', id)
       .maybeSingle();
 
     if (fetchError || !invitation) {
@@ -45,14 +45,14 @@ export async function DELETE(
       );
     }
 
-    if (invitation.creado_por !== usuario.id_usuario && usuario.rol !== 'administrador') {
+    if (invitation.created_by_user_id !== usuario.user_id && usuario.role !== 'administrador') {
       return NextResponse.json(
         { success: false, error: 'No tienes permiso para eliminar esta invitación' },
         { status: 403 }
       );
     }
 
-    if (invitation.estado === 'activada') {
+    if (invitation.status === 'activada') {
       return NextResponse.json(
         { success: false, error: 'No se puede eliminar una invitación ya activada' },
         { status: 400 }
@@ -60,9 +60,9 @@ export async function DELETE(
     }
 
     const { error: deleteError } = await supabase
-      .from('invitaciones')
+      .from('invitations')
       .delete()
-      .eq('id_invitacion', id);
+      .eq('invitation_id', id);
 
     if (deleteError) {
       return NextResponse.json(
@@ -72,10 +72,10 @@ export async function DELETE(
     }
 
     const { error: deleteUserError } = await supabase
-      .from('usuarios')
+      .from('users')
       .delete()
-      .eq('correo_electronico', invitation.correo_electronico)
-      .eq('estado_cuenta', 'pendiente');
+      .eq('email', invitation.email)
+      .eq('account_status', 'pendiente');
 
     if (deleteUserError) {
       console.error('Error deleting pending user:', deleteUserError);

@@ -14,16 +14,16 @@ export default function InitAdminPage() {
 
   const validation = useFormValidation({
     initialValues: {
-      nombre: '',
-      apellido: '',
-      cedula: '',
+      first_name: '',
+      last_name: '',
+      id_card: '',
       email: '',
       password: '',
     },
     validationRules: {
-      nombre: commonValidations.name,
-      apellido: commonValidations.name,
-      cedula: commonValidations.idCard,
+      first_name: commonValidations.name,
+      last_name: commonValidations.name,
+      id_card: commonValidations.idCard,
       email: commonValidations.email,
       password: commonValidations.password,
     },
@@ -47,9 +47,9 @@ export default function InitAdminPage() {
         body: JSON.stringify({
           email: validation.values.email,
           password: validation.values.password,
-          nombre: validation.values.nombre,
-          apellido: validation.values.apellido,
-          cedula: validation.values.cedula,
+          first_name: validation.values.first_name,
+          last_name: validation.values.last_name,
+          id_card: validation.values.id_card,
         }),
       });
 
@@ -127,18 +127,18 @@ export default function InitAdminPage() {
               </label>
               <input
                 type="text"
-                value={validation.values.nombre}
-                onChange={(e) => validation.handleChange('nombre', e.target.value)}
-                onBlur={() => validation.handleBlur('nombre')}
+                value={validation.values.first_name}
+                onChange={(e) => validation.handleChange('first_name', e.target.value)}
+                onBlur={() => validation.handleBlur('first_name')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.nombre && validation.touched.nombre
+                  validation.errors.first_name && validation.touched.first_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.nombre && validation.touched.nombre && (
+              {validation.errors.first_name && validation.touched.first_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.nombre}
+                  {validation.errors.first_name}
                 </p>
               )}
             </div>
@@ -150,18 +150,18 @@ export default function InitAdminPage() {
               </label>
               <input
                 type="text"
-                value={validation.values.apellido}
-                onChange={(e) => validation.handleChange('apellido', e.target.value)}
-                onBlur={() => validation.handleBlur('apellido')}
+                value={validation.values.last_name}
+                onChange={(e) => validation.handleChange('last_name', e.target.value)}
+                onBlur={() => validation.handleBlur('last_name')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.apellido && validation.touched.apellido
+                  validation.errors.last_name && validation.touched.last_name
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.apellido && validation.touched.apellido && (
+              {validation.errors.last_name && validation.touched.last_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.apellido}
+                  {validation.errors.last_name}
                 </p>
               )}
             </div>
@@ -173,18 +173,18 @@ export default function InitAdminPage() {
               </label>
               <input
                 type="text"
-                value={validation.values.cedula}
-                onChange={(e) => validation.handleChange('cedula', e.target.value)}
-                onBlur={() => validation.handleBlur('cedula')}
+                value={validation.values.id_card}
+                onChange={(e) => validation.handleChange('id_card', e.target.value)}
+                onBlur={() => validation.handleBlur('id_card')}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.cedula && validation.touched.cedula
+                  validation.errors.id_card && validation.touched.id_card
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                 }`}
               />
-              {validation.errors.cedula && validation.touched.cedula && (
+              {validation.errors.id_card && validation.touched.id_card && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {validation.errors.cedula}
+                  {validation.errors.id_card}
                 </p>
               )}
             </div>

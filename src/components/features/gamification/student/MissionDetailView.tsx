@@ -11,9 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   getMissionById,
-  getActivitiesForMission,
-  getCurrentMissionAttempt,
-  startMission,
+  getActivitiesByMission,
 } from '@/lib/gamification/gamificationApi';
 import type { Mission, Activity, MissionAttempt } from '@/types/gamification.types';
 
@@ -47,12 +45,12 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
       return;
     }
 
-    if (usuario.estado_cuenta === 'inactivo') {
+    if (usuario.account_status === 'inactivo') {
       router.replace('/cuenta-deshabilitada');
-    } else if (usuario.estado_cuenta === 'pendiente') {
+    } else if (usuario.account_status === 'pendiente') {
       router.replace('/cuenta-pendiente');
-    } else if (usuario.rol !== 'estudiante') {
-      router.replace(`/${usuario.rol}`);
+    } else if (usuario.role !== 'estudiante') {
+      router.replace(`/${usuario.role}`);
     } else {
       loadMissionData();
     }
@@ -71,8 +69,23 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
         return;
       }
 
-      const activitiesData = await getActivitiesForMission(missionId);
-      const attemptData = await getCurrentMissionAttempt(usuario.id_usuario, missionId);
+      const activitiesData = await getActivitiesByMission(missionId);
+
+      // Get current mission attempt from API
+      const attemptRes = await fetch(`/api/gamification/progress/missions/${missionId}/attempt`);
+      let attemptData = null;
+
+      if (attemptRes.ok) {
+        try {
+          const attemptJson = await attemptRes.json();
+          attemptData = attemptJson.attempt || null;
+        } catch (jsonError) {
+          console.warn('Failed to parse attempt response:', jsonError);
+          attemptData = null;
+        }
+      } else {
+        console.warn('Failed to fetch attempt:', attemptRes.status, attemptRes.statusText);
+      }
 
       setMission(missionData);
       setActivities(activitiesData || []);
@@ -90,17 +103,33 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
 
     try {
       setStarting(true);
-      const newAttempt = await startMission({
-        user_id: usuario.id_usuario,
-        mission_id: mission.id,
-        total_activities: activities.length,
+      const resp = await fetch('/api/gamification/progress/missions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mission_id: mission.id }),
       });
+
+      let json = null;
+      try {
+        json = await resp.json();
+      } catch (jsonError) {
+        console.error('Failed to parse response:', jsonError);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+
+      if (!resp.ok) {
+        throw new Error(json?.error || 'No se pudo iniciar la misión');
+      }
+
+      const newAttempt = json.attempt;
 
       setAttempt(newAttempt);
       router.push(`/estudiante/gamification/mission/${mission.id}/play`);
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.message || err?.error?.message || 'Error al iniciar la misión';
+      const code = err?.code || err?.error?.code;
       console.error('Error starting mission:', err);
-      setError('Error al iniciar la misión');
+      setError(code ? `${msg} (código: ${code})` : msg);
     } finally {
       setStarting(false);
     }
@@ -151,7 +180,7 @@ export function MissionDetailView({ missionId }: MissionDetailViewProps) {
     );
   }
 
-  if (!user || !usuario || usuario.rol !== 'estudiante') {
+  if (!user || !usuario || usuario.role !== 'estudiante') {
     return null;
   }
 

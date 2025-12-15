@@ -17,15 +17,15 @@ export interface User {
 
 export interface UsuarioDB {
   id: string;
-  id_usuario: string;
+  user_id: string;
   auth_user_id: string;
-  correo_electronico: string;
-  nombre: string;
-  apellido: string;
-  cedula: string;
-  rol: UserRole;
-  estado_cuenta: 'activo' | 'inactivo' | 'pendiente';
-  fecha_registro: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  id_card: string;
+  role: UserRole;
+  account_status: 'activo' | 'inactivo' | 'pendiente';
+  registration_date: string;
 }
 
 export interface AuthSession {
@@ -41,9 +41,9 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  nombre: string;
-  apellido: string;
-  cedula: string;
+  first_name: string;
+  last_name: string;
+  id_card: string;
   rol: UserRole;
 }
 
@@ -53,9 +53,9 @@ export interface AuthResponse {
   user?: {
     id: string;
     email: string;
-    nombre: string;
-    apellido: string;
-    rol: UserRole;
+    first_name: string;
+    last_name: string;
+    role: UserRole;
   };
   error?: string;
 }

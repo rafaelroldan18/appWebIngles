@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
+import { createServiceRoleClient } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,34 +11,43 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
+      console.error('❌ [Achievements] Auth error:', authError);
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
     if (userError || !currentUser) {
+      console.error('❌ [Achievements] User error:', userError);
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    const { data: badges, error: badgesError } = await supabase
+    console.log('✅ [Achievements] User authorized:', currentUser.role);
+
+    // Usar Service Role Client para bypasear RLS
+    const service = createServiceRoleClient();
+
+    const { data: badges, error: badgesError } = await service
       .from('gamification_badges')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (badgesError) {
-      console.error('Error fetching badges:', badgesError);
+      console.error('❌ [Achievements] Error fetching badges:', badgesError);
       return NextResponse.json({ error: 'Error al obtener insignias' }, { status: 500 });
     }
+
+    console.log('✅ [Achievements] Badges found:', badges?.length || 0);
 
     const badgeIds = badges?.map(b => b.id) || [];
     let userBadgesCount: any[] = [];
 
     if (badgeIds.length > 0) {
-      const { data, error } = await supabase
+      const { data, error } = await service
         .from('gamification_user_badges')
         .select('badge_id')
         .in('badge_id', badgeIds);
@@ -55,15 +67,17 @@ export async function GET(request: NextRequest) {
       users_earned: countMap.get(badge.id) || 0
     }));
 
+    console.log('✅ [Achievements] Badges with counts processed');
+
     return NextResponse.json({
       success: true,
       badges: badgesWithCounts
     });
 
-  } catch (error) {
-    console.error('Error in achievements endpoint:', error);
+  } catch (error: any) {
+    console.error('❌ [Achievements] Error:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor', details: error.message },
       { status: 500 }
     );
   }
@@ -80,12 +94,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
+    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -108,7 +122,7 @@ export async function POST(request: NextRequest) {
         points_reward: parseInt(points_reward) || 0,
         rarity: rarity || 'common',
         is_active: true,
-        created_by: currentUser.id_usuario
+        created_by: currentUser.user_id
       })
       .select()
       .single();
@@ -143,12 +157,12 @@ export async function PUT(request: NextRequest) {
     }
 
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.rol)) {
+    if (userError || !currentUser || !['docente', 'administrador'].includes(currentUser.role)) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 
@@ -207,12 +221,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { data: currentUser, error: userError } = await supabase
-      .from('usuarios')
-      .select('id_usuario, rol')
+      .from('users')
+      .select('user_id, role')
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
-    if (userError || !currentUser || currentUser.rol !== 'administrador') {
+    if (userError || !currentUser || currentUser.role !== 'administrador') {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 });
     }
 

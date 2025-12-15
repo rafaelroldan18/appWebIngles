@@ -64,7 +64,7 @@ export default function GamificationAdminDashboard({ usuario }: GamificationAdmi
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white dark:bg-[#1E293B] rounded-lg shadow-lg border-2 border-gray-200 dark:border-[#334155] p-6 mb-8">
           <h2 className="text-xl font-bold text-[#1F2937] dark:text-white mb-2">
-            Bienvenido, {usuario.nombre}
+            Bienvenido, {usuario.first_name}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
             Gestiona el sistema de gamificación, insignias y recompensas de la plataforma

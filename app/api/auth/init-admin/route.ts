@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServiceRoleClient();
     const body = await request.json();
-    const { email, password, nombre, apellido, cedula } = body;
+    const { email, password, first_name, last_name, id_card } = body;
 
-    if (!email || !password || !nombre || !apellido || !cedula) {
+    if (!email || !password || !first_name || !last_name || !id_card) {
       return NextResponse.json(
         { success: false, error: 'Todos los campos son requeridos' },
         { status: 400 }
@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: existingAdmins, error: checkError } = await supabase
-      .from('usuarios')
-      .select('id_usuario')
-      .eq('rol', 'administrador')
+      .from('users')
+      .select('user_id')
+      .eq('role', 'administrador')
       .limit(1);
 
     if (checkError) {
@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
       password,
       email_confirm: true,
       user_metadata: {
-        nombre,
-        apellido,
-        cedula,
+        first_name,
+        last_name,
+        id_card,
       },
       app_metadata: {
-        rol: 'administrador',
+        role: 'administrador',
       },
     });
 
@@ -58,15 +58,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { error: insertError } = await supabase
-      .from('usuarios')
+      .from('users')
       .insert({
         auth_user_id: authData.user.id,
-        correo_electronico: email,
-        nombre,
-        apellido,
-        cedula,
-        rol: 'administrador',
-        estado_cuenta: 'activo',
+        email: email,
+        first_name,
+        last_name,
+        id_card,
+        role: 'administrador',
+        account_status: 'activo',
       });
 
     if (insertError) {
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
       message: 'Administrador creado exitosamente',
       user: {
         email,
-        nombre,
-        apellido,
+        first_name,
+        last_name,
         rol: 'administrador',
       },
     });

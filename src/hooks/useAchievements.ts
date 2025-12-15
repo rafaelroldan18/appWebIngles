@@ -30,7 +30,8 @@ export function useAchievements(userId: string | undefined) {
     setError(null);
 
     try {
-      const data = await getUserBadges(userId);
+      // getUserBadges gets badges for the currently authenticated user
+      const data = await getUserBadges();
       setAchievements(data);
     } catch (err) {
       console.error('Error loading achievements:', err);

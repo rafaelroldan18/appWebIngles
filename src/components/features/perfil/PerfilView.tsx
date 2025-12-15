@@ -26,5 +26,5 @@ export function PerfilView() {
     )
   }
 
-  return <ProfilePage onBack={() => router.push(`/${usuario.rol}`)} />
+  return <ProfilePage onBack={() => router.push(`/${usuario.role}`)} />
 }
