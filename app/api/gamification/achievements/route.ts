@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error('❌ [Achievements] Auth error:', authError);
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -22,11 +21,9 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (userError || !currentUser) {
-      console.error('❌ [Achievements] User error:', userError);
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
-    console.log('✅ [Achievements] User authorized:', currentUser.role);
 
     // Usar Service Role Client para bypasear RLS
     const service = createServiceRoleClient();
@@ -37,11 +34,9 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (badgesError) {
-      console.error('❌ [Achievements] Error fetching badges:', badgesError);
       return NextResponse.json({ error: 'Error al obtener insignias' }, { status: 500 });
     }
 
-    console.log('✅ [Achievements] Badges found:', badges?.length || 0);
 
     const badgeIds = badges?.map(b => b.id) || [];
     let userBadgesCount: any[] = [];
@@ -67,7 +62,6 @@ export async function GET(request: NextRequest) {
       users_earned: countMap.get(badge.id) || 0
     }));
 
-    console.log('✅ [Achievements] Badges with counts processed');
 
     return NextResponse.json({
       success: true,
@@ -75,7 +69,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('❌ [Achievements] Error:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error.message },
       { status: 500 }

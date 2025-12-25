@@ -4,7 +4,6 @@ import { createClient as createBrowserClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔐 [Activate] Starting activation process');
 
     // Use anon client for reading invitation (public access)
     const supabaseAnon = createBrowserClient(
@@ -17,10 +16,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { invitation_code, password } = body;
 
-    console.log('📝 [Activate] Received data:', { invitation_code: invitation_code?.substring(0, 4) + '****' });
 
     if (!invitation_code || !password) {
-      console.error('❌ [Activate] Missing required fields');
       return NextResponse.json(
         { success: false, error: 'Código de invitación y contraseña son requeridos' },
         { status: 400 }
@@ -36,21 +33,14 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (inviteError || !invitation) {
-      console.error('❌ [Activate] Invalid invitation code:', inviteError);
       return NextResponse.json(
         { success: false, error: 'Código de invitación inválido' },
         { status: 404 }
       );
     }
 
-    console.log('✅ [Activate] Invitation found:', {
-      email: invitation.email,
-      role: invitation.role,
-      status: invitation.status,
-    });
 
     if (invitation.status === 'activada') {
-      console.error('❌ [Activate] Invitation already activated');
       return NextResponse.json(
         { success: false, error: 'Esta invitación ya ha sido activada' },
         { status: 400 }
@@ -58,7 +48,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (invitation.status === 'expirada') {
-      console.error('❌ [Activate] Invitation expired');
       return NextResponse.json(
         { success: false, error: 'Esta invitación ha expirado' },
         { status: 400 }
@@ -72,7 +61,6 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingUser && existingUser.auth_user_id) {
-      console.error('❌ [Activate] User already activated');
       return NextResponse.json(
         { success: false, error: 'Este usuario ya ha sido activado' },
         { status: 400 }
@@ -84,13 +72,6 @@ export async function POST(request: NextRequest) {
     const finalLastName = invitation.last_name;
     const finalIdCard = invitation.id_card;
     const finalEmail = invitation.email;
-
-    console.log('📋 [Activate] Using invitation data:', {
-      first_name: finalFirstName,
-      last_name: finalLastName,
-      id_card: finalIdCard,
-      email: finalEmail,
-    });
 
     // Use service role to create user with proper metadata
     const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
@@ -108,19 +89,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (signUpError || !authData.user) {
-      console.error('❌ [Activate] Error creating auth user:', signUpError);
       return NextResponse.json(
         { success: false, error: signUpError?.message || 'Error al crear cuenta' },
         { status: 500 }
       );
     }
 
-    console.log('✅ [Activate] Auth user created:', authData.user.id);
-
     let userId = existingUser?.user_id;
 
     if (existingUser) {
-      console.log('🔄 [Activate] Updating existing user:', existingUser.user_id);
       const { error: updateError } = await supabase
         .from('users')
         .update({
@@ -133,15 +110,12 @@ export async function POST(request: NextRequest) {
         .eq('user_id', existingUser.user_id);
 
       if (updateError) {
-        console.error('❌ [Activate] Error updating user:', updateError);
         return NextResponse.json(
           { success: false, error: 'Error al actualizar usuario' },
           { status: 500 }
         );
       }
-      console.log('✅ [Activate] User updated successfully');
     } else {
-      console.log('➕ [Activate] Creating new user');
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({
@@ -157,7 +131,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createError || !newUser) {
-        console.error('❌ [Activate] Error creating user:', createError);
         return NextResponse.json(
           { success: false, error: 'Error al crear usuario' },
           { status: 500 }
@@ -165,11 +138,9 @@ export async function POST(request: NextRequest) {
       }
 
       userId = newUser.user_id;
-      console.log('✅ [Activate] User created:', userId);
     }
 
     if (invitation.role === 'estudiante' && userId) {
-      console.log('📚 [Activate] Creating student progress for:', userId);
       const { data: existingProgress } = await supabase
         .from('student_progress')
         .select('id_progreso')
@@ -182,9 +153,7 @@ export async function POST(request: NextRequest) {
           .insert({
             student_id: userId,
           });
-        console.log('✅ [Activate] Student progress created');
       } else {
-        console.log('ℹ️ [Activate] Student progress already exists');
       }
     }
 
@@ -203,8 +172,6 @@ export async function POST(request: NextRequest) {
       console.log('✅ [Activate] Invitation marked as activated');
     }
 
-    console.log('🎉 [Activate] Activation completed successfully');
-
     return NextResponse.json({
       success: true,
       message: 'Cuenta activada exitosamente',
@@ -216,7 +183,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error('❌ [Activate] Fatal error:', error);
     return NextResponse.json(
       { success: false, error: 'Error al activar invitación', details: error.message },
       { status: 500 }

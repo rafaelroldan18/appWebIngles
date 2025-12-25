@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener datos del usuario de la base de datos
-    console.log('🔍 Buscando usuario con auth_user_id:', authData.user.id);
 
     const { data: users, error: dbError } = await supabase
       .from('users')
@@ -44,10 +43,8 @@ export async function POST(request: NextRequest) {
       .eq('auth_user_id', authData.user.id)
       .single();
 
-    console.log('📊 Resultado de búsqueda:', { users, dbError });
 
     if (dbError || !users) {
-      console.error('❌ Error o usuario no encontrado:', dbError);
       await supabase.auth.signOut();
       return NextResponse.json({ error: 'Usuario no encontrado en la base de datos' }, { status: 404 });
     }

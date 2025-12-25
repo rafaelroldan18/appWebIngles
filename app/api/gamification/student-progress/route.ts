@@ -170,7 +170,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log('✅ [StudentProgress] Students with progress processed:', studentsWithProgress.length);
 
     return NextResponse.json({
       success: true,
@@ -178,7 +177,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('❌ [StudentProgress] Error:', error);
     return NextResponse.json({
       error: 'Error interno del servidor',
       details: error.message,

@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
 
     // Si el intento ya está completado, no permitir más actividades
     if (existingAttempt && existingAttempt.status === 'completed') {
-      console.log('⚠️ [Complete Activity] Mission already completed');
       return NextResponse.json({
         success: true,
         message: 'Esta misión ya fue completada',
@@ -118,7 +117,6 @@ export async function POST(request: NextRequest) {
 
     // Si total_activities es 0, recalcular
     if (existingAttempt?.total_activities === 0) {
-      console.warn('⚠️ [Complete Activity] total_activities is 0, recalculating...');
       const { data: activities } = await service
         .from('gamification_activities')
         .select('id')

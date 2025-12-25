@@ -1,0 +1,184 @@
+@startuml DiagramaCasosDeUso_English27
+
+' Configuración optimizada para mejor visualización
+skinparam actorStyle awesome
+skinparam backgroundColor #FEFEFE
+skinparam shadowing false
+left to right direction
+scale 0.8
+
+' Título
+title Diagrama de Casos de Uso - Sistema English27\nPlataforma Educativa Gamificada
+
+' ========== ACTORES ==========
+actor "Estudiante\n(41 CU)" as Estudiante #LightBlue
+actor "Docente\n(53 CU)" as Docente #LightGreen  
+actor "Administrador\n(71 CU)" as Admin #Orange
+
+' Herencia
+Docente -up-|> Estudiante : hereda
+Admin -up-|> Docente : hereda
+
+' ========== CASOS DE USO ==========
+package "AUTENTICACIÓN" #LightYellow {
+  (Registrarse) as UC_E01
+  (Iniciar Sesión) as UC_E02
+  (Ver Perfil) as UC_E04
+  (Editar Perfil) as UC_E05
+  (Cambiar Contraseña) as UC_E06
+}
+
+package "ESTUDIANTE" #AliceBlue {
+  (Ver Dashboard) as UC_E08
+  (Ver Progreso) as UC_E09
+  (Ver Nivel y Puntos) as UC_E10
+  (Ver Racha) as UC_E11
+  (Ver Misiones) as UC_E13
+  (Iniciar Misión) as UC_E14
+  (Completar Quiz) as UC_E15
+  (Completar Matching) as UC_E16
+  (Completar Fill Blank) as UC_E17
+  (Completar Multiple Choice) as UC_E19
+  (Ver Retroalimentación) as UC_E21
+  (Completar Misión) as UC_E23
+  (Ver Badges) as UC_E25
+  (Ver Leaderboard) as UC_E28
+}
+
+package "DOCENTE - Gestión" #LightGreen {
+  (Ver Estudiantes) as UC_D05
+  (Ver Progreso Individual) as UC_D06
+  (Generar Reportes) as UC_D33
+  (Crear Misión) as UC_D12
+  (Editar Misión) as UC_D13
+  (Crear Quiz) as UC_D21
+  (Crear Matching) as UC_D22
+  (Crear Fill Blank) as UC_D23
+  (Editar Actividad) as UC_D27
+  (Enviar Mensaje) as UC_D39
+  (Otorgar Puntos) as UC_D42
+}
+
+package "ADMIN - Usuarios" #Wheat {
+  (Ver Usuarios) as UC_A06
+  (Crear Usuario) as UC_A07
+  (Editar Usuario) as UC_A08
+  (Aprobar Registro) as UC_A11
+  (Cambiar Rol) as UC_A13
+}
+
+package "ADMIN - Sistema" #PeachPuff {
+  (Crear Badge) as UC_A23
+  (Editar Badge) as UC_A24
+  (Configurar Puntos) as UC_A31
+  (Configurar Niveles) as UC_A34
+  (Ver Reporte Global) as UC_A39
+  (Exportar Datos) as UC_A43
+  (Ver Logs) as UC_A44
+}
+
+' ========== RELACIONES ESTUDIANTE ==========
+Estudiante --> UC_E01
+Estudiante --> UC_E02
+Estudiante --> UC_E04
+Estudiante --> UC_E05
+Estudiante --> UC_E06
+
+Estudiante --> UC_E08
+Estudiante --> UC_E09
+Estudiante --> UC_E10
+Estudiante --> UC_E11
+
+Estudiante --> UC_E13
+Estudiante --> UC_E14
+Estudiante --> UC_E15
+Estudiante --> UC_E16
+Estudiante --> UC_E17
+Estudiante --> UC_E19
+Estudiante --> UC_E23
+
+Estudiante --> UC_E25
+Estudiante --> UC_E28
+
+' ========== RELACIONES DOCENTE ==========
+Docente --> UC_D05
+Docente --> UC_D06
+Docente --> UC_D33
+
+Docente --> UC_D12
+Docente --> UC_D13
+
+Docente --> UC_D21
+Docente --> UC_D22
+Docente --> UC_D23
+Docente --> UC_D27
+
+Docente --> UC_D39
+Docente --> UC_D42
+
+' ========== RELACIONES ADMIN ==========
+Admin --> UC_A06
+Admin --> UC_A07
+Admin --> UC_A08
+Admin --> UC_A11
+Admin --> UC_A13
+
+Admin --> UC_A23
+Admin --> UC_A24
+Admin --> UC_A31
+Admin --> UC_A34
+Admin --> UC_A39
+Admin --> UC_A43
+Admin --> UC_A44
+
+' ========== RELACIONES INCLUDE/EXTEND ==========
+UC_E15 ..> UC_E21 : <<include>>
+UC_E16 ..> UC_E21 : <<include>>
+UC_E17 ..> UC_E21 : <<include>>
+UC_E19 ..> UC_E21 : <<include>>
+
+UC_D12 ..> UC_D21 : <<include>>
+
+' ========== NOTAS ==========
+note right of Estudiante
+  **Estudiante: 41 CU**
+  • Autenticación (7)
+  • Dashboard (5)
+  • Misiones (12)
+  • Gamificación (6)
+  • Otros (11)
+end note
+
+note right of Docente
+  **Docente: 53 CU**
+  (hereda 7 de Estudiante)
+  • Gestión estudiantes (11)
+  • Gestión misiones (9)
+  • Gestión actividades (12)
+  • Reportes (6)
+  • Comunicación (3)
+end note
+
+note right of Admin
+  **Admin: 71 CU**
+  (hereda de Est. y Doc.)
+  • Gestión usuarios (12)
+  • Gestión badges (8)
+  • Configuración (8)
+  • Reportes (6)
+  • Otros (37)
+end note
+
+note bottom
+  **Sistema English27**
+  Total: 165 Casos de Uso
+  
+  Plataforma educativa gamificada:
+  • Misiones y actividades interactivas
+  • Sistema de badges y niveles
+  • Leaderboard y rachas
+  • Gestión completa de usuarios
+  • Reportes y analytics
+end note
+
+@enduml
