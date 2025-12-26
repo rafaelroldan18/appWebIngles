@@ -89,11 +89,6 @@ export async function GET(request: NextRequest) {
     // Si hay transacciones, usarlas; si no, usar mission attempts
     const totalPoints = pointsFromTransactions > 0 ? pointsFromTransactions : pointsFromMissions;
 
-    console.log('💰 Puntos calculados:', {
-      fromTransactions: pointsFromTransactions,
-      fromMissions: pointsFromMissions,
-      totalUsed: totalPoints
-    });
 
     const missionsCompleted = (missionAttempts || []).filter(a => a.status === 'completed').length;
     const activitiesCompleted = new Set((activityAttempts || []).map(a => a.activity_id)).size;

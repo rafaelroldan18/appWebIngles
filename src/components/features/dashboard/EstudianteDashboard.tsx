@@ -3,7 +3,6 @@ import { Trophy, BookOpen, Award, Target, TrendingUp, Gamepad2 } from 'lucide-re
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-// Reemplazamos ProgressService por el endpoint consolidado de stats del estudiante
 import { useStudentAssignments } from '@/hooks/useActivities';
 import { DashboardNav } from '@/components/layout/DashboardNav';
 import LogoutModal from '@/components/ui/LogoutModal';
@@ -27,20 +26,14 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
   useEffect(() => {
     const loadStats = async () => {
       if (!usuario?.user_id) {
-        console.log('⏳ Esperando usuario...');
         return;
       }
-
-      console.log('🔄 Cargando estadísticas para usuario:', usuario.user_id);
-
       try {
         const resp = await fetch('/api/users/stats/student', { method: 'GET' });
         const json = await resp.json();
 
-        console.log('📥 Respuesta del API:', json);
 
         if (!resp.ok) {
-          console.error('❌ Error del servidor:', json);
           throw new Error(json?.error || 'No se pudieron cargar las estadísticas');
         }
 
@@ -54,10 +47,9 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
           badges: new Array(json?.stats?.badges_count || 0).fill({}),
         };
 
-        console.log('✅ Datos adaptados:', adaptedData);
         setGamificationData(adaptedData);
       } catch (e) {
-        console.error('❌ Error cargando estadísticas del estudiante:', e);
+        console.error(' Error cargando estadísticas del estudiante:', e);
       }
     };
     loadStats();
