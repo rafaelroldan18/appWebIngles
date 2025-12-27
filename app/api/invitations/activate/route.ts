@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       .eq('email', invitation.email)
       .maybeSingle();
 
-    if (existingUser && existingUser.auth_user_id) {
+    if (existingUser && existingUser.account_status === 'activo') {
       return NextResponse.json(
         { success: false, error: 'Este usuario ya ha sido activado' },
         { status: 400 }
@@ -73,24 +73,65 @@ export async function POST(request: NextRequest) {
     const finalIdCard = invitation.id_card;
     const finalEmail = invitation.email;
 
-    // Use service role to create user with proper metadata
-    const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
-      email: finalEmail,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: finalFirstName,
-        last_name: finalLastName,
-        id_card: finalIdCard,
-      },
-      app_metadata: {
-        role: invitation.role,
-      },
-    });
+    // Verificamos si el usuario ya existe en Supabase Auth
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    const existingAuthUser = users?.find((u: any) => u.email === finalEmail);
 
-    if (signUpError || !authData.user) {
+    let authUser;
+
+    if (existingAuthUser) {
+      // Si ya existe (fue invitado via inviteUserByEmail), actualizamos su contraseña y metadatos
+      const { data: updatedUser, error: updateAuthError } = await supabase.auth.admin.updateUserById(
+        existingAuthUser.id,
+        {
+          password: password,
+          user_metadata: {
+            first_name: finalFirstName,
+            last_name: finalLastName,
+            id_card: finalIdCard,
+          },
+          app_metadata: {
+            role: invitation.role,
+          },
+          email_confirm: true // Aseguramos que el email esté verificado
+        }
+      );
+
+      if (updateAuthError) {
+        return NextResponse.json(
+          { success: false, error: `Error al actualizar credenciales: ${updateAuthError.message}` },
+          { status: 500 }
+        );
+      }
+      authUser = updatedUser.user;
+    } else {
+      // Si no existe, lo creamos (retrocompatibilidad)
+      const { data: authData, error: signUpError } = await supabase.auth.admin.createUser({
+        email: finalEmail,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: finalFirstName,
+          last_name: finalLastName,
+          id_card: finalIdCard,
+        },
+        app_metadata: {
+          role: invitation.role,
+        },
+      });
+
+      if (signUpError || !authData.user) {
+        return NextResponse.json(
+          { success: false, error: signUpError?.message || 'Error al crear cuenta' },
+          { status: 500 }
+        );
+      }
+      authUser = authData.user;
+    }
+
+    if (!authUser) {
       return NextResponse.json(
-        { success: false, error: signUpError?.message || 'Error al crear cuenta' },
+        { success: false, error: 'No se pudo obtener la información del usuario de autenticación' },
         { status: 500 }
       );
     }
@@ -101,7 +142,7 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          auth_user_id: authData.user.id,
+          auth_user_id: authUser.id,
           account_status: 'activo',
           first_name: finalFirstName,
           last_name: finalLastName,
@@ -119,7 +160,7 @@ export async function POST(request: NextRequest) {
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({
-          auth_user_id: authData.user.id,
+          auth_user_id: authUser.id,
           email: finalEmail,
           first_name: finalFirstName,
           last_name: finalLastName,

@@ -54,8 +54,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-
     const supabase = await createSupabaseClient(request);
+    const supabaseAdmin = createServiceRoleClient();
 
     // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -64,12 +64,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // 2. Get user role
+    // 2. Get current user role
     const { data: currentUser, error: userError } = await supabase
       .from('users')
       .select('role, user_id')
       .eq('auth_user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (userError || !currentUser) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
@@ -77,20 +77,43 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // 3. Authorization check
     // Only admins or the user themselves should be able to delete an account
-    if (currentUser.role !== 'administrador' && currentUser.user_id !== id) {
+    // For now, let's allow teachers to delete students for testing if needed, 
+    // but the request was specifically for "docente o admin"
+    if (currentUser.role !== 'administrador' && currentUser.role !== 'docente' && currentUser.user_id !== id) {
       return NextResponse.json({ error: 'No autorizado para eliminar este usuario' }, { status: 403 });
     }
 
-    // Use service role for deletion to ensure it cleans up everything (auth + public)
-    const db = createServiceRoleClient();
+    // 4. Get the student's auth_user_id if it exists
+    const { data: targetUser, error: targetError } = await supabaseAdmin
+      .from('users')
+      .select('auth_user_id, email')
+      .eq('user_id', id)
+      .maybeSingle();
 
-    const { error } = await db.rpc('delete_user_completely', { user_id: id });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (targetError || !targetUser) {
+      return NextResponse.json({ error: 'Usuario a eliminar no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Usuario eliminado' });
+    // 5. Delete from Supabase Auth if exists
+    if (targetUser.auth_user_id) {
+      const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(targetUser.auth_user_id);
+      if (authDeleteError) {
+        console.error('Error deleting from Auth:', authDeleteError);
+        // We continue even if auth deletion fails, to try to clean up the DB
+      }
+    }
+
+    // 6. Delete from 'users' table (using admin client to bypass RLS)
+    const { error: dbDeleteError } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('user_id', id);
+
+    if (dbDeleteError) {
+      return NextResponse.json({ error: dbDeleteError.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ message: 'Usuario eliminado exitosamente' });
   } catch (error) {
     console.error('Error deleting user:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });

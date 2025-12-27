@@ -14,7 +14,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [invitationCode, setInvitationCode] = useState('');
+  const [error, setError] = useState('');
   const [mode, setMode] = useState<'individual' | 'bulk'>('individual');
 
   // Bulk upload states
@@ -56,12 +56,11 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
         role: 'estudiante',
       });
 
-      if (result.success && result.invitation) {
-        setInvitationCode(result.invitation.invitation_code);
+      if (result.success) {
         setShowSuccess(true);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al crear invitación');
+      setError(err instanceof Error ? err.message : 'Error al crear invitación');
     } finally {
       setLoading(false);
     }
@@ -273,6 +272,13 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
 
               {mode === 'individual' ? (
                 <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2 animate-shake">
+                      <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-800 dark:text-red-300 font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <div>
                     <input
                       type="text"

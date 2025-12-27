@@ -14,8 +14,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [invitationCode, setInvitationCode] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
+  const [error, setError] = useState('');
 
   const validation = useFormValidation({
     initialValues: {
@@ -50,21 +49,14 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
         role: 'docente',
       });
 
-      if (result.success && result.invitation) {
-        setInvitationCode(result.invitation.invitation_code);
+      if (result.success) {
         setShowSuccess(true);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Error al crear invitación');
+      setError(err instanceof Error ? err.message : 'Error al crear invitación');
     } finally {
       setLoading(false);
     }
-  };
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(invitationCode);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
   };
 
   const handleClose = () => {
@@ -126,6 +118,13 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
           </div>
         ) : (
           <form onSubmit={handleSubmit} noValidate className="p-6 space-y-4">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start gap-2 animate-shake">
+                <X className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-800 dark:text-red-300 font-medium">{error}</p>
+              </div>
+            )}
+
             <div>
               <input
                 type="text"
@@ -133,11 +132,10 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 value={validation.values.first_name}
                 onChange={(e) => validation.handleChange('first_name', e.target.value)}
                 onBlur={() => validation.handleBlur('first_name')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.first_name && validation.touched.first_name
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                    : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.first_name && validation.touched.first_name
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                  }`}
               />
               {validation.errors.first_name && validation.touched.first_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -153,11 +151,10 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 value={validation.values.last_name}
                 onChange={(e) => validation.handleChange('last_name', e.target.value)}
                 onBlur={() => validation.handleBlur('last_name')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.last_name && validation.touched.last_name
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                    : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.last_name && validation.touched.last_name
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                  }`}
               />
               {validation.errors.last_name && validation.touched.last_name && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -173,11 +170,10 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 value={validation.values.id_card}
                 onChange={(e) => validation.handleChange('id_card', e.target.value)}
                 onBlur={() => validation.handleBlur('id_card')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.id_card && validation.touched.id_card
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                    : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.id_card && validation.touched.id_card
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                  }`}
               />
               {validation.errors.id_card && validation.touched.id_card && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -193,11 +189,10 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 value={validation.values.email}
                 onChange={(e) => validation.handleChange('email', e.target.value)}
                 onBlur={() => validation.handleBlur('email')}
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${
-                  validation.errors.email && validation.touched.email
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                    : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
-                }`}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.email && validation.touched.email
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                  }`}
               />
               {validation.errors.email && validation.touched.email && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">

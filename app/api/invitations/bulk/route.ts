@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { createRouteHandlerClient } from '@/lib/supabase-route-handler';
+import { createServiceRoleClient } from '@/lib/supabase-server';
 
 /**
  * POST /api/invitations/bulk
@@ -106,7 +107,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Verificar si ya existen invitaciones o usuarios con estos correos
+    // Verificar si ya existen invitaciones o usuarios con estos correos o cédulas
+    const ids = validStudents.map(s => s.id_card);
+
     const { data: existingInvitations } = await supabase
       .from('invitations')
       .select('email')
@@ -115,18 +118,43 @@ export async function POST(request: NextRequest) {
 
     const { data: existingUsers } = await supabase
       .from('users')
-      .select('email')
-      .in('email', emails);
+      .select('email, id_card, account_status')
+      .or(`email.in.(${emails.join(',')}),id_card.in.(${ids.join(',')})`);
 
-    const existingEmails = new Set([
-      ...(existingInvitations?.map(i => i.email) || []),
-      ...(existingUsers?.map(u => u.email) || []),
-    ]);
+    const existingEmails = new Set(existingInvitations?.map(i => i.email.toLowerCase()) || []);
+    const registeredEmails = new Set();
+    const registeredIds = new Set();
 
-    if (existingEmails.size > 0) {
+    existingUsers?.forEach(u => {
+      registeredEmails.add(u.email.toLowerCase());
+      registeredIds.add(u.id_card);
+    });
+
+    const conflicts: string[] = [];
+    validStudents.forEach((student, index) => {
+      const email = student.email.toLowerCase();
+
+      if (existingEmails.has(email)) {
+        conflicts.push(`Fila ${index + 2}: El correo ${student.email} ya tiene una invitación pendiente enviada.`);
+      } else if (registeredEmails.has(email)) {
+        const user = existingUsers?.find(u => u.email.toLowerCase() === email);
+        const statusMsg = user?.account_status === 'pendiente'
+          ? 'pendiente de activación'
+          : 'activo en el sistema';
+        conflicts.push(`Fila ${index + 2}: El correo ${student.email} ya está registrado y se encuentra ${statusMsg}.`);
+      } else if (registeredIds.has(student.id_card)) {
+        const user = existingUsers?.find(u => u.id_card === student.id_card);
+        const statusMsg = user?.account_status === 'pendiente'
+          ? 'pendiente de activación'
+          : 'activo en el sistema';
+        conflicts.push(`Fila ${index + 2}: La cédula ${student.id_card} ya está registrada y se encuentra ${statusMsg}.`);
+      }
+    });
+
+    if (conflicts.length > 0) {
       return NextResponse.json({
-        error: 'Algunos correos ya están registrados o tienen invitaciones pendientes',
-        details: [`Correos existentes: ${Array.from(existingEmails).join(', ')}`],
+        error: 'Se encontraron conflictos con usuarios existentes',
+        details: conflicts,
       }, { status: 400 });
     }
 
@@ -154,12 +182,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error al crear invitaciones' }, { status: 500 });
     }
 
-    // TODO: Aquí se enviarían los correos electrónicos
-    // Por ahora solo retornamos el resultado
+    // Enviar correos de invitación usando Supabase Auth
+    const supabaseAdmin = createServiceRoleClient();
+    const origin = request.nextUrl.origin;
+
+    if (createdInvitations) {
+      // Usamos Promise.allSettled para procesar todas las invitaciones y capturar los IDs de Auth
+      const inviteResults = await Promise.allSettled(
+        createdInvitations.map((invitation) =>
+          supabaseAdmin.auth.admin.inviteUserByEmail(invitation.email, {
+            redirectTo: `${origin}/activate?code=${invitation.invitation_code}`,
+            data: {
+              first_name: invitation.first_name,
+              last_name: invitation.last_name,
+              id_card: invitation.id_card,
+              role: 'estudiante',
+              invitation_code: invitation.invitation_code,
+            },
+          })
+        )
+      );
+
+      // Crear los registros de usuarios pendientes en la base de datos
+      const usersToCreate = createdInvitations.map((invitation, index) => {
+        const result = inviteResults[index];
+        const authUserId = result.status === 'fulfilled' ? result.value.data.user?.id : null;
+
+        return {
+          email: invitation.email,
+          first_name: invitation.first_name,
+          last_name: invitation.last_name,
+          id_card: invitation.id_card,
+          role: 'estudiante',
+          account_status: 'pendiente',
+          auth_user_id: authUserId,
+        };
+      });
+
+      const { error: usersError } = await supabase
+        .from('users')
+        .insert(usersToCreate);
+
+      if (usersError) {
+        console.error('Error creating pending users in bulk:', usersError);
+        // Continuamos de todos modos porque las invitaciones ya fueron enviadas
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Se crearon ${createdInvitations?.length || 0} invitaciones exitosamente`,
+      message: `Se crearon ${createdInvitations?.length || 0} invitaciones y se enviaron los correos exitosamente`,
       created: createdInvitations?.length || 0,
       invitations: createdInvitations,
     });

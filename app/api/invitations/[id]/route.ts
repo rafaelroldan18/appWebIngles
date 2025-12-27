@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase-server';
 
 export async function DELETE(
   request: NextRequest,
@@ -7,6 +7,7 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient();
+    const supabaseAdmin = createServiceRoleClient();
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -59,26 +60,53 @@ export async function DELETE(
       );
     }
 
-    const { error: deleteError } = await supabase
+    // Buscar si existe el usuario en la tabla 'users'
+    const { data: pendingUser } = await supabase
+      .from('users')
+      .select('user_id, auth_user_id, account_status')
+      .eq('email', invitation.email)
+      .maybeSingle();
+
+    // Si el usuario está pendiente, procedemos a borrarlo de Auth y de la tabla users
+    if (pendingUser && pendingUser.account_status === 'pendiente') {
+      // 1. Borrar de Supabase Auth si tiene ID vinculado
+      if (pendingUser.auth_user_id) {
+        const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(pendingUser.auth_user_id);
+        if (authDeleteError) {
+          console.error('Error deleting user from Auth:', authDeleteError);
+        }
+      } else {
+        // Por si acaso no tiene ID vinculado pero sí existe en Auth con ese email
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const authUser = users?.find((u: any) => u.email === invitation.email);
+        if (authUser) {
+          await supabaseAdmin.auth.admin.deleteUser(authUser.id);
+        }
+      }
+
+      // 2. Borrar de la tabla 'users'
+      const { error: userTableDeleteError } = await supabase
+        .from('users')
+        .delete()
+        .eq('user_id', pendingUser.user_id);
+
+      if (userTableDeleteError) {
+        console.error('Error deleting user from table:', userTableDeleteError);
+      }
+    }
+
+    // 3. Borrar la invitación usando el cliente admin para asegurar la eliminación (bypass RLS)
+    const { error: deleteError } = await supabaseAdmin
       .from('invitations')
       .delete()
       .eq('invitation_id', id);
 
     if (deleteError) {
+      console.error('Error deleting invitation row:', deleteError);
       return NextResponse.json(
-        { success: false, error: 'Error al eliminar invitación' },
+        { success: false, error: 'Error al eliminar invitación en la base de datos' },
         { status: 500 }
       );
-    }
-
-    const { error: deleteUserError } = await supabase
-      .from('users')
-      .delete()
-      .eq('email', invitation.email)
-      .eq('account_status', 'pendiente');
-
-    if (deleteUserError) {
-      console.error('Error deleting pending user:', deleteUserError);
     }
 
     return NextResponse.json({
