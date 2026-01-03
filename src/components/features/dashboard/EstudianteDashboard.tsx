@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Trophy, BookOpen, Award, Target, TrendingUp, Gamepad2 } from 'lucide-react';
+import { useState } from 'react';
+import { Trophy, BookOpen, Award, Target, TrendingUp, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -19,41 +19,8 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
   const { usuario, signOut } = useAuth();
   const { t } = useLanguage();
   const { assignments } = useStudentAssignments(usuario?.id);
-  const [gamificationData, setGamificationData] = useState<any>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
-
-  useEffect(() => {
-    const loadStats = async () => {
-      if (!usuario?.user_id) {
-        return;
-      }
-      try {
-        const resp = await fetch('/api/users/stats/student', { method: 'GET' });
-        const json = await resp.json();
-
-
-        if (!resp.ok) {
-          throw new Error(json?.error || 'No se pudieron cargar las estadísticas');
-        }
-
-        // Adaptamos al formato usado en el dashboard
-        const adaptedData = {
-          progress: {
-            nivel_actual: json?.stats?.level || 1,
-            puntaje_total: json?.stats?.total_points || 0,
-            actividades_completadas: json?.stats?.activities_completed || 0,
-          },
-          badges: new Array(json?.stats?.badges_count || 0).fill({}),
-        };
-
-        setGamificationData(adaptedData);
-      } catch (e) {
-        console.error(' Error cargando estadísticas del estudiante:', e);
-      }
-    };
-    loadStats();
-  }, [usuario?.user_id]);
 
   const handleLogoutConfirm = async () => {
     await signOut();
@@ -96,85 +63,56 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
         <SettingsPage onBack={() => setCurrentView('dashboard')} />
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-          {/* Bienvenida */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className={`text-xl sm:text-2xl lg:text-3xl font-bold ${colors.text.title} mb-1 sm:mb-2`}>
-              {t.hola}, {usuario?.first_name}!
-            </h2>
-            <p className={`text-sm sm:text-base ${colors.text.primary}`}>{t.continuaAventura}</p>
-          </div>
-
-          {/* Métricas */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-            <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary to-primary-dark rounded-lg flex items-center justify-center mb-3 shadow-md">
-                  <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                </div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.nivel}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {gamificationData?.progress?.nivel_actual || 1}
-                </p>
+          {/* Header Dashboard: Bienvenida + Métricas Integradas */}
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-gray-800">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-1">
+                {t.hola}, {usuario?.first_name}!
+              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                {usuario?.parallel_name && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold uppercase tracking-wider">
+                    PRL: {usuario.parallel_name}
+                  </div>
+                )}
+                <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t.continuaAventura}</p>
               </div>
             </div>
 
-            <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-              <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-secondary to-secondary-dark rounded-lg flex items-center justify-center mb-3 shadow-md">
-                  <Target className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+            {/* Métricas Ultra Compactas al estilo 'Data Bar' */}
+            <div className="flex items-center gap-6 sm:gap-10 overflow-x-auto no-scrollbar py-1">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.completadas}</p>
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xl font-black text-slate-800 dark:text-white leading-none">
+                    {assignments.filter(a => a.estado === 'completado').length}
+                  </span>
                 </div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.puntos}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {gamificationData?.progress?.puntaje_total || 0}
-                </p>
               </div>
-            </div>
 
-            <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-              <div className="flex flex-col items-center text-center">
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center mb-3 shadow-md`}>
-                  <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="hidden sm:block w-px h-8 bg-slate-100 dark:bg-gray-800 shrink-0"></div>
+
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">Pendientes</p>
+                <div className="flex items-center gap-2">
+                  <Target className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xl font-black text-slate-800 dark:text-white leading-none">
+                    {assignments.filter(a => a.estado === 'pendiente' || a.estado === 'en_curso').length}
+                  </span>
                 </div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.completadas}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {gamificationData?.progress?.actividades_completadas || 0}
-                </p>
               </div>
-            </div>
 
-            <div className={`${getCardClasses()} p-4 sm:p-5 hover:shadow-lg hover:scale-[1.02] transition-all`}>
-              <div className="flex flex-col items-center text-center">
-                <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${colors.secondary.gradient} ${colors.secondary.gradientDark} rounded-lg flex items-center justify-center mb-3 shadow-md`}>
-                  <Award className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+              <div className="hidden sm:block w-px h-8 bg-slate-100 dark:bg-gray-800 shrink-0"></div>
+
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.puntos}</p>
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-xl font-black text-slate-800 dark:text-white leading-none">
+                    {usuario?.points || 0}
+                  </span>
                 </div>
-                <p className={`text-xs sm:text-sm ${colors.text.secondary} font-medium mb-1`}>{t.recompensas}</p>
-                <p className={`text-2xl sm:text-3xl font-bold ${colors.text.title}`}>
-                  {gamificationData?.badges?.length || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Gamification Card */}
-          <div
-            onClick={() => router.push('/estudiante/gamification')}
-            className={`${getCardClasses()} p-6 mb-6 sm:mb-8 cursor-pointer hover:shadow-xl hover:scale-[1.02] transition-all bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-800`}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Gamepad2 className="w-8 h-8 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-1">
-                  Actividades
-                </h3>
-                <p className="text-purple-700 dark:text-purple-300 text-sm">
-                  Complete missions, earn points, and unlock badges!
-                </p>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-purple-600 dark:text-purple-400 font-semibold">
-                <span>Play Now</span>
-                <span className="text-2xl">→</span>
               </div>
             </div>
           </div>

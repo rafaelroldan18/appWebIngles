@@ -17,22 +17,9 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, o
   const router = useRouter();
   const pathname = usePathname();
 
-  const getActivitiesPath = () => {
-    if (usuario.role === 'estudiante') return '/estudiante/gamification';
-    if (usuario.role === 'docente') return '/docente/gamification';
-    if (usuario.role === 'administrador') return '/administrador/gamification';
-    return '/';
-  };
-
   const getDashboardPath = () => {
     return `/${usuario.role}`;
   };
-
-  const isActivitiesActive = pathname?.includes('/gamification');
-  const isDashboardActive = !isActivitiesActive;
-
-  const showNavButtons = usuario.role === 'estudiante' || usuario.role === 'docente';
-  const showActivitiesButton = usuario.role === 'estudiante';
 
   return (
     <nav className="bg-white dark:bg-[#1E293B] shadow-sm border-b-2 border-[#E5E7EB] dark:border-[#334155]">
@@ -54,33 +41,6 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, o
           </button>
 
           <div className="flex items-center gap-4">
-            {showNavButtons && (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => router.push(getDashboardPath())}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                    isDashboardActive
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Inicio
-                </button>
-                {showActivitiesButton && (
-                  <button
-                    onClick={() => router.push(getActivitiesPath())}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                      isActivitiesActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    Actividades
-                  </button>
-                )}
-              </div>
-            )}
-
             <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onLogout={onLogout} onViewAsStudent={onViewAsStudent} />
           </div>
         </div>

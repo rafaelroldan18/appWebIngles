@@ -34,9 +34,29 @@ export async function GET(request: NextRequest) {
     // 3. If admin or teacher, use service role client to bypass RLS
     if (currentUser.role === 'administrador' || currentUser.role === 'docente') {
       const adminDb = createServiceRoleClient();
-      queryBuilder = adminDb.from('users').select('*');
+      queryBuilder = adminDb.from('users').select(`
+        *,
+        parallels (
+          name
+        ),
+        teacher_parallels (
+          parallels (
+            name
+          )
+        )
+      `);
     } else {
-      queryBuilder = supabase.from('users').select('*');
+      queryBuilder = supabase.from('users').select(`
+        *,
+        parallels (
+          name
+        ),
+        teacher_parallels (
+          parallels (
+            name
+          )
+        )
+      `);
     }
 
     queryBuilder = queryBuilder.order('registration_date', { ascending: false });
@@ -55,7 +75,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json(data);
+    // Flatten parallel names
+    const formattedData = data?.map((u: any) => {
+      let parallel_name = u.parallels?.name || null;
+
+      // If teacher and has assigned parallels, combine them
+      if (u.role === 'docente' && u.teacher_parallels?.length > 0) {
+        parallel_name = u.teacher_parallels
+          .map((tp: any) => tp.parallels?.name)
+          .filter(Boolean)
+          .join(', ');
+      }
+
+      return {
+        ...u,
+        parallel_name,
+        parallels: undefined,
+        teacher_parallels: undefined
+      };
+    });
+
+    return NextResponse.json(formattedData);
   } catch (error: any) {
     return NextResponse.json({ error: 'Error en el servidor', details: error.message }, { status: 500 });
   }

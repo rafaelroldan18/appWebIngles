@@ -26,17 +26,21 @@ export async function GET(request: NextRequest) {
     // 3. Select client based on role
     const db = currentUser.role === 'administrador' ? createServiceRoleClient() : supabase;
 
-    const [total, estudiantes, docentes, activos] = await Promise.all([
-      db.from('users').select('*', { count: 'exact', head: true }),
+    const [estudiantes, docentes, activos] = await Promise.all([
       db.from('users').select('*', { count: 'exact', head: true }).eq('role', 'estudiante'),
       db.from('users').select('*', { count: 'exact', head: true }).eq('role', 'docente'),
-      db.from('users').select('*', { count: 'exact', head: true }).eq('account_status', 'activo'),
+      db.from('users').select('*', { count: 'exact', head: true })
+        .eq('account_status', 'activo')
+        .neq('role', 'administrador'),
     ]);
 
+    const totalEstudiantes = estudiantes.count || 0;
+    const totalDocentes = docentes.count || 0;
+
     return NextResponse.json({
-      totalUsuarios: total.count || 0,
-      totalEstudiantes: estudiantes.count || 0,
-      totalDocentes: docentes.count || 0,
+      totalUsuarios: totalEstudiantes + totalDocentes,
+      totalEstudiantes,
+      totalDocentes,
       usuariosActivos: activos.count || 0,
     });
   } catch (error) {

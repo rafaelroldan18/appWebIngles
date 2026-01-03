@@ -6,7 +6,7 @@ import { InvitationService } from '@/services/invitation.service';
 import { AuthService } from '@/services/auth.service';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { commonValidations } from '@/lib/utils/formValidation';
-import { CheckCircle, Eye, EyeOff, Lock, Mail, User, CreditCard } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Lock, Mail, User, CreditCard, Users } from 'lucide-react';
 import type { Invitation } from '@/types/invitation.types';
 
 export function ActivateAccountView() {
@@ -37,7 +37,10 @@ export function ActivateAccountView() {
   });
 
   useEffect(() => {
-    const codeParam = searchParams.get('code');
+    const inviteCode = searchParams.get('invite_code');
+    const legacyCode = searchParams.get('code');
+    const codeParam = inviteCode || legacyCode;
+
     if (codeParam) {
       setCode(codeParam);
       validateCode(codeParam);
@@ -188,7 +191,7 @@ export function ActivateAccountView() {
               {/* Datos de la invitación - Solo lectura como texto */}
               <div className="bg-slate-50 dark:bg-gray-800 rounded-lg p-4 space-y-3 border border-slate-200 dark:border-gray-700">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">
-                  Tus datos personales: 
+                  Tus datos personales:
                 </h3>
 
                 <div className="flex items-center gap-3">
@@ -230,6 +233,19 @@ export function ActivateAccountView() {
                     </p>
                   </div>
                 </div>
+
+                {/* Show parallel for students */}
+                {invitation.role === 'estudiante' && (invitation as any).parallels && (
+                  <div className="flex items-center gap-3 pt-2 border-t border-slate-200 dark:border-gray-600">
+                    <Users className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-gray-400">Paralelo Asignado</p>
+                      <p className="text-base font-semibold text-orange-600 dark:text-orange-400">
+                        {(invitation as any).parallels.name} - {(invitation as any).parallels.academic_year}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Campos editables - Contraseñas */}
@@ -246,8 +262,8 @@ export function ActivateAccountView() {
                     onBlur={() => validation.handleBlur('password')}
                     placeholder="Ingresa tu contraseña"
                     className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white pr-10 ${validation.errors.password && validation.touched.password
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                        : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                       }`}
                   />
                   <button
@@ -277,8 +293,8 @@ export function ActivateAccountView() {
                   onBlur={() => validation.handleBlur('confirmPassword')}
                   placeholder="Confirma tu contraseña"
                   className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.confirmPassword && validation.touched.confirmPassword
-                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                      : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                     }`}
                 />
                 {validation.errors.confirmPassword && validation.touched.confirmPassword && (

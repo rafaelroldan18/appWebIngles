@@ -18,7 +18,17 @@ export async function GET(request: NextRequest) {
 
     const { data: usuario, error: dbError } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        parallels (
+          name
+        ),
+        teacher_parallels (
+          parallels (
+            name
+          )
+        )
+      `)
       .eq('auth_user_id', user.id)
       .maybeSingle();
 
@@ -26,10 +36,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 });
     }
 
+    // Flatten parallel names
+    let parallel_name = usuario.parallels?.name || null;
+    if (usuario.role === 'docente' && usuario.teacher_parallels?.length > 0) {
+      parallel_name = usuario.teacher_parallels
+        .map((tp: any) => tp.parallels?.name)
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    const formattedUsuario = {
+      ...usuario,
+      parallel_name,
+      parallels: undefined,
+      teacher_parallels: undefined
+    };
+
     return NextResponse.json({
       success: true,
       user,
-      usuario,
+      usuario: formattedUsuario,
     });
   } catch (error) {
     console.error('Get current user error:', error);

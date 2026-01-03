@@ -35,9 +35,54 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
+    // 4. Validate fields if being updated
+    const updateData: any = {};
+
+    if (body.first_name !== undefined) {
+      if (!body.first_name.trim()) {
+        return NextResponse.json({ error: 'El nombre no puede estar vacío' }, { status: 400 });
+      }
+      updateData.first_name = body.first_name.trim();
+    }
+
+    if (body.last_name !== undefined) {
+      if (!body.last_name.trim()) {
+        return NextResponse.json({ error: 'El apellido no puede estar vacío' }, { status: 400 });
+      }
+      updateData.last_name = body.last_name.trim();
+    }
+
+    if (body.role !== undefined) {
+      if (!['estudiante', 'docente', 'administrador'].includes(body.role)) {
+        return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
+      }
+      updateData.role = body.role;
+    }
+
+    if (body.parallel_id !== undefined) {
+      // If setting parallel_id, validate it exists (unless it's null for docentes)
+      if (body.parallel_id !== null) {
+        const { data: parallel, error: parallelError } = await db
+          .from('parallels')
+          .select('parallel_id')
+          .eq('parallel_id', body.parallel_id)
+          .single();
+
+        if (parallelError || !parallel) {
+          return NextResponse.json({ error: 'Paralelo no encontrado' }, { status: 400 });
+        }
+      }
+      updateData.parallel_id = body.parallel_id;
+    }
+
+    if (body.account_status !== undefined) {
+      updateData.account_status = body.account_status;
+    }
+
+    // 5. Update user
     const { error } = await db
       .from('users')
-      .update(body)
+      .update(updateData)
       .eq('user_id', id);
 
     if (error) {

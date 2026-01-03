@@ -24,15 +24,32 @@ export interface Invitation {
   expiration_date: string;
   activation_date: string | null;
   user_id: string | null;
+  parallel_id?: string | null;
+  parallel_name?: string;
 }
 
-export interface CreateInvitationRequest {
+// Base invitation data
+interface BaseInvitationRequest {
   email: string;
   first_name: string;
   last_name: string;
   id_card: string;
-  role: InvitationRole;
 }
+
+// Student invitation - requires single parallel
+interface StudentInvitationRequest extends BaseInvitationRequest {
+  role: 'estudiante';
+  parallel_id: string; // Required for students
+}
+
+// Teacher invitation - requires multiple parallels
+interface TeacherInvitationRequest extends BaseInvitationRequest {
+  role: 'docente';
+  parallel_ids: string[]; // Required for teachers (at least one)
+}
+
+// Union type for create invitation
+export type CreateInvitationRequest = StudentInvitationRequest | TeacherInvitationRequest;
 
 export interface CreateBulkInvitationsRequest {
   invitations: CreateInvitationRequest[];

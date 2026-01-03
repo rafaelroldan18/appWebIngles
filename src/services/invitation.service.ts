@@ -103,4 +103,18 @@ export class InvitationService {
       throw new Error(result.error || 'Error al eliminar invitación');
     }
   }
+
+  static async update(id: string, data: Partial<Invitation>): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || 'Error al actualizar invitación');
+    }
+  }
 }

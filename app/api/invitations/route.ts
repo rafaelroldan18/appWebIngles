@@ -32,6 +32,9 @@ export async function GET(request: NextRequest) {
       .from('invitations')
       .select(`
         *,
+        parallel:parallel_id (
+          name
+        ),
         creador:created_by_user_id (
           user_id,
           first_name,
@@ -50,9 +53,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Format invitations to include parallel_name
+    const formattedInvitations = invitations.map((inv: any) => ({
+      ...inv,
+      parallel_name: inv.parallel?.name || null
+    }));
+
     return NextResponse.json({
       success: true,
-      invitations,
+      invitations: formattedInvitations,
     });
   } catch (error) {
     console.error('Error fetching invitations:', error);
@@ -96,10 +105,27 @@ export async function POST(request: NextRequest) {
     const last_name = body.last_name?.trim();
     const id_card = body.id_card?.trim();
     const role = body.role;
+    const parallel_id = body.parallel_id; // For students
+    const parallel_ids = body.parallel_ids; // For teachers
 
     if (!email || !first_name || !last_name || !id_card || !role) {
       return NextResponse.json(
         { success: false, error: 'Todos los campos son requeridos' },
+        { status: 400 }
+      );
+    }
+
+    // Validate parallel assignment based on role
+    if (role === 'estudiante' && !parallel_id) {
+      return NextResponse.json(
+        { success: false, error: 'Debe seleccionar un paralelo para el estudiante' },
+        { status: 400 }
+      );
+    }
+
+    if (role === 'docente' && (!parallel_ids || !Array.isArray(parallel_ids) || parallel_ids.length === 0)) {
+      return NextResponse.json(
+        { success: false, error: 'Debe seleccionar al menos un paralelo para el docente' },
         { status: 400 }
       );
     }
@@ -168,17 +194,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: invitation, error: inviteError } = await supabase
+    // Create invitation with parallel_id for students
+    const invitationData: any = {
+      invitation_code: codeData,
+      email,
+      first_name,
+      last_name,
+      id_card,
+      role,
+      created_by_user_id: usuario.user_id,
+    };
+
+    // Add parallel_id only for students
+    if (role === 'estudiante') {
+      invitationData.parallel_id = parallel_id;
+    }
+
+    const { data: invitation, error: inviteError } = await supabaseAdmin
       .from('invitations')
-      .insert({
-        invitation_code: codeData,
-        email,
-        first_name,
-        last_name,
-        id_card,
-        role,
-        created_by_user_id: usuario.user_id,
-      })
+      .insert(invitationData)
       .select()
       .single();
 
@@ -190,38 +224,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('DEBUG: Invitación creada en BD:', invitation.invitation_code);
+
     // Enviar invitación automática por correo usando Supabase Auth
     const origin = request.nextUrl.origin;
+    console.log('DEBUG: Enviando invitación a Supabase Auth con código:', invitation.invitation_code);
+
     const { data: inviteData, error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/activate?code=${codeData}`,
+      redirectTo: `${origin}/activate?invite_code=${invitation.invitation_code}`,
       data: {
         first_name,
         last_name,
         id_card,
         role,
-        invitation_code: codeData
+        invitation_code: invitation.invitation_code
       }
     });
 
     if (inviteEmailError) {
       console.error('Error sending invitation email:', inviteEmailError);
+    } else {
+      console.log('DEBUG: Email de invitación enviado exitosamente');
     }
 
-    const { error: userCreateError } = await supabase
+    // Create pending user with parallel_id for students
+    const userData: any = {
+      email,
+      first_name,
+      last_name,
+      id_card,
+      role,
+      account_status: 'pendiente',
+      auth_user_id: inviteData?.user?.id || null,
+    };
+
+    // Add parallel_id only for students
+    if (role === 'estudiante') {
+      userData.parallel_id = parallel_id;
+    }
+
+    const { data: createdUser, error: userCreateError } = await supabaseAdmin
       .from('users')
-      .insert({
-        email,
-        first_name,
-        last_name,
-        id_card,
-        role,
-        account_status: 'pendiente',
-        auth_user_id: inviteData?.user?.id || null,
-      });
+      .insert(userData)
+      .select('user_id')
+      .single();
 
     if (userCreateError) {
       console.error('Error creating pending user:', userCreateError);
-      await supabase
+      await supabaseAdmin
         .from('invitations')
         .delete()
         .eq('invitation_id', invitation.invitation_id);
@@ -230,6 +280,23 @@ export async function POST(request: NextRequest) {
         { success: false, error: `Error al crear usuario pendiente: ${userCreateError.message}` },
         { status: 500 }
       );
+    }
+
+    // For teachers, create teacher_parallels entries
+    if (role === 'docente' && createdUser && parallel_ids && parallel_ids.length > 0) {
+      const teacherParallelsData = parallel_ids.map((pid: string) => ({
+        teacher_id: createdUser.user_id,
+        parallel_id: pid,
+      }));
+
+      const { error: teacherParallelsError } = await supabaseAdmin
+        .from('teacher_parallels')
+        .insert(teacherParallelsData);
+
+      if (teacherParallelsError) {
+        console.error('Error creating teacher_parallels:', teacherParallelsError);
+        // Don't fail the whole operation, just log the error
+      }
     }
 
     return NextResponse.json({

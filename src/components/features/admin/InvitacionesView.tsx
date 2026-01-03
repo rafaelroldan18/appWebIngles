@@ -1,23 +1,65 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { InvitationService } from '@/services/invitation.service';
-import { Mail, X, Calendar, CheckCircle, Clock, XCircle, User, Trash2 } from 'lucide-react';
+import { ParallelService } from '@/services/parallel.service';
+import { Mail, X, Calendar, CheckCircle, Clock, XCircle, User, Trash2, Pencil } from 'lucide-react';
 import type { Invitation } from '@/types/invitation.types';
+import type { Parallel } from '@/types/parallel.types';
 
 interface InvitacionesViewProps {
   onClose: () => void;
 }
 
 export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
+  const { usuario } = useAuth();
   const { t } = useLanguage();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [parallels, setParallels] = useState<Parallel[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'todas' | 'pendiente' | 'activada' | 'expirada'>('todas');
 
+  // States for editing
+  const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
+  const [editForm, setEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    id_card: '',
+    parallel_id: ''
+  });
+  const [updating, setUpdating] = useState(false);
+
   useEffect(() => {
-    loadInvitations();
-  }, []);
+    if (usuario) {
+      loadData();
+    }
+  }, [usuario]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      // Load invitations
+      const invData = await InvitationService.getAll();
+      setInvitations(invData);
+
+      // Load parallels based on role
+      let parallelData;
+      if (usuario?.role === 'docente') {
+        parallelData = await ParallelService.getTeacherParallels(usuario.user_id);
+      } else {
+        parallelData = await ParallelService.getAll();
+      }
+      setParallels(parallelData);
+
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadInvitations = async () => {
     try {
@@ -25,8 +67,6 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
       setInvitations(data);
     } catch (error) {
       console.error('Error loading invitations:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -46,25 +86,37 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'activada':
-        return <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />;
-      case 'expirada':
-        return <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />;
-      default:
-        return <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />;
-    }
+  const handleEditClick = (invitation: Invitation) => {
+    setEditingInvitation(invitation);
+    setEditForm({
+      first_name: invitation.first_name,
+      last_name: invitation.last_name,
+      email: invitation.email,
+      id_card: invitation.id_card || '',
+      parallel_id: invitation.parallel_id || ''
+    });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'activada':
-        return 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800';
-      case 'expirada':
-        return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
-      default:
-        return 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800';
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingInvitation) return;
+
+    try {
+      setUpdating(true);
+      await InvitationService.update(editingInvitation.invitation_id, {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        email: editForm.email,
+        id_card: editForm.id_card,
+        parallel_id: editForm.parallel_id || null
+      });
+
+      setEditingInvitation(null);
+      await loadInvitations();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al actualizar invitación');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -151,105 +203,91 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="divide-y divide-slate-100 dark:divide-gray-800">
                 {filteredInvitations.map((invitation) => (
                   <div
                     key={invitation.invitation_id}
-                    className="bg-white dark:bg-gray-700 border-2 border-slate-200 dark:border-gray-600 rounded-xl p-5 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-lg transition-all duration-200"
+                    className="py-5 px-4 first:pt-0 last:pb-0 group transition-all duration-200"
                   >
                     <div className="flex items-center justify-between gap-4">
                       {/* Left Section - Avatar and Info */}
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         <div
-                          className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${invitation.role === 'docente'
-                            ? 'bg-gradient-to-br from-blue-500 to-blue-700'
-                            : 'bg-gradient-to-br from-orange-500 to-orange-700'
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${invitation.role === 'docente'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                            : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'
                             }`}
                         >
-                          <User className="w-7 h-7 text-white" aria-hidden="true" />
+                          <User className="w-6 h-6" aria-hidden="true" />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-1 truncate">
+                          <h3 className="text-base font-bold text-slate-800 dark:text-gray-100 mb-0.5 truncate">
                             {invitation.first_name} {invitation.last_name}
                           </h3>
-                          <div className="flex flex-wrap items-center gap-3 text-sm">
-                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                              <Mail className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                            <div className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
+                              <Mail className="w-3.5 h-3.5" aria-hidden="true" />
                               <span className="truncate">{invitation.email}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-gray-300">
-                              <Calendar className="w-4 h-4 text-blue-500 flex-shrink-0" aria-hidden="true" />
+                            <div className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
+                              <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
                               <span>{new Date(invitation.created_date).toLocaleDateString('es-ES')}</span>
                             </div>
-                            {invitation.status === 'activada' && invitation.activation_date && (
-                              <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                                <CheckCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-                                <span className="text-xs">
-                                  Activada: {new Date(invitation.activation_date).toLocaleDateString('es-ES')}
-                                </span>
+                            {invitation.parallel_name && (
+                              <div className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400 font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                <span>Paralelo: {invitation.parallel_name}</span>
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Right Section - Badges and Actions */}
-                      <div className="flex items-center gap-3">
-                        {/* Role Badge */}
-                        <div className="flex-shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${invitation.role === 'docente'
-                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
-                              : 'bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300'
-                              }`}
-                          >
-                            {invitation.role.toUpperCase()}
+                      {/* Right Section - Status and Actions */}
+                      <div className="flex items-center gap-4 sm:gap-6">
+                        {/* Role and Status (Horizontal, Lowercase, no box) */}
+                        <div className="hidden sm:flex items-center gap-4">
+                          <span className="text-[11px] font-medium text-slate-400 tracking-tight">
+                            {invitation.role === 'estudiante' ? 'Estudiante' : 'Docente'}
+                          </span>
+                          <span className={`text-[11px] font-medium tracking-tight ${invitation.status === 'activada'
+                            ? 'text-green-500'
+                            : invitation.status === 'expirada'
+                              ? 'text-red-500'
+                              : 'text-orange-500'
+                            }`}>
+                            {invitation.status === 'activada' ? 'Activada' : (invitation.status === 'expirada' ? 'Expirada' : 'Pendiente')}
                           </span>
                         </div>
 
-                        {/* Status Badge */}
-                        <div className="flex-shrink-0">
-                          {invitation.status === 'activada' ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg text-sm font-bold">
-                              <CheckCircle className="w-4 h-4" aria-hidden="true" />
-                              ACTIVADA
-                            </span>
-                          ) : invitation.status === 'expirada' ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm font-bold">
-                              <XCircle className="w-4 h-4" aria-hidden="true" />
-                              EXPIRADA
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-bold">
-                              <Clock className="w-4 h-4" aria-hidden="true" />
-                              PENDIENTE
-                            </span>
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
+                          {invitation.status === 'pendiente' && (
+                            <button
+                              onClick={() => handleEditClick(invitation)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                              title="Editar invitación"
+                            >
+                              <Pencil className="w-5 h-5" aria-hidden="true" />
+                            </button>
+                          )}
+
+                          {(invitation.status === 'pendiente' || invitation.status === 'expirada') && (
+                            <button
+                              onClick={() => handleDelete(invitation.invitation_id)}
+                              disabled={deleting === invitation.invitation_id}
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
+                              title="Eliminar invitación"
+                            >
+                              {deleting === invitation.invitation_id ? (
+                                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" aria-hidden="true" />
+                              )}
+                            </button>
                           )}
                         </div>
-
-                        {/* Delete Button */}
-                        {(invitation.status === 'pendiente' || invitation.status === 'expirada') && (
-                          <button
-                            onClick={() => handleDelete(invitation.invitation_id)}
-                            disabled={deleting === invitation.invitation_id}
-                            aria-label={`Eliminar invitación de ${invitation.first_name} ${invitation.last_name}`}
-                            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-semibold text-sm transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 active:scale-95 flex items-center gap-2"
-                            title="Eliminar invitación"
-                          >
-                            {deleting === invitation.invitation_id ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Eliminando...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Trash2 className="w-4 h-4" aria-hidden="true" />
-                                <span>Eliminar</span>
-                              </>
-                            )}
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -259,6 +297,110 @@ export default function InvitacionesView({ onClose }: InvitacionesViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Edit Invitation Modal */}
+      {editingInvitation && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 dark:border-gray-700">
+            <div className="bg-blue-600 p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Pencil className="w-6 h-6 text-white" />
+                <h3 className="text-xl font-bold text-white">Editar Invitación</h3>
+              </div>
+              <button
+                onClick={() => setEditingInvitation(null)}
+                className="text-white/80 hover:text-white transition-colors"
+                disabled={updating}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Nombre</label>
+                  <input
+                    type="text"
+                    value={editForm.first_name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
+                    className="w-full px-4 py-2 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Apellido</label>
+                  <input
+                    type="text"
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
+                    className="w-full px-4 py-2 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-4 py-2 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Cédula</label>
+                <input
+                  type="text"
+                  value={editForm.id_card}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, id_card: e.target.value }))}
+                  className="w-full px-4 py-2 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  required
+                />
+              </div>
+
+              {editingInvitation.role === 'estudiante' && (
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Paralelo</label>
+                  <select
+                    value={editForm.parallel_id}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, parallel_id: e.target.value }))}
+                    className="w-full px-4 py-2 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  >
+                    <option value="">Sin asignar</option>
+                    {parallels.map(p => (
+                      <option key={p.parallel_id} value={p.parallel_id}>
+                        {p.name} - {p.academic_year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingInvitation(null)}
+                  className="flex-1 px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all"
+                  disabled={updating}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
+                >
+                  {updating ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

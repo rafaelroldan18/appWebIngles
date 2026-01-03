@@ -12,6 +12,8 @@ export interface Usuario {
   account_status: AccountStatus;
   registration_date: string;
   auth_user_id: string;
+  parallel_id?: string | null;
+  parallel_name?: string | null;
 }
 
 export interface AuthUser {

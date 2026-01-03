@@ -26,6 +26,9 @@ export interface UsuarioDB {
   role: UserRole;
   account_status: 'activo' | 'inactivo' | 'pendiente';
   registration_date: string;
+  parallel_id?: string | null;
+  parallel_name?: string | null;
+  points?: number;
 }
 
 export interface AuthSession {

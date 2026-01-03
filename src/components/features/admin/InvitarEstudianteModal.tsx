@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { commonValidations } from '@/lib/utils/formValidation';
 import { InvitationService } from '@/services/invitation.service';
+import { ParallelService } from '@/services/parallel.service';
+import type { Parallel } from '@/types/parallel.types';
 import { UserPlus, X, Mail, CheckCircle, Users, Upload, Download, FileText, AlertCircle, FileSpreadsheet } from 'lucide-react';
 
 interface InvitarEstudianteModalProps {
@@ -11,17 +14,40 @@ interface InvitarEstudianteModalProps {
 }
 
 export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEstudianteModalProps) {
+  const { usuario } = useAuth();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'individual' | 'bulk'>('individual');
+  const [parallels, setParallels] = useState<Parallel[]>([]);
+  const [selectedParallel, setSelectedParallel] = useState<string>('');
 
   // Bulk upload states
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [uploadSuccess, setUploadSuccess] = useState<number>(0);
+
+  // Load parallels on mount
+  useEffect(() => {
+    const loadParallels = async () => {
+      try {
+        if (!usuario) return;
+
+        let data;
+        if (usuario.role === 'docente') {
+          data = await ParallelService.getTeacherParallels(usuario.user_id);
+        } else {
+          data = await ParallelService.getAll();
+        }
+        setParallels(data);
+      } catch (err) {
+        console.error('Error loading parallels:', err);
+      }
+    };
+    loadParallels();
+  }, [usuario]);
 
   const validation = useFormValidation({
     initialValues: {
@@ -46,14 +72,22 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
       return;
     }
 
+    // Validate parallel selection
+    if (!selectedParallel) {
+      setError('Debe seleccionar un paralelo para el estudiante');
+      return;
+    }
+
     try {
       setLoading(true);
+      setError('');
       const result = await InvitationService.create({
         email: validation.values.email,
         first_name: validation.values.first_name,
         last_name: validation.values.last_name,
         id_card: validation.values.id_card,
         role: 'estudiante',
+        parallel_id: selectedParallel,
       });
 
       if (result.success) {
@@ -353,6 +387,32 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                         {validation.errors.email}
                       </p>
                     )}
+                  </div>
+
+                  {/* Parallel Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                      Paralelo <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedParallel}
+                      onChange={(e) => setSelectedParallel(e.target.value)}
+                      required
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${!selectedParallel && error
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                        }`}
+                    >
+                      <option value="">Seleccionar paralelo...</option>
+                      {parallels.map((parallel) => (
+                        <option key={parallel.parallel_id} value={parallel.parallel_id}>
+                          {parallel.name} - {parallel.academic_year}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
+                      El estudiante será asignado a este paralelo.
+                    </p>
                   </div>
 
                   <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg border border-orange-200 dark:border-orange-800">

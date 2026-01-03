@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
 
     const { data: invitation, error } = await supabase
       .from('invitations')
-      .select('*')
+      .select(`
+        *,
+        parallels!invitations_parallel_id_fkey(parallel_id, name, academic_year)
+      `)
       .eq('invitation_code', invitation_code.toUpperCase())
       .maybeSingle();
 

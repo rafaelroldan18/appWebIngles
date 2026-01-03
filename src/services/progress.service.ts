@@ -11,15 +11,4 @@ export class ProgressService {
 
     return response.json();
   }
-
-  static async getGamificationProfile(studentId: string) {
-    const response = await fetch(`/api/gamification/student-progress/${studentId}`);
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error);
-    }
-
-    return response.json();
-  }
 }
