@@ -10,10 +10,11 @@ interface DashboardNavProps {
   subtitle: string;
   onLogout: () => void;
   onSettings?: (view: 'profile' | 'settings') => void;
+  onReports?: () => void;
   onViewAsStudent?: () => void;
 }
 
-export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, onViewAsStudent }: DashboardNavProps) {
+export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, onReports, onViewAsStudent }: DashboardNavProps) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -41,7 +42,7 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, o
           </button>
 
           <div className="flex items-center gap-4">
-            <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onLogout={onLogout} onViewAsStudent={onViewAsStudent} />
+            <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onReports={onReports} onLogout={onLogout} onViewAsStudent={onViewAsStudent} />
           </div>
         </div>
       </div>

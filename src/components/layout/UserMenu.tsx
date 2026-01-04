@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut, BarChart3 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { Usuario } from '@/types/user.types';
 
@@ -8,10 +8,11 @@ interface UserMenuProps {
   onLogout: () => void;
   onProfile?: () => void;
   onSettings?: () => void;
+  onReports?: () => void;
   onViewAsStudent?: () => void;
 }
 
-export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStudent }: UserMenuProps) {
+export function UserMenu({ usuario, onLogout, onProfile, onSettings, onReports, onViewAsStudent }: UserMenuProps) {
   const { t } = useLanguage();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,21 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onViewAsStu
               >
                 <Settings className="w-5 h-5" />
                 <span className="font-medium">{t.userMenuSettings}</span>
+              </button>
+            )}
+
+            {onReports && (
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  onReports();
+                }}
+                className="w-full px-4 py-2 text-left hover:bg-neutral-100 dark:hover:bg-[#334155] flex items-center gap-3 text-[#6B7280] dark:text-[#E5E7EB] transition-all text-sm"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span className="font-medium">
+                  {usuario.role === 'docente' ? 'Reportes' : 'Mis Estadísticas'}
+                </span>
               </button>
             )}
 

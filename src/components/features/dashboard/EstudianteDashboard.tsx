@@ -8,6 +8,8 @@ import { DashboardNav } from '@/components/layout/DashboardNav';
 import LogoutModal from '@/components/ui/LogoutModal';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import ProfilePage from '@/components/features/profile/ProfilePage';
+import StudentGames from '@/components/features/gamification/StudentGames';
+import StudentReport from '@/components/features/reports/StudentReport';
 import { colors, getCardClasses } from '@/config/colors';
 
 interface EstudianteDashboardProps {
@@ -20,7 +22,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
   const { t } = useLanguage();
   const { assignments } = useStudentAssignments(usuario?.id);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings' | 'gamification' | 'reports'>('dashboard');
 
   const handleLogoutConfirm = async () => {
     await signOut();
@@ -55,12 +57,29 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
         subtitle={t.panelEstudiante}
         onLogout={() => setShowLogoutModal(true)}
         onSettings={(view) => setCurrentView(view)}
+        onReports={() => setCurrentView('reports')}
       />
 
       {currentView === 'profile' ? (
         <ProfilePage onBack={() => setCurrentView('dashboard')} />
       ) : currentView === 'settings' ? (
         <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'gamification' ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Mis Juegos y Progreso</h2>
+            <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-slate-200 dark:bg-gray-700 rounded-lg font-bold">Volver</button>
+          </div>
+          <StudentGames studentId={usuario?.user_id || ''} parallelId={usuario?.parallel_id || ''} />
+        </div>
+      ) : currentView === 'reports' ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Mis Estadísticas</h2>
+            <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-slate-200 dark:bg-gray-700 rounded-lg font-bold">Volver</button>
+          </div>
+          <StudentReport studentId={usuario?.user_id || ''} parallelId={usuario?.parallel_id || ''} />
+        </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header Dashboard: Bienvenida + Métricas Integradas */}
@@ -71,8 +90,8 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
               </h2>
               <div className="flex flex-wrap items-center gap-3">
                 {usuario?.parallel_name && (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold uppercase tracking-wider">
-                    PRL: {usuario.parallel_name}
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold tracking-wider">
+                    Curso: {usuario.parallel_name}
                   </div>
                 )}
                 <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t.continuaAventura}</p>
@@ -114,6 +133,16 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
                   </span>
                 </div>
               </div>
+
+              <div className="hidden sm:block w-px h-8 bg-slate-100 dark:bg-gray-800 shrink-0"></div>
+
+              <button
+                onClick={() => setCurrentView('gamification')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all active:scale-95"
+              >
+                <Trophy className="w-4 h-4" />
+                <span>Juegos</span>
+              </button>
             </div>
           </div>
 

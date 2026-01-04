@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ActivityService } from '@/services/activity.service';
+import { GameService } from '@/services/game.service';
 import { UserService } from '@/services/user.service';
 import { ParallelService } from '@/services/parallel.service';
 import {
@@ -15,7 +16,8 @@ import {
   Eye,
   Mail,
   UserPlus,
-  GraduationCap
+  GraduationCap,
+  Trophy
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
@@ -25,6 +27,8 @@ import EstudianteDashboard from './EstudianteDashboard';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
+import GameManager from '@/components/features/gamification/GameManager';
+import ReportDashboard from '@/components/features/reports/ReportDashboard';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonInfoClasses } from '@/config/colors';
 import type { Parallel } from '@/types/parallel.types';
 
@@ -66,7 +70,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
   const [misParalelos, setMisParalelos] = useState<Parallel[]>([]);
   const [showTeacherNotification, setShowTeacherNotification] = useState(false);
   const [notificationFading, setNotificationFading] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings' | 'reports' | 'gamification'>('dashboard');
+  const [reportParallelId, setReportParallelId] = useState<string>('');
 
   useEffect(() => {
     if (!isStudentView && usuario) {
@@ -87,8 +92,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       const paralelos = await ParallelService.getTeacherParallels(usuario.user_id);
       setMisParalelos(paralelos);
 
-      // Get all students (the component itself will filter them or the API should)
-      // For stats, we should only count students in those parallels
+      // Get all students
       const estudiantes = await UserService.getByRole('estudiante');
 
       // Filter students to only include those in teacher's parallels
@@ -97,25 +101,36 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         est.parallel_id && parallelIds.includes(est.parallel_id)
       );
 
+      // NEW: Fetch Gamification Missions (Availabilities) for all parallels
       try {
-        const [actividadesData, stats] = await Promise.all([
-          ActivityService.getByCreator(usuario.user_id, 5),
-          ActivityService.getCreatorStats(usuario.user_id)
-        ]);
-        setActividades(actividadesData);
+        const missionsPromises = paralelos.map(p => GameService.getAvailability(p.parallel_id, false));
+        const missionsResults = await Promise.all(missionsPromises);
+
+        // Flatten and process missions
+        const allMissions: Actividad[] = missionsResults.flat().map((mission: any) => ({
+          id_actividad: mission.availability_id,
+          titulo: mission.topics?.title || 'Misión sin título',
+          tipo: mission.game_types?.name || 'Juego',
+          nivel_dificultad: mission.is_active ? 'activo' : 'inactivo',
+          fecha_creacion: mission.available_from
+        }));
+
+        // Remove duplicates if any (though availability IDs are unique, same content might appear across parallels)
+        // For Dashboard, maybe we just show unique distinct missions by topic? 
+        // Or show all. Let's show all for now, maybe limiting to recent 10.
+        const uniqueMissions = Array.from(new Map(allMissions.map(m => [m.titulo + m.tipo, m])).values());
+
+        setActividades(uniqueMissions.slice(0, 10)); // Show top 10
+
         setEstadisticas({
-          totalActividades: stats.totalActividades,
+          totalActividades: uniqueMissions.length,
           totalEstudiantes: misEstudiantes.length,
-          actividadesAsignadas: stats.actividadesAsignadas,
+          actividadesAsignadas: uniqueMissions.length * misEstudiantes.length, // Approx
         });
+
       } catch (actError) {
-        console.error('Error con actividades:', actError);
+        console.error('Error con misiones:', actError);
         setActividades([]);
-        setEstadisticas({
-          totalActividades: 0,
-          totalEstudiantes: misEstudiantes.length,
-          actividadesAsignadas: 0,
-        });
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -200,6 +215,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             usuario={usuario!}
             onProfile={() => setCurrentView('profile')}
             onSettings={() => setCurrentView('settings')}
+            onReports={() => setCurrentView('reports')}
             onLogout={() => setShowLogoutModal(true)}
             onViewAsStudent={() => {
               setIsTransitioning(true);
@@ -216,6 +232,28 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         <ProfilePage onBack={() => setCurrentView('dashboard')} />
       ) : currentView === 'settings' ? (
         <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'reports' ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ReportDashboard
+            teacherId={usuario?.user_id || ''}
+            preSelectedParallel={reportParallelId}
+            onBack={() => setCurrentView('dashboard')}
+          />
+        </div>
+      ) : currentView === 'gamification' ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold">Gestión de Gamificación</h2>
+            <button onClick={() => setCurrentView('dashboard')} className={getButtonSecondaryClasses()}>Volver</button>
+          </div>
+          <GameManager
+            teacherId={usuario?.user_id || ''}
+            onViewReport={(pid) => {
+              setReportParallelId(pid);
+              setCurrentView('reports');
+            }}
+          />
+        </div>
       ) : (
         <>
           {showTeacherNotification && (
@@ -299,6 +337,22 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                 <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Gestionar estudiantes</span>
               </button>
+
+              <button
+                onClick={() => setCurrentView('reports')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+              >
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Reportes</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('gamification')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+              >
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Gamificación</span>
+              </button>
             </div>
 
             {/* Actividades Recientes */}
@@ -307,40 +361,85 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                 <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center`}>
                   <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h3 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>{t.actividadesRecientes}</h3>
+                <h3 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>Misiones Recientes</h3>
               </div>
 
               {actividades.length === 0 ? (
                 <div className="text-center py-12 sm:py-16">
                   <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                    <BookOpen className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.secondary}`} />
+                    <Trophy className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.secondary}`} />
                   </div>
-                  <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>{t.noActividadesCreadas}</p>
-                  <p className={`${colors.text.secondary} text-sm`}>{t.comenzarPrimeraActividad}</p>
+                  <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>No has creado misiones aún</p>
+                  <p className={`${colors.text.secondary} text-sm max-w-sm mx-auto`}>Ve a la sección "Gamificación" para crear tu primera misión y desafiar a tus estudiantes.</p>
                 </div>
               ) : (
-                <div className="space-y-3 sm:space-y-4">
-                  {actividades.map((actividad) => (
-                    <div
-                      key={actividad.id_actividad}
-                      className={`border-l-4 ${getDificultadColor(actividad.nivel_dificultad)} bg-white dark:bg-[#1E293B] rounded-lg p-4 sm:p-5 hover:shadow-md transition-all cursor-pointer`}
-                    >
-                      <h4 className={`text-sm sm:text-base font-bold ${colors.text.title} mb-2`}>
-                        {actividad.titulo}
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.neutral.bg} ${colors.status.neutral.text}`}>
-                          {actividad.nivel_dificultad.toUpperCase()}
-                        </span>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.info.bg} ${colors.status.info.text}`}>
-                          {actividad.tipo.toUpperCase()}
-                        </span>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${colors.status.neutral.bg} ${colors.text.secondary}`}>
-                          📅 {new Date(actividad.fecha_creacion).toLocaleDateString('es-ES')}
-                        </span>
+                <div className="relative group">
+                  <div className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1 snap-x snap-mandatory custom-scrollbar" style={{ scrollBehavior: 'smooth' }}>
+                    {actividades.map((actividad) => (
+                      <div
+                        key={actividad.id_actividad}
+                        onClick={() => {
+                          setCurrentView('gamification');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`min-w-[280px] sm:min-w-[320px] snap-center bg-white dark:bg-[#1E293B] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden group/card`}
+                      >
+                        {/* Decorative background accent */}
+                        <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${actividad.nivel_dificultad === 'alto' ? 'from-red-100 to-transparent' : actividad.nivel_dificultad === 'medio' ? 'from-blue-100 to-transparent' : 'from-green-100 to-transparent'} rounded-bl-full opacity-50 transition-opacity group-hover/card:opacity-100`} />
+
+                        <div className="relative z-10">
+                          <div className="flex justify-between items-start mb-3">
+                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${actividad.nivel_dificultad === 'activo' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                              {actividad.nivel_dificultad}
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
+                              <Trophy className="w-4 h-4 text-amber-500" />
+                            </div>
+                          </div>
+
+                          <h4 className={`text-lg font-black ${colors.text.title} mb-2 line-clamp-2 h-14`}>
+                            {actividad.titulo}
+                          </h4>
+
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${colors.status.info.bg} ${colors.status.info.text}`}>
+                              {actividad.tipo}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-gray-800">
+                            <span className={`text-xs font-medium ${colors.text.secondary}`}>
+                              📅 {new Date(actividad.fecha_creacion).toLocaleDateString('es-ES')}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentView('gamification');
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="text-xs font-black text-indigo-600 hover:text-indigo-700 flex items-center gap-1 group-hover/card:gap-2 transition-all">
+                              VER DETALLES →
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    ))}
+                    {/* Add New Mission Ghost Card */}
+                    <div
+                      onClick={() => {
+                        setCurrentView('gamification');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="min-w-[280px] sm:min-w-[320px] snap-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-5 border-2 border-dashed border-slate-200 dark:border-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group/new"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center group-hover/new:scale-110 transition-transform">
+                        <PlusCircle className="w-6 h-6 text-indigo-600" />
+                      </div>
+                      <span className="text-sm font-bold text-slate-500 dark:text-gray-400">Crear Nueva Misión</span>
                     </div>
-                  ))}
+                  </div>
+                  {/* Subtle fade effect on sides */}
+                  <div className="absolute top-0 right-0 h-full w-12 bg-gradient-to-l from-white dark:from-[#0f172a] to-transparent pointer-events-none" />
                 </div>
               )}
             </div>

@@ -1,0 +1,92 @@
+/**
+ * PUT /api/games/content/[contentId]
+ * Update existing game content
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseClient } from '@/lib/supabase-api';
+
+interface RouteParams {
+    params: Promise<{
+        contentId: string;
+    }>;
+}
+
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+    try {
+        const supabase = await createSupabaseClient(request);
+        const { contentId } = await params;
+
+        // Get request body
+        const body = await request.json();
+        const { content_type, content_text, is_correct, image_url, metadata } = body;
+
+        // Build update object (only include provided fields)
+        const updates: any = {};
+        if (content_type !== undefined) updates.content_type = content_type;
+        if (content_text !== undefined) updates.content_text = content_text;
+        if (is_correct !== undefined) updates.is_correct = is_correct;
+        if (image_url !== undefined) updates.image_url = image_url;
+        if (metadata !== undefined) updates.metadata = metadata;
+
+        // Update content
+        const { data, error } = await supabase
+            .from('game_content')
+            .update(updates)
+            .eq('content_id', contentId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating game content:', error);
+            return NextResponse.json(
+                { error: 'Failed to update game content' },
+                { status: 500 }
+            );
+        }
+
+        if (!data) {
+            return NextResponse.json(
+                { error: 'Content not found' },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error('Error in PUT /api/games/content/[contentId]:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+    try {
+        const supabase = await createSupabaseClient(request);
+        const { contentId } = await params;
+
+        // Delete content
+        const { error } = await supabase
+            .from('game_content')
+            .delete()
+            .eq('content_id', contentId);
+
+        if (error) {
+            console.error('Error deleting game content:', error);
+            return NextResponse.json(
+                { error: 'Failed to delete game content' },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Error in DELETE /api/games/content/[contentId]:', error);
+        return NextResponse.json(
+            { error: 'Internal server error' },
+            { status: 500 }
+        );
+    }
+}

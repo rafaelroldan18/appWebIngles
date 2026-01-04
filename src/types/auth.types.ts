@@ -2,7 +2,8 @@
 // TIPOS DE AUTENTICACIÓN
 // ============================================================================
 
-export type UserRole = 'estudiante' | 'docente' | 'administrador';
+import { UserRole } from './user.types';
+export type { UserRole };
 
 export interface User {
   id: string;

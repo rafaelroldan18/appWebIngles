@@ -7,8 +7,6 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const authUserId = searchParams.get('authUserId');
 
-    console.log('👥 [Users API] Fetching users. Filters:', { role, authUserId });
-
     const supabase = await createSupabaseClient(request);
 
     // 1. Authenticate user

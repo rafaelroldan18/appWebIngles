@@ -25,6 +25,7 @@ import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
 import { GestionarParalelos } from '@/components/features/admin/GestionarParalelos';
+import AdminStats from '@/components/features/reports/AdminStats';
 import { ParallelService } from '@/services/parallel.service';
 import type { Usuario as UsuarioType } from '@/types/user.types';
 import type { Parallel } from '@/types/parallel.types';
@@ -65,7 +66,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
   const [filtroParalelo, setFiltroParalelo] = useState<string>('todos');
   const [paralelos, setParalelos] = useState<Parallel[]>([]);
   const [showManageParallels, setShowManageParallels] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings' | 'reports'>('dashboard');
 
   useEffect(() => {
     loadData();
@@ -154,6 +155,10 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
         <ProfilePage onBack={() => setCurrentView('dashboard')} />
       ) : currentView === 'settings' ? (
         <SettingsPage onBack={() => setCurrentView('dashboard')} />
+      ) : currentView === 'reports' ? (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <AdminStats onBack={() => setCurrentView('dashboard')} />
+        </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header Dashboard: Bienvenida + Métricas Integradas */}
@@ -236,6 +241,14 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
             >
               <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Mis invitaciones</span>
+            </button>
+
+            <button
+              onClick={() => setCurrentView('reports')}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95"
+            >
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />
+              <span>Reportes</span>
             </button>
 
             <button
