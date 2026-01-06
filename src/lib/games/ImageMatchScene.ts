@@ -86,47 +86,106 @@ export class ImageMatchScene extends Phaser.Scene {
         // Set background
         this.cameras.main.setBackgroundColor(IMAGE_MATCH_CONFIG.visual.backgroundColor);
 
-        // Create UI
-        this.createUI();
+        // Create UI (Standard HUD)
+        this.createStandardHUD();
 
-        // Create cards
+        // Create cards (Wait for gameplay start for interaction, or create them but block input?)
+        // Better to create them but maybe disable input? 
+        // Or create them in startGameplay.
+        // If I create them now, they are visible during countdown. That's fine.
         this.createCards();
+
+        // Start Countdown
+        this.startCountdown();
+    }
+
+    private createStandardHUD() {
+        const { width } = this.cameras.main;
+        const topBarHeight = 60;
+
+        // Background bar
+        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7);
+
+        // Score
+        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#10b981',
+            fontStyle: 'bold'
+        });
+
+        // Time
+        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
+        // Pairs
+        this.pairsText = this.add.text(width - 20, 20, 'PAIRS: 0/0', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#fbbf24',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
+
+        // Instruction below HUD
+        this.instructionText = this.add.text(width / 2, topBarHeight + 20, 'FIND MATCHING PAIRS OF IMAGES AND WORDS', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            color: '#94a3b8',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+    }
+
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+
+        // Initial blockade
+        this.isProcessing = true; // Block input
+
+        let count = 3;
+        const countText = this.add.text(width / 2, height / 2, `${count}`, {
+            fontSize: '120px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5).setDepth(100);
+
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                count--;
+                if (count > 0) {
+                    countText.setText(`${count}`);
+                    this.cameras.main.shake(100, 0.01);
+                } else if (count === 0) {
+                    countText.setText('MATCH!');
+                    countText.setColor('#10b981');
+                    this.cameras.main.flash(500);
+                } else {
+                    countText.destroy();
+                    timer.remove();
+                    this.startGameplay();
+                }
+            },
+            repeat: 3
+        });
+    }
+
+    private startGameplay() {
+        this.isProcessing = false; // Unblock input
 
         // Start timer
         this.startGameTimer();
     }
 
     private createUI() {
-        const { width, height } = this.cameras.main;
-        const padding = 20;
-
-        // Score
-        this.scoreText = this.add.text(padding, padding, 'Score: 0', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        });
-
-        // Timer
-        this.timerText = this.add.text(width - padding, padding, `Time: ${this.timeRemaining}s`, {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        }).setOrigin(1, 0);
-
-        // Pairs
-        this.pairsText = this.add.text(width / 2, padding, 'Pairs: 0/0', {
-            fontSize: '24px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-        }).setOrigin(0.5, 0);
-
-        // Instructions
-        this.instructionText = this.add.text(width / 2, height - padding, 'Click cards to find matching pairs!', {
-            fontSize: '18px',
-            color: '#94a3b8',
-            fontStyle: 'bold',
-        }).setOrigin(0.5, 1);
+        // Deprecated
     }
 
     private createCards() {
@@ -382,8 +441,9 @@ export class ImageMatchScene extends Phaser.Scene {
     }
 
     private updateUI() {
-        this.scoreText.setText(`Score: ${this.score}`);
-        this.pairsText.setText(`Pairs: ${this.matchedPairs}/${this.totalPairs}`);
+        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.pairsText.setText(`PAIRS: ${this.matchedPairs}/${this.totalPairs}`);
+        this.timerText.setText(`TIME: ${this.timeRemaining}`);
     }
 
     private async endGame() {
@@ -408,66 +468,25 @@ export class ImageMatchScene extends Phaser.Scene {
             }
         }
 
-        // Show game over screen
-        this.showGameOver();
-    }
-
-    private showGameOver() {
+        // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.85);
-        overlay.setOrigin(0);
-
-        // Game Over text
-        const gameOverText = this.matchedPairs === this.totalPairs ? 'COMPLETE!' : 'GAME OVER!';
-        const gameOverColor = this.matchedPairs === this.totalPairs ? '#10b981' : '#fbbf24';
-
-        this.add.text(width / 2, height / 2 - 100, gameOverText, {
-            fontSize: '64px',
-            color: gameOverColor,
+        this.add.text(width / 2, height / 2, 'MISSION COMPLETE!', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#10b981',
             fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
-        // Final score
-        this.add.text(width / 2, height / 2 - 20, `Final Score: ${this.score}`, {
-            fontSize: '36px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        // Stats
-        this.add.text(width / 2, height / 2 + 30, `Pairs Matched: ${this.matchedPairs}/${this.totalPairs}`, {
-            fontSize: '24px',
-            color: '#94a3b8',
-        }).setOrigin(0.5);
-
-        if (this.wrongMatches === 0 && this.matchedPairs === this.totalPairs) {
-            this.add.text(width / 2, height / 2 + 70, '🌟 PERFECT GAME! 🌟', {
-                fontSize: '28px',
-                color: '#fbbf24',
-                fontStyle: 'bold',
-            }).setOrigin(0.5);
-        }
-
-        // Accuracy
-        if (this.sessionManager) {
-            const data = this.sessionManager.getSessionData();
-            const accuracy = data.correctCount + data.wrongCount > 0
-                ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
-                : 0;
-
-            this.add.text(width / 2, height / 2 + 110,
-                `Accuracy: ${accuracy}%`, {
-                fontSize: '24px',
-                color: '#ffffff',
-            }).setOrigin(0.5);
-        }
-
-        // Emit event
-        this.events.emit('gameOver', {
-            score: this.score,
-            sessionData: this.sessionManager?.getSessionData(),
+        // Emit event delayed
+        this.time.delayedCall(2000, () => {
+            this.events.emit('gameOver', {
+                score: this.score,
+                sessionData: this.sessionManager?.getSessionData(),
+            });
         });
     }
 

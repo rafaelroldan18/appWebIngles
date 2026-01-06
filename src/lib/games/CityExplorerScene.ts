@@ -42,6 +42,8 @@ export class CityExplorerScene extends Phaser.Scene {
     private currentQuestion: Question | null = null;
     private isAnswering: boolean = false;
     private isGameOver: boolean = false;
+    private correctAnswers: number = 0;
+    private wrongAnswers: number = 0;
 
     // UI Elements
     private scoreText!: Phaser.GameObjects.Text;
@@ -89,12 +91,95 @@ export class CityExplorerScene extends Phaser.Scene {
         // Create player
         this.createPlayer();
 
-        // Create UI
-        this.createUI();
+        // Create UI (Standard HUD)
+        this.createStandardHUD();
 
         // Setup controls
         this.setupControls();
 
+        // Start Countdown
+        this.startCountdown();
+    }
+
+    private createStandardHUD() {
+        const { width } = this.cameras.main;
+        const topBarHeight = 80;
+
+        // Background bar
+        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7).setDepth(100);
+
+        // Score
+        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#10b981',
+            fontStyle: 'bold'
+        }).setDepth(101);
+
+        // Time
+        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0).setDepth(101);
+
+        // Progress
+        this.progressText = this.add.text(width - 20, 20, 'LOCATIONS: 0/6', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#fbbf24',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0).setDepth(101);
+
+        // Dynamic Objective
+        this.objectiveText = this.add.text(width / 2, 50, 'FIND THE TARGET!', {
+            fontSize: '22px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5).setDepth(101);
+
+        // Question panel container
+        this.createQuestionPanel();
+    }
+
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+
+        let count = 3;
+        const countText = this.add.text(width / 2, height / 2, `${count}`, {
+            fontSize: '120px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5).setDepth(200);
+
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                count--;
+                if (count > 0) {
+                    countText.setText(`${count}`);
+                    this.cameras.main.shake(100, 0.01);
+                } else if (count === 0) {
+                    countText.setText('EXPLORE!');
+                    countText.setColor('#10b981');
+                    this.cameras.main.flash(500);
+                } else {
+                    countText.destroy();
+                    timer.remove();
+                    this.startGameplay();
+                }
+            },
+            repeat: 3
+        });
+    }
+
+    private startGameplay() {
         // Start timer
         this.startGameTimer();
 
@@ -207,56 +292,7 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private createUI() {
-        const { width, height } = this.cameras.main;
-        const padding = 20;
-
-        // Score
-        this.scoreText = this.add.text(padding, padding, 'Score: 0', {
-            fontSize: '24px',
-            color: '#000000',
-            fontStyle: 'bold',
-            backgroundColor: '#ffffffaa',
-            padding: { x: 10, y: 5 },
-        });
-
-        // Timer
-        this.timerText = this.add.text(width - padding, padding, `Time: ${this.timeRemaining}s`, {
-            fontSize: '24px',
-            color: '#000000',
-            fontStyle: 'bold',
-            backgroundColor: '#ffffffaa',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(1, 0);
-
-        // Objective
-        this.objectiveText = this.add.text(width / 2, padding + 10, '', {
-            fontSize: '20px',
-            color: '#1e40af',
-            fontStyle: 'bold',
-            backgroundColor: '#ffffffdd',
-            padding: { x: 15, y: 8 },
-        }).setOrigin(0.5, 0);
-
-        // Progress
-        this.progressText = this.add.text(width / 2, padding + 50, 'Locations: 0/6', {
-            fontSize: '18px',
-            color: '#059669',
-            fontStyle: 'bold',
-            backgroundColor: '#ffffffaa',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(0.5, 0);
-
-        // Instructions
-        this.add.text(width / 2, height - padding, 'Use WASD or Arrow Keys to move', {
-            fontSize: '16px',
-            color: '#64748b',
-            fontStyle: 'bold',
-            backgroundColor: '#ffffffaa',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(0.5, 1);
-
-        // Question panel (hidden initially)
-        this.createQuestionPanel();
+        // Deprecated
     }
 
     private createQuestionPanel() {
@@ -458,6 +494,7 @@ export class CityExplorerScene extends Phaser.Scene {
         const isCorrect = answerIndex === this.currentQuestion.correctAnswer;
 
         if (isCorrect) {
+            this.correctAnswers++;
             const points = CITY_EXPLORER_CONFIG.scoring.correctPreposition;
             this.score += points;
 
@@ -467,6 +504,7 @@ export class CityExplorerScene extends Phaser.Scene {
 
             this.showFeedback('✓ Correct!', '#10b981');
         } else {
+            this.wrongAnswers++;
             const penalty = CITY_EXPLORER_CONFIG.scoring.wrongAnswer;
             this.score += penalty;
 
@@ -484,7 +522,7 @@ export class CityExplorerScene extends Phaser.Scene {
             this.questionPanel.setVisible(false);
             this.isAnswering = false;
             this.locationsFound++;
-            this.progressText.setText(`Locations: ${this.locationsFound}/${CITY_EXPLORER_CONFIG.gameplay.locationsToFind}`);
+            this.updateUI();
             this.selectNextTarget();
         });
     }
@@ -513,7 +551,9 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private updateUI() {
-        this.scoreText.setText(`Score: ${this.score}`);
+        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.progressText.setText(`LOCATIONS: ${this.locationsFound}/${CITY_EXPLORER_CONFIG.gameplay.locationsToFind}`);
+        this.timerText.setText(`TIME: ${this.timeRemaining}`);
     }
 
     private async endGame() {
@@ -529,76 +569,34 @@ export class CityExplorerScene extends Phaser.Scene {
             try {
                 await this.sessionManager.endSession({
                     locationsFound: this.locationsFound,
-                    totalLocations: CITY_EXPLORER_CONFIG.gameplay.locationsToFind,
-                    completed: this.locationsFound >= CITY_EXPLORER_CONFIG.gameplay.locationsToFind,
+                    correctAnswers: this.correctAnswers,
+                    wrongAnswers: this.wrongAnswers,
+                    questionsAnswered: this.correctAnswers + this.wrongAnswers,
                 });
             } catch (error) {
                 console.error('Error ending session:', error);
             }
         }
 
-        // Show game over screen
-        this.showGameOver();
-    }
-
-    private showGameOver() {
+        // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.85);
-        overlay.setOrigin(0);
-
-        // Game Over text
-        const completed = this.locationsFound >= CITY_EXPLORER_CONFIG.gameplay.locationsToFind;
-        const gameOverText = completed ? 'MISSION COMPLETE!' : 'GAME OVER!';
-        const gameOverColor = completed ? '#10b981' : '#fbbf24';
-
-        this.add.text(width / 2, height / 2 - 100, gameOverText, {
-            fontSize: '64px',
-            color: gameOverColor,
+        this.add.text(width / 2, height / 2, 'MISSION COMPLETE!', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#10b981',
             fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
-        // Final score
-        this.add.text(width / 2, height / 2 - 20, `Final Score: ${this.score}`, {
-            fontSize: '36px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        // Stats
-        this.add.text(width / 2, height / 2 + 30,
-            `Locations Found: ${this.locationsFound}/${CITY_EXPLORER_CONFIG.gameplay.locationsToFind}`, {
-            fontSize: '24px',
-            color: '#94a3b8',
-        }).setOrigin(0.5);
-
-        if (completed) {
-            this.add.text(width / 2, height / 2 + 70, '🌟 CITY EXPLORED! 🌟', {
-                fontSize: '28px',
-                color: '#fbbf24',
-                fontStyle: 'bold',
-            }).setOrigin(0.5);
-        }
-
-        // Accuracy
-        if (this.sessionManager) {
-            const data = this.sessionManager.getSessionData();
-            const accuracy = data.correctCount + data.wrongCount > 0
-                ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
-                : 0;
-
-            this.add.text(width / 2, height / 2 + 110,
-                `Accuracy: ${accuracy}%`, {
-                fontSize: '24px',
-                color: '#ffffff',
-            }).setOrigin(0.5);
-        }
-
-        // Emit event
-        this.events.emit('gameOver', {
-            score: this.score,
-            sessionData: this.sessionManager?.getSessionData(),
+        // Emit event delayed
+        this.time.delayedCall(2000, () => {
+            this.events.emit('gameOver', {
+                score: this.score,
+                sessionData: this.sessionManager?.getSessionData(),
+            });
         });
     }
 

@@ -15,29 +15,27 @@ export const WORD_CATCHER_CONFIG = {
         missedWord: -2,
     },
 
-    // Gameplay
+    // Gameplay - AJUSTADO PARA FLUIDEZ
     gameplay: {
-        gameDuration: 120, // seconds
-        wordFallSpeed: 100, // pixels per second
-        wordSpawnInterval: 2000, // milliseconds
-        maxWordsOnScreen: 8,
+        gameDuration: 120, // segundos
+        wordFallSpeed: 1.2, // VELOCIDAD MODERADA (1.0 es normal, 2.0 es rápido)
+        wordSpawnInterval: 2200, // milisegundos entre palabras
+        maxWordsOnScreen: 6,
     },
 
-    // Visual settings
+    // Visual settings - ESTILO NEÓN
     visual: {
         backgroundColor: '#1e293b',
-        wordCorrectColor: '#10b981',
-        wordIncorrectColor: '#ef4444',
+        wordCorrectColor: '#00ff00', // Verde neón
+        wordIncorrectColor: '#ff0000', // Rojo neón
         wordNeutralColor: '#ffffff',
-        fontSize: 24,
-        fontFamily: 'Arial, sans-serif',
+        fontSize: 22,
+        fontFamily: 'Arial Black, sans-serif',
     },
 
-    // Physics
+    // Physics (Opcional si no usas motor de física arcade directo)
     physics: {
-        gravity: 200,
-        bounceMin: 0.2,
-        bounceMax: 0.4,
+        gravity: 0, // En este tipo de juego los tweens manejan el movimiento mejor
     },
 } as const;
 

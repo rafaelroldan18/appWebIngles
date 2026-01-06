@@ -80,16 +80,14 @@ export class GrammarRunScene extends Phaser.Scene {
             // Create player
             this.createPlayer();
 
-            // Create UI
-            this.createUI();
+            // Create UI (Standard HUD)
+            this.createStandardHUD();
 
             // Setup controls
             this.setupControls();
 
-            // Start timers
-            this.startGameTimer();
-            this.startGateSpawning();
-            this.startSpeedIncrease();
+            // Start Countdown
+            this.startCountdown();
 
             // Enable physics
             this.physics.world.setBounds(0, 0, width, height);
@@ -100,6 +98,95 @@ export class GrammarRunScene extends Phaser.Scene {
             console.error('[GrammarRun] Critical error in create():', error);
             this.add.text(400, 300, 'Error initializing game', { color: '#ff0000' }).setOrigin(0.5);
         }
+    }
+
+    private createStandardHUD() {
+        const { width } = this.cameras.main;
+        const topBarHeight = 60;
+
+        // Background bar
+        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7);
+
+        // Score
+        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#10b981',
+            fontStyle: 'bold'
+        });
+
+        // Time
+        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
+            fontSize: '24px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
+        // Lives & Distance
+        this.livesText = this.add.text(width - 20, 20, `LIVES: ${this.lives}`, {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#ef4444',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
+
+        this.distanceText = this.add.text(width - 20, 45, '0m', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#fbbf24',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
+
+        // Instruction below HUD
+        this.add.text(width / 2, topBarHeight + 20, 'ARROWS: SELECT CORRECT GRAMMAR', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            color: '#fbbf24',
+            fontStyle: 'bold',
+            align: 'center'
+        }).setOrigin(0.5);
+    }
+
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+
+        let count = 3;
+        const countText = this.add.text(width / 2, height / 2, `${count}`, {
+            fontSize: '120px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5);
+
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                count--;
+                if (count > 0) {
+                    countText.setText(`${count}`);
+                    this.cameras.main.shake(100, 0.01);
+                } else if (count === 0) {
+                    countText.setText('RUN!');
+                    countText.setColor('#10b981');
+                    this.cameras.main.flash(500);
+                } else {
+                    countText.destroy();
+                    timer.remove();
+                    this.startGameplay();
+                }
+            },
+            repeat: 3
+        });
+    }
+
+    private startGameplay() {
+        // Start timers
+        this.startGameTimer();
+        this.startGateSpawning();
+        this.startSpeedIncrease();
     }
 
     private createGround() {
@@ -423,9 +510,9 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private updateUI() {
-        this.scoreText.setText(`Score: ${this.score}`);
-        this.livesText.setText(`Lives: ${this.lives}`);
-        this.distanceText.setText(`Distance: ${Math.floor(this.distance)}m`);
+        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.livesText.setText(`LIVES: ${this.lives}`);
+        this.distanceText.setText(`${Math.floor(this.distance)}m`);
     }
 
     private async endGame() {
@@ -458,51 +545,29 @@ export class GrammarRunScene extends Phaser.Scene {
             }
         }
 
-        // Show game over screen
-        this.showGameOver();
-    }
-
-    private showGameOver() {
+        // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.8);
-        overlay.setOrigin(0);
-
-        // Game Over text
-        this.add.text(width / 2, height / 2 - 80, 'GAME OVER!', {
-            fontSize: '64px',
-            color: '#ffffff',
+        this.add.text(width / 2, height / 2, 'MISSION COMPLETE!', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#10b981',
             fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
-        // Final score
-        this.add.text(width / 2, height / 2, `Final Score: ${this.score}`, {
-            fontSize: '36px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        // Stats
-        if (this.sessionManager) {
-            const data = this.sessionManager.getSessionData();
-            const accuracy = data.correctCount + data.wrongCount > 0
-                ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
-                : 0;
-
-            this.add.text(width / 2, height / 2 + 60,
-                `Correct: ${data.correctCount} | Wrong: ${data.wrongCount} | Accuracy: ${accuracy}%`, {
-                fontSize: '24px',
-                color: '#ffffff',
-            }).setOrigin(0.5);
-        }
-
-        // Emit event
-        this.events.emit('gameOver', {
-            score: this.score,
-            sessionData: this.sessionManager?.getSessionData(),
+        // Emit event delayed
+        this.time.delayedCall(2000, () => {
+            this.events.emit('gameOver', {
+                score: this.score,
+                sessionData: this.sessionManager?.getSessionData(),
+            });
         });
     }
+
+
 
     update(time: number, delta: number) {
         if (this.isGameOver) return;

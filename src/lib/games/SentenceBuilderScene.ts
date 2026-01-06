@@ -83,14 +83,14 @@ export class SentenceBuilderScene extends Phaser.Scene {
             // Set background
             this.cameras.main.setBackgroundColor(SENTENCE_BUILDER_CONFIG.visual.backgroundColor);
 
-            // Create UI
+            // Create UI (Standard HUD)
+            this.createStandardHUD();
+
+            // Create Controls (Check, Hint, Next buttons)
             this.createUI();
 
-            // Start timers
-            this.startGameTimer();
-
-            // Load first sentence
-            this.loadNextSentence();
+            // Start Countdown
+            this.startCountdown();
 
             console.log('[SentenceBuilder] Scene create() finished successfully');
             // Emitir un evento personalizado para confirmar creación
@@ -101,51 +101,108 @@ export class SentenceBuilderScene extends Phaser.Scene {
         }
     }
 
-    private createUI() {
-        const { width, height } = this.cameras.main;
-        const padding = 20;
+    private createStandardHUD() {
+        const { width } = this.cameras.main;
+        const topBarHeight = 60;
+
+        // Background bar
+        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7);
 
         // Score
-        this.scoreText = this.add.text(padding, padding, 'Score: 0', {
-            fontSize: '24px',
-            color: '#1e293b',
-            fontStyle: 'bold',
+        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#10b981',
+            fontStyle: 'bold'
         });
 
-        // Timer
-        this.timerText = this.add.text(width - padding, padding, `Time: ${this.timeRemaining}s`, {
+        // Time
+        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
             fontSize: '24px',
-            color: '#1e293b',
-            fontStyle: 'bold',
-        }).setOrigin(1, 0);
-
-        // Sentence timer
-        this.sentenceTimerText = this.add.text(width / 2, padding, '', {
-            fontSize: '20px',
-            color: '#f59e0b',
-            fontStyle: 'bold',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5, 0);
 
         // Progress
-        this.progressText = this.add.text(width / 2, padding + 30, '', {
-            fontSize: '18px',
-            color: '#64748b',
-            fontStyle: 'bold',
-        }).setOrigin(0.5, 0);
+        this.progressText = this.add.text(width - 20, 20, '1/5', {
+            fontSize: '20px',
+            fontFamily: 'Arial',
+            color: '#fbbf24',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
 
-        // Instructions
-        this.instructionText = this.add.text(width / 2, 100, 'Drag words to build the sentence', {
-            fontSize: '22px',
+        // Instruction below HUD
+        this.instructionText = this.add.text(width / 2, topBarHeight + 30, 'DRAG WORDS TO BUILD THE SENTENCE', {
+            fontSize: '18px',
+            fontFamily: 'Arial',
             color: '#334155',
             fontStyle: 'bold',
+            align: 'center'
         }).setOrigin(0.5);
 
+        // Sentence Timer (Small)
+        this.sentenceTimerText = this.add.text(width / 2, topBarHeight + 60, '', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#f59e0b',
+        }).setOrigin(0.5);
+    }
+
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+
+        let count = 3;
+        const countText = this.add.text(width / 2, height / 2, `${count}`, {
+            fontSize: '120px',
+            fontFamily: 'Arial',
+            color: '#334155',
+            fontStyle: 'bold',
+            stroke: '#ffffff',
+            strokeThickness: 8
+        }).setOrigin(0.5);
+
+        const timer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                count--;
+                if (count > 0) {
+                    countText.setText(`${count}`);
+                    this.cameras.main.shake(100, 0.01);
+                } else if (count === 0) {
+                    countText.setText('BUILD!');
+                    countText.setColor('#10b981');
+                    this.cameras.main.flash(500);
+                } else {
+                    countText.destroy();
+                    timer.remove();
+                    this.startGameplay();
+                }
+            },
+            repeat: 3
+        });
+    }
+
+    private startGameplay() {
+        // Start timers
+        this.startGameTimer();
+
+        // Load first sentence
+        this.loadNextSentence();
+    }
+
+    private createUI() {
+        const { width, height } = this.cameras.main;
+
         // Feedback (hidden initially)
-        this.feedbackText = this.add.text(width / 2, 140, '', {
-            fontSize: '20px',
+        this.feedbackText = this.add.text(width / 2, 200, '', {
+            fontSize: '24px',
+            fontFamily: 'Arial',
             color: '#10b981',
             fontStyle: 'bold',
-        }).setOrigin(0.5).setVisible(false);
+            stroke: '#ffffff',
+            strokeThickness: 4
+        }).setOrigin(0.5).setVisible(false).setDepth(20);
 
         // Check button
         this.createCheckButton();
@@ -621,7 +678,8 @@ export class SentenceBuilderScene extends Phaser.Scene {
     }
 
     private updateUI() {
-        this.scoreText.setText(`Score: ${this.score}`);
+        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.timerText.setText(`TIME: ${this.timeRemaining}`);
     }
 
     private async endGame() {
@@ -648,51 +706,29 @@ export class SentenceBuilderScene extends Phaser.Scene {
             }
         }
 
-        // Show game over screen
-        this.showGameOver();
-    }
-
-    private showGameOver() {
+        // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.8);
-        overlay.setOrigin(0);
-
-        // Game Over text
-        this.add.text(width / 2, height / 2 - 80, 'GAME OVER!', {
-            fontSize: '64px',
-            color: '#ffffff',
+        this.add.text(width / 2, height / 2, 'MISSION COMPLETE!', {
+            fontSize: '48px',
+            fontFamily: 'Arial',
+            color: '#10b981',
             fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
         }).setOrigin(0.5);
 
-        // Final score
-        this.add.text(width / 2, height / 2, `Final Score: ${this.score}`, {
-            fontSize: '36px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        // Stats
-        if (this.sessionManager) {
-            const data = this.sessionManager.getSessionData();
-            const accuracy = data.correctCount + data.wrongCount > 0
-                ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
-                : 0;
-
-            this.add.text(width / 2, height / 2 + 60,
-                `Correct: ${data.correctCount} | Wrong: ${data.wrongCount} | Accuracy: ${accuracy}%`, {
-                fontSize: '24px',
-                color: '#ffffff',
-            }).setOrigin(0.5);
-        }
-
-        // Emit event
-        this.events.emit('gameOver', {
-            score: this.score,
-            sessionData: this.sessionManager?.getSessionData(),
+        // Emit event delayed
+        this.time.delayedCall(2000, () => {
+            this.events.emit('gameOver', {
+                score: this.score,
+                sessionData: this.sessionManager?.getSessionData(),
+            });
         });
     }
+
+
 
     update(time: number, delta: number) {
         // Game loop updates if needed

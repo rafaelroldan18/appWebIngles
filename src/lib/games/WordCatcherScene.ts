@@ -1,14 +1,11 @@
-/**
- * WordCatcherScene - Main Phaser 3 game scene for Word Catcher
- */
-
 import Phaser from 'phaser';
 import { WORD_CATCHER_CONFIG } from './wordCatcher.config';
 import type { GameContent } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 
-interface WordSprite extends Phaser.GameObjects.Text {
+interface WordSprite extends Phaser.GameObjects.Sprite {
     wordData: GameContent;
+    parentContainer: Phaser.GameObjects.Container;
     isClicked?: boolean;
 }
 
@@ -23,12 +20,13 @@ export class WordCatcherScene extends Phaser.Scene {
     private scoreText!: Phaser.GameObjects.Text;
     private timerText!: Phaser.GameObjects.Text;
     private correctText!: Phaser.GameObjects.Text;
-    private wrongText!: Phaser.GameObjects.Text;
+    private pauseOverlay!: Phaser.GameObjects.Container;
 
     // Game state
     private gameTimer!: Phaser.Time.TimerEvent;
     private spawnTimer!: Phaser.Time.TimerEvent;
     private isGameOver: boolean = false;
+    private isPaused: boolean = false;
     private wordIndex: number = 0;
 
     constructor() {
@@ -41,369 +39,436 @@ export class WordCatcherScene extends Phaser.Scene {
         this.score = 0;
         this.timeRemaining = WORD_CATCHER_CONFIG.gameplay.gameDuration;
         this.isGameOver = false;
+        this.isPaused = false;
         this.wordIndex = 0;
         this.activeWords = [];
     }
 
+    preload() {
+        // Elementos del Juego
+        this.load.image('item_correct', '/assets/games/word-catcher/items/computer.png');
+        this.load.image('item_wrong', '/assets/games/word-catcher/items/cd.png');
+        this.load.image('background', '/assets/games/word-catcher/background.png');
+
+        // UI Assets (Kenney Pack)
+        this.load.image('spark', '/assets/common/ui/star.png');
+        this.load.image('ui_panel', '/assets/common/ui/panel_blue.png');
+        this.load.image('hud_banner', '/assets/common/ui/button_blue.png');
+        this.load.image('pause_icon', '/assets/common/ui/pause_icon.png');
+    }
+
     create() {
-        console.log('[WordCatcher] Scene create() started');
         try {
-            // Set background
-            this.cameras.main.setBackgroundColor(WORD_CATCHER_CONFIG.visual.backgroundColor);
+            const { width, height } = this.cameras.main;
 
-            // Create UI
-            this.createUI();
+            // 1. Fondo Escalado Profesional
+            const bg = this.add.image(width / 2, height / 2, 'background');
+            const scale = Math.max(width / bg.width, height / bg.height);
+            bg.setScale(scale).setScrollFactor(0);
 
-            // Start game timer
-            this.startGameTimer();
+            // 2. HUD Estilizado (Neon Style)
+            this.createStandardHUD();
 
-            // Start word spawning
-            this.startWordSpawning();
+            // 3. Sistema de Pausa
+            this.createPauseOverlay();
 
-            // Enable input
+            // 4. Inputs
             this.input.on('gameobjectdown', this.onWordClicked, this);
+            this.input.keyboard?.on('keydown-P', () => this.togglePause());
 
-            console.log('[WordCatcher] Scene create() finished successfully');
+            // 5. Inicio con Cuenta Regresiva
+            this.startCountdown();
+
             this.events.emit('scene-ready');
         } catch (error) {
-            console.error('[WordCatcher] Critical error in create():', error);
-            this.add.text(400, 300, 'Error initializing game', { color: '#ff0000' }).setOrigin(0.5);
+            console.error('[WordCatcher] Error en Create:', error);
         }
     }
 
-    private createUI() {
+    private createStandardHUD() {
+        const { width } = this.cameras.main;
+        const hudDepth = 1000;
+
+        // Banner Superior con transparencia
+        const banner = this.add.image(width / 2, 40, 'hud_banner')
+            .setDisplaySize(width * 0.95, 60)
+            .setAlpha(0.85)
+            .setDepth(hudDepth);
+
+        // Marcadores con estilo Neón
+        this.scoreText = this.add.text(width * 0.15, 40, 'SCORE: 0', {
+            fontSize: '22px', fontFamily: 'Arial Black', color: '#00ffff', stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
+
+        this.timerText = this.add.text(width / 2, 40, `TIME: ${this.timeRemaining}`, {
+            fontSize: '30px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 5
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
+
+        this.correctText = this.add.text(width * 0.82, 40, 'CAUGHT: 0', {
+            fontSize: '18px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
+
+        // Botón de Pausa Estilizado
+        const pauseBtn = this.add.image(width - 45, 40, 'pause_icon')
+            // Scale visual
+            .setScale(0.8)
+            .setTint(0x00ffff)
+            .setDepth(hudDepth + 1);
+
+        // Make interactive with explicit hit area larger than the icon
+        pauseBtn.setInteractive(new Phaser.Geom.Rectangle(0, 0, pauseBtn.width, pauseBtn.height), Phaser.Geom.Rectangle.Contains);
+
+        pauseBtn.on('pointerdown', () => {
+            console.log('Pause button clicked');
+            this.togglePause();
+        });
+
+        // Hover effects
+        pauseBtn.on('pointerover', () => pauseBtn.setScale(0.9));
+        pauseBtn.on('pointerout', () => pauseBtn.setScale(0.8));
+
+        // Sub-banner de misión
+        this.add.rectangle(width / 2, 85, 420, 30, 0x000000, 0.4).setOrigin(0.5).setDepth(hudDepth);
+        this.add.text(width / 2, 85, 'MISSION: CATCH THE CORRECT WORDS!', {
+            fontSize: '14px', fontFamily: 'Arial Black', color: '#ffffff'
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
+    }
+
+    private createPauseOverlay() {
         const { width, height } = this.cameras.main;
-        const padding = 20;
+        this.pauseOverlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
 
-        // Score display
-        this.scoreText = this.add.text(padding, padding, 'Score: 0', {
-            fontSize: '28px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 10, y: 5 },
+        // Dark dimmer (consumes clicks to block game interaction)
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.5).setOrigin(0);
+        dim.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+        dim.on('pointerdown', () => {
+            // Block click propagation
         });
 
-        // Timer display
-        this.timerText = this.add.text(width - padding, padding, 'Time: 120', {
-            fontSize: '28px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(1, 0);
+        // Kenney Panel
+        const panel = this.add.image(width / 2, height / 2, 'ui_panel')
+            .setDisplaySize(400, 300);
 
-        // Correct count
-        this.correctText = this.add.text(padding, height - padding - 60, 'Correct: 0', {
-            fontSize: '20px',
-            color: WORD_CATCHER_CONFIG.visual.wordCorrectColor,
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 8, y: 4 },
-        });
-
-        // Wrong count
-        this.wrongText = this.add.text(padding, height - padding - 30, 'Wrong: 0', {
-            fontSize: '20px',
-            color: WORD_CATCHER_CONFIG.visual.wordIncorrectColor,
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 8, y: 4 },
-        });
-
-        // Instructions
-        this.add.text(width / 2, 60, 'Click the CORRECT words!', {
-            fontSize: '24px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
+        const title = this.add.text(width / 2, height / 2 - 80, 'PAUSED', {
+            fontSize: '42px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
+
+        const subtitle = this.add.text(width / 2, height / 2, 'Game Paused', {
+            fontSize: '20px', fontFamily: 'Arial', color: '#eeeeee', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        // Resume Button
+        const resumeBtn = this.createButton(width / 2, height / 2 + 80, 'RESUME', () => this.togglePause());
+
+        this.pauseOverlay.add([dim, panel, title, subtitle, resumeBtn]);
     }
 
-    private startGameTimer() {
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            callback: this.updateTimer,
-            callbackScope: this,
-            loop: true,
+    private createButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
+        const container = this.add.container(x, y);
+
+        // 180x50 Button
+        const width = 180;
+        const height = 50;
+
+        // Use hud_banner as button background
+        const bg = this.add.image(0, 0, 'hud_banner')
+            .setDisplaySize(width, height);
+
+        // Explicit interactive area on the background image
+        bg.setInteractive(new Phaser.Geom.Rectangle(0, 0, bg.width, bg.height), Phaser.Geom.Rectangle.Contains);
+
+        const label = this.add.text(0, 0, text, {
+            fontSize: '20px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        container.add([bg, label]);
+
+        // Event listeners on the background image directly
+        bg.on('pointerdown', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 0.95,
+                duration: 50,
+                yoyo: true,
+                onComplete: callback
+            });
         });
+
+        bg.on('pointerover', () => bg.setTint(0xdddddd));
+        bg.on('pointerout', () => bg.clearTint());
+
+        // cursor
+        bg.input!.cursor = 'pointer';
+
+        return container;
     }
 
-    private updateTimer() {
-        this.timeRemaining--;
-        this.timerText.setText(`Time: ${this.timeRemaining}`);
+    private togglePause() {
+        if (this.isGameOver) return;
+        this.isPaused = !this.isPaused;
+        this.pauseOverlay.setVisible(this.isPaused);
 
-        if (this.timeRemaining <= 0) {
-            this.endGame();
+        if (this.isPaused) {
+            this.gameTimer.paused = true;
+            this.spawnTimer.paused = true;
+            this.tweens.pauseAll();
+        } else {
+            this.gameTimer.paused = false;
+            this.spawnTimer.paused = false;
+            this.tweens.resumeAll();
         }
     }
 
-    private startWordSpawning() {
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+        let count = 3;
+        const countText = this.add.text(width / 2, height / 2, '3', {
+            fontSize: '120px', fontFamily: 'Arial Black', color: '#00ffff', stroke: '#000000', strokeThickness: 12
+        }).setOrigin(0.5);
+
+        this.time.addEvent({
+            delay: 1000, repeat: 3,
+            callback: () => {
+                count--;
+                if (count > 0) {
+                    countText.setText(count.toString());
+                    this.cameras.main.shake(100, 0.01);
+                } else if (count === 0) {
+                    countText.setText('GO!').setColor('#10b981');
+                } else {
+                    countText.destroy();
+                    this.startGameplay();
+                }
+            }
+        });
+    }
+
+    private startGameplay() {
+        this.gameTimer = this.time.addEvent({
+            delay: 1000, callback: this.updateTimer, callbackScope: this, loop: true
+        });
         this.spawnTimer = this.time.addEvent({
             delay: WORD_CATCHER_CONFIG.gameplay.wordSpawnInterval,
-            callback: this.spawnWord,
-            callbackScope: this,
-            loop: true,
+            callback: this.spawnWord, callbackScope: this, loop: true
         });
-
-        // Spawn first word immediately
         this.spawnWord();
     }
 
+    private updateTimer() {
+        if (this.isPaused) return;
+        this.timeRemaining--;
+        this.timerText.setText(`TIME: ${this.timeRemaining}`);
+        if (this.timeRemaining <= 10) this.timerText.setScale(1.15).setColor('#ff0000');
+        if (this.timeRemaining <= 0) this.endGame();
+    }
+
     private spawnWord() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.isPaused) return;
 
-        // Check if we've used all words
-        if (this.wordIndex >= this.words.length) {
-            // Optionally reshuffle or end game
-            return;
-        }
-
-        // Don't spawn if too many words on screen
-        if (this.activeWords.length >= WORD_CATCHER_CONFIG.gameplay.maxWordsOnScreen) {
-            return;
-        }
-
-        const wordData = this.words[this.wordIndex];
+        const wordData = this.words[this.wordIndex % this.words.length];
         this.wordIndex++;
 
-        const { width } = this.cameras.main;
-        const x = Phaser.Math.Between(50, width - 50);
-        const y = -50;
+        const x = Phaser.Math.Between(100, this.cameras.main.width - 100);
+        const container = this.add.container(x, -70).setDepth(1);
 
-        // Determine color based on correctness
-        const color = wordData.is_correct
-            ? WORD_CATCHER_CONFIG.visual.wordCorrectColor
-            : WORD_CATCHER_CONFIG.visual.wordIncorrectColor;
+        const texture = wordData.is_correct ? 'item_correct' : 'item_wrong';
+        const sprite = this.add.sprite(0, 0, texture).setScale(1.4) as WordSprite;
 
-        const wordText = this.add.text(x, y, wordData.content_text, {
-            fontSize: `${WORD_CATCHER_CONFIG.visual.fontSize}px`,
-            color: WORD_CATCHER_CONFIG.visual.wordNeutralColor,
-            fontStyle: 'bold',
-            backgroundColor: '#00000088',
-            padding: { x: 12, y: 8 },
+        const wordText = this.add.text(0, -10, wordData.content_text, {
+            fontSize: '22px', fontFamily: 'Arial Black', color: '#000000'
         }).setOrigin(0.5);
 
-        // Make interactive
-        wordText.setInteractive({ useHandCursor: true });
+        container.add([sprite, wordText]);
+        sprite.setInteractive({ useHandCursor: true });
+        sprite.wordData = wordData;
+        sprite.parentContainer = container;
 
-        // Store word data
-        (wordText as WordSprite).wordData = wordData;
-        (wordText as WordSprite).isClicked = false;
-
-        // Add to active words
-        this.activeWords.push(wordText as WordSprite);
-
-        // Animate falling
+        // Fall animation
         this.tweens.add({
-            targets: wordText,
-            y: this.cameras.main.height + 50,
-            duration: (this.cameras.main.height + 100) / WORD_CATCHER_CONFIG.gameplay.wordFallSpeed * 1000,
+            targets: container,
+            y: this.cameras.main.height + 100,
+            angle: { from: -5, to: 5 }, // Reduced rotation for cleaner look
+            duration: 6000 / WORD_CATCHER_CONFIG.gameplay.wordFallSpeed,
             ease: 'Linear',
             onComplete: () => {
-                this.onWordMissed(wordText as WordSprite);
-            },
+                if (!this.isGameOver && container.active) {
+                    this.onWordMissed(sprite);
+                    container.destroy();
+                }
+            }
         });
+
+        // Sway animation (Wind effect)
+        this.tweens.add({
+            targets: container,
+            x: container.x + Phaser.Math.Between(-40, 40),
+            duration: Phaser.Math.Between(2000, 3000),
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        this.activeWords.push(sprite);
     }
 
-    private onWordClicked(pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) {
-        const wordSprite = gameObject as WordSprite;
+    private onWordClicked(pointer: Phaser.Input.Pointer, gameObject: any) {
+        if (this.isPaused || this.isGameOver) return;
+        const sprite = gameObject as WordSprite;
+        if (!sprite.wordData || sprite.isClicked) return;
 
-        if (wordSprite.isClicked || this.isGameOver) return;
-
-        wordSprite.isClicked = true;
-        const wordData = wordSprite.wordData;
-
-        // Check if correct
-        if (wordData.is_correct) {
-            this.handleCorrectCatch(wordSprite);
-        } else {
-            this.handleWrongCatch(wordSprite);
-        }
+        sprite.isClicked = true;
+        if (sprite.wordData.is_correct) this.handleCorrectCatch(sprite);
+        else this.handleWrongCatch(sprite);
     }
 
-    private handleCorrectCatch(wordSprite: WordSprite) {
+    private handleCorrectCatch(sprite: WordSprite) {
         const points = WORD_CATCHER_CONFIG.scoring.correctCatch;
         this.score += points;
+        this.sessionManager?.updateScore(points, true);
 
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(points, true);
-        }
+        const container = sprite.parentContainer;
 
-        // Visual feedback
+        // Partículas Neón
+        const emitter = this.add.particles(container.x, container.y, 'spark', {
+            speed: { min: -200, max: 200 }, scale: { start: 1.5, end: 0 }, lifespan: 600, quantity: 25, blendMode: 'ADD'
+        });
+        this.time.delayedCall(500, () => emitter.destroy());
+
         this.tweens.add({
-            targets: wordSprite,
-            scale: 1.5,
-            alpha: 0,
-            duration: 300,
-            onComplete: () => {
-                this.removeWord(wordSprite);
-            },
+            targets: container, scale: 2, alpha: 0, duration: 250, ease: 'Back.easeOut',
+            onComplete: () => { this.removeWord(sprite); container.destroy(); }
         });
 
-        // Show points
-        this.showFloatingText(wordSprite.x, wordSprite.y, `+${points}`, '#10b981');
-
-        this.updateUI();
+        this.showFloatingText(container.x, container.y, `+${points}`, '#00ff00');
+        this.updateUI_Stats();
     }
 
-    private handleWrongCatch(wordSprite: WordSprite) {
+    private handleWrongCatch(sprite: WordSprite) {
         const points = WORD_CATCHER_CONFIG.scoring.wrongCatch;
-        this.score += points; // Already negative
+        this.score += points;
+        this.sessionManager?.updateScore(points, false);
 
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(points, false);
-        }
-
-        // Visual feedback - shake and fade
-        this.tweens.add({
-            targets: wordSprite,
-            x: wordSprite.x + 10,
-            yoyo: true,
-            repeat: 3,
-            duration: 50,
-        });
+        const container = sprite.parentContainer;
+        this.cameras.main.shake(150, 0.008);
+        sprite.setTint(0xff0000);
 
         this.tweens.add({
-            targets: wordSprite,
-            alpha: 0,
-            duration: 300,
-            delay: 200,
+            targets: container, x: container.x + 15, yoyo: true, repeat: 4, duration: 40,
             onComplete: () => {
-                this.removeWord(wordSprite);
-            },
+                this.tweens.add({
+                    targets: container, alpha: 0, scale: 0.4, duration: 200,
+                    onComplete: () => { this.removeWord(sprite); container.destroy(); }
+                });
+            }
         });
 
-        // Show points
-        this.showFloatingText(wordSprite.x, wordSprite.y, `${points}`, '#ef4444');
-
-        this.updateUI();
+        this.showFloatingText(container.x, container.y, `${points}`, '#ff0000');
+        this.updateUI_Stats();
     }
 
-    private onWordMissed(wordSprite: WordSprite) {
-        if (wordSprite.isClicked) return;
-
-        // Only penalize if it was a correct word that was missed
-        if (wordSprite.wordData.is_correct) {
+    private onWordMissed(sprite: WordSprite) {
+        if (sprite.isClicked) return;
+        if (sprite.wordData.is_correct) {
             const points = WORD_CATCHER_CONFIG.scoring.missedWord;
             this.score += points;
-
-            if (this.sessionManager) {
-                this.sessionManager.updateScore(points, false);
-            }
+            this.sessionManager?.updateScore(points, false);
+            this.showFloatingText(sprite.parentContainer.x, this.cameras.main.height - 60, 'MISSED!', '#ff0000');
         }
-
-        this.removeWord(wordSprite);
-        this.updateUI();
+        this.removeWord(sprite);
+        this.updateUI_Stats();
     }
 
-    private removeWord(wordSprite: WordSprite) {
-        const index = this.activeWords.indexOf(wordSprite);
-        if (index > -1) {
-            this.activeWords.splice(index, 1);
-        }
-        wordSprite.destroy();
+    private removeWord(sprite: WordSprite) {
+        const index = this.activeWords.indexOf(sprite);
+        if (index > -1) this.activeWords.splice(index, 1);
+        sprite.destroy();
     }
 
     private showFloatingText(x: number, y: number, text: string, color: string) {
-        const floatingText = this.add.text(x, y, text, {
-            fontSize: '32px',
-            color: color,
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
-
-        this.tweens.add({
-            targets: floatingText,
-            y: y - 50,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => {
-                floatingText.destroy();
-            },
-        });
+        const fText = this.add.text(x, y, text, {
+            fontSize: '36px', fontFamily: 'Arial Black', color, stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5).setDepth(100);
+        this.tweens.add({ targets: fText, y: y - 100, alpha: 0, duration: 1200, onComplete: () => fText.destroy() });
     }
 
-    private updateUI() {
-        this.scoreText.setText(`Score: ${this.score}`);
-
+    private updateUI_Stats() {
+        this.scoreText.setText(`SCORE: ${this.score}`);
         if (this.sessionManager) {
             const data = this.sessionManager.getSessionData();
-            this.correctText.setText(`Correct: ${data.correctCount}`);
-            this.wrongText.setText(`Wrong: ${data.wrongCount}`);
+            this.correctText.setText(`CAUGHT: ${data.correctCount}`);
         }
     }
 
     private async endGame() {
-        if (this.isGameOver) return;
-
         this.isGameOver = true;
+        this.gameTimer.remove();
+        this.spawnTimer.remove();
+        this.activeWords.forEach(w => w.parentContainer?.destroy());
 
-        // Stop timers
-        if (this.gameTimer) this.gameTimer.remove();
-        if (this.spawnTimer) this.spawnTimer.remove();
-
-        // Clear active words
-        this.activeWords.forEach(word => word.destroy());
-        this.activeWords = [];
-
-        // End session
+        // Save session
+        const sessionData = this.sessionManager ? this.sessionManager.getSessionData() : { correctCount: 0, wrongCount: 0 };
         if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession({
-                    wordsShown: this.wordIndex,
-                    finalTime: WORD_CATCHER_CONFIG.gameplay.gameDuration - this.timeRemaining,
-                });
-            } catch (error) {
-                console.error('Error ending session:', error);
-            }
+            await this.sessionManager.endSession({
+                wordsShown: this.wordIndex,
+                finalTime: WORD_CATCHER_CONFIG.gameplay.gameDuration - this.timeRemaining,
+            });
         }
 
-        // Show game over screen
-        this.showGameOver();
-    }
-
-    private showGameOver() {
         const { width, height } = this.cameras.main;
 
-        // Semi-transparent overlay
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.8);
-        overlay.setOrigin(0);
+        // 1. Dark Overlay Fade In
+        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0).setOrigin(0).setDepth(3000);
+        this.tweens.add({ targets: overlay, alpha: 0.7, duration: 500 });
 
-        // Game Over text
-        this.add.text(width / 2, height / 2 - 80, 'GAME OVER!', {
-            fontSize: '64px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-        }).setOrigin(0.5);
+        // 2. Scoreboard Panel (Kenney Style)
+        const panelContainer = this.add.container(width / 2, height / 2).setDepth(3001).setScale(0);
 
-        // Final score
-        this.add.text(width / 2, height / 2, `Final Score: ${this.score}`, {
-            fontSize: '36px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
+        const board = this.add.image(0, 0, 'ui_panel').setDisplaySize(500, 400);
+        // Note: ui_panel is blue. White text works well with shadow/stroke.
+
+        const title = this.add.text(0, -150, 'MISSION COMPLETE', {
+            fontSize: '36px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 5
         }).setOrigin(0.5);
 
         // Stats
-        if (this.sessionManager) {
-            const data = this.sessionManager.getSessionData();
-            const accuracy = data.correctCount + data.wrongCount > 0
-                ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
-                : 0;
+        const scoreLabel = this.add.text(0, -60, `FINAL SCORE`, {
+            fontSize: '20px', color: '#ffffff', fontFamily: 'Arial', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
 
-            this.add.text(width / 2, height / 2 + 60,
-                `Correct: ${data.correctCount} | Wrong: ${data.wrongCount} | Accuracy: ${accuracy}%`, {
-                fontSize: '24px',
-                color: '#ffffff',
-            }).setOrigin(0.5);
-        }
+        const scoreValue = this.add.text(0, -10, `${this.score}`, {
+            fontSize: '56px', color: '#ffd700', fontFamily: 'Arial Black', stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5);
 
-        // Emit event to notify parent component
-        this.events.emit('gameOver', {
-            score: this.score,
-            sessionData: this.sessionManager?.getSessionData(),
+        const correctLabel = this.add.text(-100, 80, `Correct: ${sessionData.correctCount}`, { fontSize: '20px', color: '#ffffff', fontFamily: 'Arial Black', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5);
+        const wrongLabel = this.add.text(100, 80, `Missed: ${sessionData.wrongCount}`, { fontSize: '20px', color: '#ffffff', fontFamily: 'Arial Black', stroke: '#000000', strokeThickness: 3 }).setOrigin(0.5);
+
+        panelContainer.add([board, title, scoreLabel, scoreValue, correctLabel, wrongLabel]);
+
+        // Animation
+        this.tweens.add({
+            targets: panelContainer,
+            scale: 1,
+            duration: 600,
+            ease: 'Back.out'
         });
-    }
 
-    update(time: number, delta: number) {
-        // Game loop updates if needed
+        // 3. Confetti Effect
+        const emitter = this.add.particles(0, -200, 'spark', {
+            x: width / 2, y: height / 2,
+            speed: { min: 100, max: 300 },
+            angle: { min: 0, max: 360 },
+            scale: { start: 1, end: 0 },
+            lifespan: 2000,
+            quantity: 50,
+            blendMode: 'ADD',
+        });
+        emitter.setDepth(3000);
+
+        // 4. Emit Event Delay
+        this.time.delayedCall(3000, () => {
+            this.events.emit('gameOver', {
+                score: this.score,
+                sessionData: this.sessionManager?.getSessionData(),
+            });
+        });
     }
 }
