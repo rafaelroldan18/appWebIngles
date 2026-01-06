@@ -16,11 +16,22 @@ export interface GameAvailability {
     show_theory: boolean;
     is_active: boolean;
     created_at: string;
+    // Relaciones opcionales (cuando se hace join)
+    game_types?: {
+        name: string;
+        description: string;
+    };
+    topics?: {
+        title: string;
+        description: string | null;
+    };
 }
+
 
 export interface GameContent {
     content_id: string;
     topic_id: string;
+    target_game_type_id?: string; // ID del juego específico para el que fue creado este contenido
     content_type: 'word' | 'sentence' | 'location' | 'image-word-pair' | 'option' | 'image';
     content_text: string;
     is_correct: boolean;

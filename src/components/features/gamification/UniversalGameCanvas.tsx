@@ -19,6 +19,7 @@ import { GRAMMAR_RUN_CONFIG } from '@/lib/games/grammarRun.config';
 import { SENTENCE_BUILDER_CONFIG } from '@/lib/games/sentenceBuilder.config';
 import { IMAGE_MATCH_CONFIG } from '@/lib/games/imageMatch.config';
 import { CITY_EXPLORER_CONFIG } from '@/lib/games/cityExplorer.config';
+import { uiGameTypeToDb } from '@/lib/game-type-mapping';
 import type { GameContent } from '@/types';
 
 interface UniversalGameCanvasProps {
@@ -89,8 +90,13 @@ export default function UniversalGameCanvas({
             try {
                 setLoadingMessage('Loading game content...');
 
-                // Load game content
-                const gameContent = await GameLoader.loadGameContent(topicId, gameTypeId);
+                // CRÍTICO: Convertir gameType de UI (kebab-case) a DB (snake_case)
+                // para que el filtro de contenido funcione correctamente
+                const dbGameTypeId = uiGameTypeToDb(gameType);
+                console.log(`[UniversalGameCanvas] Loading content for game: ${gameType} (DB: ${dbGameTypeId})`);
+
+                // Load game content - AHORA FILTRADO POR JUEGO ESPECÍFICO
+                const gameContent = await GameLoader.loadGameContent(topicId, dbGameTypeId);
 
                 if (!isMounted) return;
 

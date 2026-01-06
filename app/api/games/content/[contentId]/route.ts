@@ -19,10 +19,39 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         // Get request body
         const body = await request.json();
-        const { content_type, content_text, is_correct, image_url, metadata } = body;
+        const { content_type, content_text, is_correct, image_url, metadata, target_game_type_id } = body;
 
         // Build update object (only include provided fields)
         const updates: any = {};
+
+        // Si se proporciona target_game_type_id (como string/nombre), buscar su UUID
+        if (target_game_type_id !== undefined) {
+            // Convertir de snake_case a Title Case
+            const formatGameTypeName = (name: string): string => {
+                return name
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+            };
+
+            const formattedName = formatGameTypeName(target_game_type_id);
+
+            const { data: gameType, error: gameTypeError } = await supabase
+                .from('game_types')
+                .select('game_type_id')
+                .eq('name', formattedName)
+                .single();
+
+            if (gameTypeError || !gameType) {
+                return NextResponse.json(
+                    { error: `Game type '${target_game_type_id}' (${formattedName}) not found` },
+                    { status: 400 }
+                );
+            }
+
+            updates.target_game_type_id = gameType.game_type_id;
+        }
+
         if (content_type !== undefined) updates.content_type = content_type;
         if (content_text !== undefined) updates.content_text = content_text;
         if (is_correct !== undefined) updates.is_correct = is_correct;

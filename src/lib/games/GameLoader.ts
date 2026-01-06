@@ -15,25 +15,41 @@ export interface GameData {
 export class GameLoader {
     /**
      * Load game content from the API
+     * IMPORTANTE: Filtra por topicId Y gameTypeId para implementar "contenido por juego"
+     * Cada juego solo recibe el contenido que le corresponde pedagógicamente
      */
     static async loadGameContent(
         topicId: string,
         gameTypeId: string
     ): Promise<GameContent[]> {
         try {
-            console.log(`[GameLoader] Loading content for topic: ${topicId}`);
+            console.log(`[GameLoader] Loading content for topic: ${topicId}, game: ${gameTypeId}`);
+
+            // CRÍTICO: Siempre filtrar por gameTypeId para evitar mezcla de contenido
             const response = await fetch(
-                `/api/games/content?topicId=${topicId}`
+                `/api/games/content?topicId=${topicId}&targetGameTypeId=${gameTypeId}`
             );
 
             if (!response.ok) {
-                throw new Error('Failed to load game content');
+                throw new Error(`Failed to load game content for ${gameTypeId}`);
             }
 
             const data = await response.json();
+
+            console.log(`[GameLoader] Loaded ${data.length} items for ${gameTypeId}`);
+
+            // Validar que el contenido recibido es del juego correcto
+            const invalidItems = data.filter((item: GameContent) =>
+                item.target_game_type_id && item.target_game_type_id !== gameTypeId
+            );
+
+            if (invalidItems.length > 0) {
+                console.error(`[GameLoader] WARNING: Received ${invalidItems.length} items for wrong game type!`);
+            }
+
             return data;
         } catch (error) {
-            console.error('Error loading game content:', error);
+            console.error(`[GameLoader] Error loading content for ${gameTypeId}:`, error);
             throw error;
         }
     }

@@ -33,8 +33,15 @@ interface TopicManagerProps {
     teacherId: string;
 }
 
+interface Parallel {
+    parallel_id: string;
+    name: string;
+    academic_year: string;
+}
+
 export default function TopicManager({ teacherId }: TopicManagerProps) {
     const [topics, setTopics] = useState<Topic[]>([]);
+    const [parallels, setParallels] = useState<Parallel[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,17 +50,37 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        level: '1ro BGU',
+        level: '',
         theory_content: '' as any,
     });
 
     // Separate state for the editor's initial content to prevent re-renders on every keystroke
     const [loadedContent, setLoadedContent] = useState<any>(null);
 
-    // Load topics
+    // Load topics and parallels
     useEffect(() => {
         loadTopics();
+        loadParallels();
     }, [teacherId]);
+
+    const loadParallels = async () => {
+        try {
+            const response = await fetch(`/api/parallels/teacher/${teacherId}`);
+            if (response.ok) {
+                const data = await response.json();
+                setParallels(data);
+                // Set first parallel as default if available
+                if (data.length > 0 && !formData.level) {
+                    setFormData(prev => ({
+                        ...prev,
+                        level: `${data[0].name} - ${data[0].academic_year}`
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Error loading parallels:', error);
+        }
+    };
 
     const loadTopics = async () => {
         setIsLoading(true);
@@ -174,7 +201,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
         setFormData({
             title: '',
             description: '',
-            level: '1ro BGU',
+            level: parallels.length > 0 ? `${parallels[0].name} - ${parallels[0].academic_year}` : '',
             theory_content: '' as any,
         });
         setLoadedContent(''); // Reset editor content
@@ -235,20 +262,32 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                 />
                             </div>
 
-                            {/* Level Select */}
+                            {/* Parallel Select */}
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                    Nivel académico
+                                    Paralelo
                                 </label>
                                 <select
                                     value={formData.level}
                                     onChange={(e) => setFormData({ ...formData, level: e.target.value })}
                                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
+                                    required
                                 >
-                                    <option value="1ro BGU">1ro BGU</option>
-                                    <option value="2do BGU">2do BGU</option>
-                                    <option value="3ro BGU">3ro BGU</option>
+                                    <option value="">Selecciona un paralelo</option>
+                                    {parallels.map((parallel) => (
+                                        <option
+                                            key={parallel.parallel_id}
+                                            value={`${parallel.name} - ${parallel.academic_year}`}
+                                        >
+                                            {parallel.name} - {parallel.academic_year}
+                                        </option>
+                                    ))}
                                 </select>
+                                {parallels.length === 0 && (
+                                    <p className="text-xs text-amber-600 mt-1">
+                                        No tienes paralelos asignados
+                                    </p>
+                                )}
                             </div>
 
                             {/* Abstract / Summary */}
@@ -347,7 +386,9 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                         <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                                             <BookOpen className="w-4 h-4 text-indigo-500" />
                                         </div>
-                                        <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">{topic.level}</span>
+                                        <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">
+                                            {topic.level}
+                                        </span>
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button

@@ -26,8 +26,10 @@ CREATE TABLE public.game_content (
   created_at timestamp with time zone DEFAULT now(),
   image_url text,
   metadata jsonb,
+  target_game_type_id uuid,
   CONSTRAINT game_content_pkey PRIMARY KEY (content_id),
-  CONSTRAINT game_content_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(topic_id)
+  CONSTRAINT game_content_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(topic_id),
+  CONSTRAINT game_content_target_game_type_id_fkey FOREIGN KEY (target_game_type_id) REFERENCES public.game_types(game_type_id)
 );
 CREATE TABLE public.game_sessions (
   session_id uuid NOT NULL DEFAULT gen_random_uuid(),

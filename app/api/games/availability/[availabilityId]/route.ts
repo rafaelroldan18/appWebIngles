@@ -2,6 +2,39 @@
 import { createSupabaseClient } from '@/lib/supabase-api';
 import { NextRequest, NextResponse } from 'next/server';
 
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ availabilityId: string }> }
+) {
+    try {
+        const { availabilityId } = await params;
+        const supabase = await createSupabaseClient(request);
+
+        const { data, error } = await supabase
+            .from('game_availability')
+            .select(`
+                *,
+                game_types (name, description),
+                topics (title, description)
+            `)
+            .eq('availability_id', availabilityId)
+            .single();
+
+        if (error) {
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+
+        if (!data) {
+            return NextResponse.json({ error: 'Availability not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(data);
+    } catch (error) {
+        console.error('Error in /api/games/availability/[availabilityId] GET:', error);
+        return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    }
+}
+
 export async function PUT(
     request: NextRequest,
     { params }: { params: Promise<{ availabilityId: string }> }
