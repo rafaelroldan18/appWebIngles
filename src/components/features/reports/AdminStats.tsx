@@ -6,267 +6,353 @@ import {
     AreaChart, Area
 } from 'recharts';
 import {
-    Shield, Users, GraduationCap, Activity,
-    ChevronLeft, UserCheck, UserX, Database, Search
+    Users, BookOpen, ChevronLeft, Download, Info,
+    UserCheck, UserX, UserMinus, FileText, FileSpreadsheet
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
+
+import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses } from '@/config/colors';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AdminStatsProps {
     onBack: () => void;
 }
 
-/**
- * AdminStats - Módulo de control de sistema (Versión tesis)
- * Proporciona visión de auditoría sobre usuarios, infraestructura académica y uso global.
- */
 export default function AdminStats({ onBack }: AdminStatsProps) {
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const loadAdminData = async () => {
+        const fetchStats = async () => {
             try {
                 setLoading(true);
-                setError(null);
-                const res = await fetch('/api/reports/admin-stats');
-
-                if (!res.ok) {
-                    const errorMsg = await res.json();
-                    const combinedError = errorMsg.details
-                        ? `${errorMsg.error}: ${errorMsg.details}`
-                        : (errorMsg.error || 'Error al cargar datos');
-                    throw new Error(combinedError);
-                }
-
-                const result = await res.json();
+                const response = await fetch('/api/reports/admin-stats');
+                if (!response.ok) throw new Error(t.admin.adminStats.errorLoadMetrics);
+                const result = await response.json();
                 setData(result);
             } catch (err: any) {
-                console.error("Error al cargar auditoría del sistema:", err);
+                console.error("Error en bitácora del sistema:", err);
                 setError(err.message);
             } finally {
                 setLoading(false);
             }
         };
-        loadAdminData();
+        fetchStats();
     }, []);
 
-    const cardStyle = "bg-white border border-slate-200 rounded-lg p-6 shadow-sm";
-    const headerStyle = "text-xs font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2 flex items-center gap-2";
+    const downloadPDF = async () => {
+        if (!data) return;
+        const doc = new jsPDF();
+        const now = new Date().toLocaleString();
+
+        doc.setFontSize(22);
+        doc.setTextColor(43, 107, 238);
+        doc.text(t.admin.adminStats.pdfTitle, 14, 22);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`${t.admin.adminStats.pdfIssueDate}: ${now}`, 14, 30);
+        doc.text(t.admin.adminStats.pdfDescription, 14, 35);
+
+        // 1. Resumen de Usuarios
+        doc.setFontSize(14);
+        doc.setTextColor(30);
+        doc.text(`1. ${t.admin.adminStats.pdfUserSummary}`, 14, 50);
+
+        autoTable(doc, {
+            startY: 55,
+            head: [[t.admin.adminStats.pdfCategory, t.admin.adminStats.pdfQuantity, t.admin.adminStats.pdfStatus]],
+            body: [
+                [t.admin.adminStats.pdfTotalUsers, data.userMetrics.total, t.admin.adminStats.pdfSynced],
+                [t.admin.adminStats.pdfActiveUsers, data.userMetrics.active, t.admin.adminStats.pdfCurrent],
+                [t.admin.adminStats.pdfInactiveUsers, data.userMetrics.inactive, '-'],
+                [t.admin.adminStats.pdfStudentParticipants, data.userMetrics.byRole.students, t.admin.adminStats.pdfActive],
+                [t.admin.adminStats.pdfAssignedTeachers, data.userMetrics.byRole.teachers, t.admin.adminStats.pdfActive],
+                [t.admin.adminStats.pdfSystemAdmins, data.userMetrics.byRole.admins, t.admin.adminStats.pdfActive]
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [43, 107, 238] }
+        });
+
+        // 2. Gráfica de Actividad (Captura)
+        const chartElement = document.getElementById('admin-sessions-chart');
+        if (chartElement) {
+            doc.addPage();
+            doc.setFontSize(14);
+            doc.text(`2. ${t.admin.adminStats.pdfActivityAnalysis}`, 14, 22);
+
+            try {
+                const canvas = await html2canvas(chartElement, {
+                    scale: 2,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps = (doc as any).getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth() - 28;
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                doc.addImage(imgData, 'PNG', 14, 30, pdfWidth, pdfHeight);
+            } catch (err) {
+                console.error(t.admin.adminStats.pdfErrorChart, err);
+                doc.text(`[${t.admin.adminStats.pdfErrorChartImage}]`, 14, 40);
+            }
+        }
+
+        // 3. Estudiantes
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text(`3. ${t.admin.adminStats.pdfConsolidatedStudents}`, 14, 22);
+
+        autoTable(doc, {
+            startY: 30,
+            head: [[t.admin.adminStats.student, t.admin.adminStats.email, t.admin.adminStats.parallel, t.admin.adminStats.status]],
+            body: data.studentReport.map((s: any) => [s.name, s.email, s.parallel, s.status.toUpperCase()]),
+            theme: 'grid',
+            headStyles: { fillColor: [43, 107, 238] },
+            styles: { fontSize: 8 }
+        });
+
+        doc.save(`Reporte_Administrativo_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
+    const exportToExcel = () => {
+        if (!data) return;
+        const wb = XLSX.utils.book_new();
+
+        // Hoja 1: Resumen General
+        const summaryData = [
+            [t.admin.adminStats.excelTitle],
+            [t.admin.adminStats.excelExportDate, new Date().toLocaleString()],
+            [],
+            [t.admin.adminStats.excelCategory, t.admin.adminStats.excelAmount],
+            [t.admin.adminStats.excelTotalUsers, data.userMetrics.total],
+            [t.admin.adminStats.excelActive, data.userMetrics.active],
+            [t.admin.adminStats.excelInactive, data.userMetrics.inactive],
+            [t.admin.adminStats.excelStudents, data.userMetrics.byRole.students],
+            [t.admin.adminStats.excelTeachers, data.userMetrics.byRole.teachers],
+            [t.admin.adminStats.excelAdmins, data.userMetrics.byRole.admins]
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, t.admin.adminStats.excelSummary);
+
+        // Hoja 2: Listado Estudiantes
+        const excelData = data.studentReport.map((s: any) => ({
+            [t.admin.adminStats.excelFullName]: s.name,
+            [t.admin.adminStats.excelEmail]: s.email,
+            [t.admin.adminStats.excelAssignedParallel]: s.parallel,
+            [t.admin.adminStats.excelResponsibleTeacher]: s.teacher,
+            [t.admin.adminStats.excelStatus]: s.status.toUpperCase()
+        }));
+        const wsStudents = XLSX.utils.json_to_sheet(excelData);
+        XLSX.utils.book_append_sheet(wb, wsStudents, t.admin.adminStats.excelStudentList);
+
+        XLSX.writeFile(wb, `Reporte_Admin_Consolidado_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-40 animate-pulse">
-                <Shield className="w-12 h-12 text-slate-300 mb-4" />
-                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Accediendo a registros de auditoría...</p>
+            <div className={`flex flex-col items-center justify-center py-24 ${colors.background.card} rounded border ${colors.border.light}`}>
+                <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+                        <p className={`${colors.text.secondary} font-bold text-xs tracking-widest`}>{t.admin.adminStats.loading}</p>
             </div>
         );
     }
 
-    if (error || !data || !data.userMetrics) {
+    if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-32 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                <ChevronLeft className="w-8 h-8 text-slate-300 mb-4" />
-                <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mb-2">Error de sincronización</p>
-                <p className="text-xs text-slate-400 mb-6">{error || 'No se pudieron recuperar los indicadores de auditoría.'}</p>
-                <button
-                    onClick={onBack}
-                    className="px-6 py-2 bg-slate-800 text-white rounded-lg text-xs font-black uppercase tracking-widest"
-                >
-                    Volver al dashboard
-                </button>
+            <div className={`text-center py-20 ${colors.background.card} border-dashed border-2 ${colors.border.medium} rounded-xl`}>
+                <p className={`${colors.text.secondary} font-bold mb-4`}>{error}</p>
+                <button onClick={onBack} className={getButtonSecondaryClasses()}>{t.admin.backToDashboard}</button>
             </div>
         );
     }
 
-    const filteredStudents = data.studentReport?.filter((s: any) =>
+    const filteredStudents = data?.studentReport?.filter((s: any) =>
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.parallel.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.email.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl mx-auto">
-
-            {/* Header de auditoría */}
-            <div className="flex items-center justify-between bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+        <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-500">
+            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 ${colors.background.base} p-6 rounded-xl border ${colors.border.light}`}>
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 hover:bg-slate-50 rounded-lg border border-slate-300 transition-colors">
-                        <ChevronLeft className="w-5 h-5 text-slate-600" />
+                    <button onClick={onBack} className={`p-2 hover:${colors.background.hover} rounded-lg transition-colors border ${colors.border.medium}`}>
+                        <ChevronLeft className={`w-5 h-5 ${colors.text.primary}`} />
                     </button>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 font-serif lowercase first-letter:uppercase">Panel de control de sistema</h2>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Auditoría y gestión de infraestructura académica</p>
+                        <h1 className={`text-xl font-bold ${colors.text.title}`}>{t.admin.adminStats.title}</h1>
+                        <p className={`text-[11px] ${colors.text.secondary} font-bold tracking-wider mt-0.5`}>{t.admin.adminStats.subtitle}</p>
                     </div>
                 </div>
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 rounded border border-slate-200">
-                    <Database className="w-4 h-4 text-slate-400" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Estado: base de datos sincronizada</span>
+
+                <div className="flex items-center gap-3">
+                    <button onClick={downloadPDF} className={`flex items-center gap-2 px-4 py-2 ${getButtonPrimaryClasses()} rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-xs font-bold tracking-wider`}>
+                        <FileText className="w-4 h-4" />
+                        {t.admin.adminStats.downloadPDF}
+                    </button>
+                    <button onClick={exportToExcel} className={`flex items-center gap-2 px-4 py-2 ${colors.status.success.bg} ${colors.status.success.text} border ${colors.status.success.border} rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95 text-xs font-bold tracking-wider`}>
+                        <FileSpreadsheet className="w-4 h-4" />
+                        {t.admin.adminStats.exportExcel}
+                    </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* 1. Estado de Usuarios */}
-                <div className={`${cardStyle} lg:col-span-1`}>
-                    <h3 className={headerStyle}><Users className="w-4 h-4" /> Estado de usuarios</h3>
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
-                                <div className="flex justify-between items-center mb-1">
-                                    <UserCheck className="w-4 h-4 text-emerald-600" />
-                                    <span className="text-xl font-black text-emerald-700">{data.userMetrics.active}</span>
-                                </div>
-                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Activos</p>
-                            </div>
-                            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                                <div className="flex justify-between items-center mb-1">
-                                    <UserX className="w-4 h-4 text-slate-400" />
-                                    <span className="text-xl font-black text-slate-500">{data.userMetrics.inactive}</span>
-                                </div>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Inactivos</p>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest lowercase first-letter:uppercase">Distribución por rol</h4>
-                            {[
-                                { label: 'Estudiantes', value: data.userMetrics.byRole.students },
-                                { label: 'Docentes', value: data.userMetrics.byRole.teachers },
-                                { label: 'Administradores', value: data.userMetrics.byRole.admins }
-                            ].map(item => (
-                                <div key={item.label} className="flex justify-between items-center text-sm p-2 border-b border-slate-50 italic font-serif text-slate-600">
-                                    <span>{item.label}</span>
-                                    <span className="font-bold text-slate-900 not-italic font-sans">{item.value}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Estructura Académica */}
-                <div className={`${cardStyle} lg:col-span-2`}>
-                    <h3 className={headerStyle}><GraduationCap className="w-4 h-4" /> Estructura académica (docentes por paralelo)</h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-[11px]">
-                            <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black uppercase tracking-widest">
-                                    <th className="px-4 py-3">Paralelo / curso</th>
-                                    <th className="px-4 py-3">Docente asignado</th>
-                                    <th className="px-4 py-3">Año académico</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {data.parallelsList.map((p: any) => (
-                                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-800 uppercase tracking-tight">{p.name}</td>
-                                        <td className="px-4 py-3 font-medium text-slate-600 italic font-serif">{p.teacher}</td>
-                                        <td className="px-4 py-3 text-slate-400 font-medium uppercase">{p.academicYear}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* 3. Reporte General de Estudiantes (Solicitado) */}
-                <div className={`${cardStyle} lg:col-span-3`}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Users className="w-4 h-4 text-indigo-500" />
-                            Reporte general de población estudiantil
-                        </h3>
-                        <div className="relative">
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                                type="text"
-                                placeholder="buscar estudiante, paralelo o email..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500/20 focus:outline-none w-full md:w-64"
-                            />
-                        </div>
-                    </div>
-                    <div className="overflow-x-auto max-h-[400px] overflow-y-auto border border-slate-100 rounded-lg">
-                        <table className="w-full text-left text-[11px]">
-                            <thead className="sticky top-0 bg-white shadow-sm z-10">
-                                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-black uppercase tracking-widest">
-                                    <th className="px-4 py-3">Estudiante</th>
-                                    <th className="px-4 py-3">Email de contacto</th>
-                                    <th className="px-4 py-3">Paralelo asignado</th>
-                                    <th className="px-4 py-3">Docente responsable</th>
-                                    <th className="px-4 py-3">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredStudents.map((s: any) => (
-                                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-800 font-serif italic">{s.name}</td>
-                                        <td className="px-4 py-3 text-slate-500">{s.email}</td>
-                                        <td className="px-4 py-3">
-                                            <span className="px-2 py-1 bg-slate-100 rounded font-black text-slate-600 uppercase">
-                                                {s.parallel}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-slate-600 font-medium italic">{s.teacher}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${s.status === 'activo' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                {s.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {filteredStudents.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="px-4 py-10 text-center text-slate-400 italic">
-                                            No se encontraron estudiantes que coincidan con la búsqueda.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* 4. Uso del Sistema */}
-                <div className={`${cardStyle} lg:col-span-3`}>
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-indigo-500" />
-                            Indicador de carga: sesiones totales registradas
-                        </h3>
-                        <div className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-100 font-black text-sm lowercase first-letter:uppercase">
-                            Consolidado global: {data.systemUsage.totalSessions} sesiones
-                        </div>
-                    </div>
-
-                    <div className="h-[300px] w-full pt-4">
+                <div className={`${getCardClasses()} lg:col-span-2 p-6`}>
+                    <h3 className={`text-xs font-bold ${colors.text.secondary} tracking-wider mb-6 flex items-center gap-2 border-b ${colors.border.light} pb-2`}>
+                        <Info className="w-4 h-4" /> {t.admin.adminStats.recentActivity}
+                    </h3>
+                    <div id="admin-sessions-chart" className="h-[430px] w-full pt-4 bg-white">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={data.systemUsage.recentActivity}>
                                 <defs>
-                                    <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
+                                    <linearGradient id="colorSessions" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
                                         <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 'bold' }} stroke="#94a3b8" />
-                                <YAxis tick={{ fontSize: 9 }} stroke="#94a3b8" />
-                                <Tooltip contentStyle={{ fontSize: '11px', borderRadius: '4px' }} />
-                                <Area type="monotone" dataKey="sessions" stroke="#6366f1" fillOpacity={1} fill="url(#colorUsage)" strokeWidth={2} name="sesiones diarias" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 10, fontWeight: 'bold' }}
+                                    stroke="#94a3b8"
+                                    label={{ value: t.admin.adminStats.day, position: 'insideBottom', offset: -5, fontSize: 10, fill: '#64748b', fontWeight: 'bold' }}
+                                    height={50}
+                                />
+                                <YAxis
+                                    tick={{ fontSize: 10 }}
+                                    stroke="#94a3b8"
+                                    label={{ value: t.admin.adminStats.sessions, angle: -90, position: 'insideLeft', offset: 10, fontSize: 10, fill: '#64748b', fontWeight: 'bold' }}
+                                />
+                                <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                <Area type="monotone" dataKey="sessions" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSessions)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
+                <div className="space-y-6">
+                    {/* Panel de Métricas de Control */}
+                    <div className={`${getCardClasses()} p-6`}>
+                        <h3 className={`text-xs font-bold ${colors.text.secondary} tracking-wider mb-6 flex items-center gap-2 border-b ${colors.border.light} pb-2`}>
+                            <Info className="w-4 h-4" /> {t.admin.adminStats.controlMetrics}
+                        </h3>
+                        <ul className="space-y-4">
+                            <MetricBullet label={t.admin.adminStats.registeredUsers} value={data.userMetrics.total} color="bg-indigo-500" />
+                            <MetricBullet label={t.admin.adminStats.activityRate} value={`${data.userMetrics.total > 0 ? Math.round((data.userMetrics.active / data.userMetrics.total) * 100) : 0}%`} color="bg-emerald-500" />
+                            <MetricBullet label={t.admin.adminStats.operationalGroups} value={data.parallelsList.length} color="bg-rose-500" />
+                            <MetricBullet label={t.admin.adminStats.totalSessions} value={data.systemUsage.totalSessions} color="bg-amber-500" />
+                        </ul>
+                    </div>
+
+                    {/* Distribución por Roles */}
+                    <div className={`${getCardClasses()} p-6`}>
+                        <h3 className={`text-xs font-bold ${colors.text.secondary} tracking-wider mb-6 flex items-center gap-2 border-b ${colors.border.light} pb-2`}>
+                            <BookOpen className="w-4 h-4" /> {t.admin.adminStats.roleDistribution}
+                        </h3>
+                        <div className="space-y-4">
+                            <RoleMetric label={t.admin.students} value={data.userMetrics.byRole.students} total={data.userMetrics.total} color="bg-indigo-500" />
+                            <RoleMetric label={t.admin.teachers} value={data.userMetrics.byRole.teachers} total={data.userMetrics.total} color="bg-purple-500" />
+                            <RoleMetric label={t.administradores} value={data.userMetrics.byRole.admins} total={data.userMetrics.total} color="bg-slate-700" />
+                        </div>
+                        <div className={`mt-8 p-4 ${colors.background.base} rounded-xl border ${colors.border.light}`}>
+                            <p className={`text-[11px] ${colors.text.secondary} font-bold mb-2`}>{t.admin.adminStats.infrastructureStatus}</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                <span className="text-xs font-bold text-emerald-600">{t.admin.adminStats.operationalServices}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <footer className="text-center pt-8 border-t border-slate-200">
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em] lowercase first-letter:uppercase">
-                    Control administrativo de infraestructura tecnológica | tesis 2026
+            <div className={`${getCardClasses()} p-6`}>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <h3 className={`text-xs font-bold ${colors.text.secondary} tracking-wider flex items-center gap-2`}>
+                        <Users className="w-4 h-4" /> {t.admin.adminStats.detailedStudentReport}
+                    </h3>
+                    <input
+                        type="text"
+                        placeholder={t.admin.adminStats.searchByNameOrEmail}
+                        className={`px-4 py-2 bg-white border ${colors.border.medium} rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-full md:w-64`}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                        <thead>
+                            <tr className={`border-b ${colors.border.light} ${colors.background.base} ${colors.text.secondary} font-bold tracking-wider`}>
+                                <th className="px-6 py-4">{t.admin.adminStats.student}</th>
+                                <th className="px-6 py-4">{t.admin.adminStats.email}</th>
+                                <th className="px-6 py-4">{t.admin.adminStats.parallel}</th>
+                                <th className="px-6 py-4">{t.admin.adminStats.teacher}</th>
+                                <th className="px-6 py-4 text-center">{t.admin.adminStats.status}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {filteredStudents.map((student: any, idx: number) => (
+                                <tr key={idx} className={`hover:${colors.background.hover} transition-colors`}>
+                                    <td className={`px-6 py-4 font-bold ${colors.text.primary}`}>{student.name}</td>
+                                    <td className={`px-6 py-4 ${colors.text.secondary}`}>{student.email}</td>
+                                    <td className={`px-6 py-4 font-bold ${colors.text.primary}`}>{student.parallel}</td>
+                                    <td className={`px-6 py-4 ${colors.text.secondary}`}>{student.teacher}</td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold tracking-tighter ${student.status === 'activo' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                                            }`}>
+                                            {student.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <footer className={`text-center pt-8 border-t ${colors.border.light}`}>
+                <p className={`text-[10px] ${colors.text.disabled} font-bold uppercase tracking-wider`}>
+                    English27
                 </p>
             </footer>
+        </div>
+    );
+}
+
+function MetricBullet({ label, value, color }: { label: string, value: string | number, color: string }) {
+    return (
+        <li className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${color}`} />
+                <span className={`text-xs font-medium ${colors.text.secondary}`}>{label}</span>
+            </div>
+            <span className={`text-sm font-bold ${colors.text.primary}`}>{value}</span>
+        </li>
+    );
+}
+
+function RoleMetric({ label, value, total, color }: any) {
+    const percentage = total > 0 ? (value / total) * 100 : 0;
+    return (
+        <div className="space-y-2">
+            <div className="flex justify-between items-center text-[11px] font-bold">
+                <span className={colors.text.primary}>{label}</span>
+                <span className={colors.text.secondary}>{value} ({Math.round(percentage)}%)</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                <div
+                    className={`h-full ${color} transition-all duration-1000`}
+                    style={{ width: `${percentage}%` }}
+                />
+            </div>
         </div>
     );
 }

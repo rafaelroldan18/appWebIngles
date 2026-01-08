@@ -5,8 +5,9 @@ import '../src/index.css'
 import { AuthProvider } from '../src/contexts/AuthContext'
 import { LanguageProvider } from '../src/contexts/LanguageContext'
 import { ThemeProvider } from '../src/contexts/ThemeContext'
+import { ToastProvider } from '../src/contexts/ToastContext'
 
-const nunito = Nunito({ 
+const nunito = Nunito({
   subsets: ['latin'],
   weight: ['400', '600', '700', '800'],
   variable: '--font-nunito',
@@ -28,7 +29,9 @@ export default function RootLayout({
         <AuthProvider>
           <LanguageProvider>
             <ThemeProvider>
-              {children}
+              <ToastProvider>
+                {children}
+              </ToastProvider>
             </ThemeProvider>
           </LanguageProvider>
         </AuthProvider>

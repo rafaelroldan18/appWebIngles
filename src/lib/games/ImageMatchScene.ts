@@ -362,6 +362,14 @@ export class ImageMatchScene extends Phaser.Scene {
 
             if (this.sessionManager) {
                 this.sessionManager.updateScore(points, true);
+                this.sessionManager.recordItem({
+                    id: card1.content.content_id,
+                    text: card1.content.content_text,
+                    result: 'correct',
+                    user_input: card2.content.content_text,
+                    correct_answer: card1.content.content_text,
+                    time_ms: 0
+                });
             }
 
             // Update pairs count
@@ -392,6 +400,14 @@ export class ImageMatchScene extends Phaser.Scene {
 
         if (this.sessionManager) {
             this.sessionManager.updateScore(penalty, false);
+            this.sessionManager.recordItem({
+                id: card1.content.content_id,
+                text: card1.content.content_text,
+                result: 'wrong',
+                user_input: card2.content.content_text,
+                correct_answer: card1.content.content_text,
+                time_ms: 0
+            });
         }
 
         // Flip back after delay
@@ -455,18 +471,6 @@ export class ImageMatchScene extends Phaser.Scene {
         if (this.gameTimer) this.gameTimer.remove();
 
         // End session
-        if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession({
-                    pairsMatched: this.matchedPairs,
-                    totalPairs: this.totalPairs,
-                    wrongMatches: this.wrongMatches,
-                    perfectGame: this.wrongMatches === 0,
-                });
-            } catch (error) {
-                console.error('Error ending session:', error);
-            }
-        }
 
         // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
@@ -483,9 +487,20 @@ export class ImageMatchScene extends Phaser.Scene {
 
         // Emit event delayed
         this.time.delayedCall(2000, () => {
+            const sessionData = this.sessionManager?.getSessionData();
             this.events.emit('gameOver', {
-                score: this.score,
-                sessionData: this.sessionManager?.getSessionData(),
+                scoreRaw: this.score,
+                correctCount: sessionData?.correctCount || 0,
+                wrongCount: sessionData?.wrongCount || 0,
+                durationSeconds: this.sessionManager?.getDuration() || 0,
+                answers: sessionData?.items.map(item => ({
+                    item_id: item.id,
+                    prompt: item.text,
+                    student_answer: item.user_input || '',
+                    correct_answer: item.correct_answer || '',
+                    is_correct: item.result === 'correct',
+                    meta: { time_ms: item.time_ms }
+                })) || []
             });
         });
     }

@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { Save, Sparkles, Trash2, Copy, Move, MousePointer2, X } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RichTextEditorProps {
     content: any; // { html: string, css: string, project: any }
@@ -16,6 +17,7 @@ interface RichTextEditorProps {
 }
 
 export default React.memo(function RichTextEditor({ content, onChange }: RichTextEditorProps) {
+    const { t } = useLanguage();
     const editorRef = useRef<HTMLDivElement>(null);
     const [editor, setEditor] = useState<any>(null);
 
@@ -41,7 +43,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                 defaults: {
                     'canvas-clear': {
                         run: (editor: any) => {
-                            if (confirm('¿Estás seguro de que quieres borrar todo el diseño? Esta acción no se puede deshacer.')) {
+                            if (confirm(t.gamification.editor.confirmClear)) {
                                 editor.Components.clear();
                                 editor.Css.clear();
                             }
@@ -423,8 +425,8 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                         <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-black text-slate-900 uppercase">EDITOR VISUAL ACTIVO</h4>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Cambios sincronizados automáticamente</p>
+                        <h4 className="text-sm font-black text-slate-900">{t.gamification.editor.title}</h4>
+                        <p className="text-[11px] text-slate-400 font-bold tracking-tight">{t.gamification.editor.autosave}</p>
                     </div>
                 </div>
 
@@ -432,15 +434,15 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     <button
                         type="button"
                         onClick={() => {
-                            if (editor && confirm('¿Borrar todo el diseño?')) {
+                            if (editor && confirm(t.gamification.editor.confirmClear)) {
                                 editor.Components.clear();
                                 editor.Css.clear();
                             }
                         }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-md font-black text-[10px] hover:bg-red-50 hover:text-red-600 transition-all border border-slate-100"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-md font-black text-xs hover:bg-red-50 hover:text-red-600 transition-all border border-slate-100"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        LIMPIAR
+                        <Trash2 className="w-4 h-4" />
+                        {t.gamification.editor.clear}
                     </button>
                 </div>
             </div>
@@ -450,14 +452,14 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                 <div className="w-72 bg-white border-r border-slate-200 flex flex-col overflow-hidden shadow-xl z-40">
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <div className="p-4 bg-slate-50/50">
-                            <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">ARRASTRA COMPONENTES</h5>
+                            <h5 className="text-[11px] font-black text-slate-500 tracking-widest text-center">{t.gamification.editor.dragComponents}</h5>
                         </div>
                         <div id="blocks" className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-1">
                             {/* GrapesJS blocks inject here */}
                         </div>
                         <div className="p-4 bg-indigo-50 border-t border-indigo-100">
-                            <p className="text-[10px] text-indigo-700 font-bold leading-tight uppercase text-center">
-                                Usa doble clic sobre el texto para cambiar color y tamaño
+                            <p className="text-[11px] text-indigo-700 font-bold leading-tight text-center">
+                                {t.gamification.editor.doubleClickTip}
                             </p>
                         </div>
                     </div>
@@ -475,7 +477,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                             .gjs-cv-canvas .gjs-highlighter { outline: 2px solid #6366f1 !important; }
                             /* Style Manager UI Fixes */
                             .gjs-sm-sector { border-bottom: 1px solid #e2e8f0 !important; }
-                            .gjs-sm-title { font-weight: 800 !important; font-size: 11px !important; color: #475569 !important; text-transform: uppercase !important; }
+                            .gjs-sm-title { font-weight: 800 !important; font-size: 11px !important; color: #475569 !important; }
                             .gjs-sm-property { padding: 10px 0 !important; }
                             .gjs-sm-label { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
                             .gjs-sm-field { background-color: #f8fafc !important; border-radius: 6px !important; border: 1px solid #e2e8f0 !important; }

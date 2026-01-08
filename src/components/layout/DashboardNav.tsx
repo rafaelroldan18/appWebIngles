@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { UserMenu } from './UserMenu';
+import ThemeToggle from './ThemeToggle';
 import type { Usuario } from '@/types/user.types';
 
 interface DashboardNavProps {
@@ -41,7 +42,8 @@ export function DashboardNav({ usuario, title, subtitle, onLogout, onSettings, o
             </div>
           </button>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
             <UserMenu usuario={usuario} onProfile={onSettings ? () => onSettings('profile') : undefined} onSettings={onSettings ? () => onSettings('settings') : undefined} onReports={onReports} onLogout={onLogout} onViewAsStudent={onViewAsStudent} />
           </div>
         </div>

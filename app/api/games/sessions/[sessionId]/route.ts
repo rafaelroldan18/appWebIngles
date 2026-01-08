@@ -1,5 +1,5 @@
 
-import { createSupabaseClient } from '@/lib/supabase-api';
+import { createSupabaseClient, createServiceRoleClient } from '@/lib/supabase-api';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
@@ -27,8 +27,11 @@ export async function PUT(
         if (body.completed && session) {
             const { student_id, score } = session;
 
+            // Usar cliente de servicio para actualizar el progreso (bypass RLS)
+            const adminSupabase = createServiceRoleClient();
+
             // Intentar obtener el progreso actual
-            const { data: progress } = await supabase
+            const { data: progress } = await adminSupabase
                 .from('student_progress')
                 .select('*')
                 .eq('student_id', student_id)
@@ -36,7 +39,7 @@ export async function PUT(
 
             if (progress) {
                 // Actualizar progreso existente
-                await supabase
+                await adminSupabase
                     .from('student_progress')
                     .update({
                         activities_completed: progress.activities_completed + 1,
@@ -46,7 +49,7 @@ export async function PUT(
                     .eq('student_id', student_id);
             } else {
                 // Crear nuevo registro de progreso
-                await supabase
+                await adminSupabase
                     .from('student_progress')
                     .insert({
                         student_id: student_id,

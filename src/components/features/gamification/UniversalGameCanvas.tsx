@@ -19,14 +19,16 @@ import { GRAMMAR_RUN_CONFIG } from '@/lib/games/grammarRun.config';
 import { SENTENCE_BUILDER_CONFIG } from '@/lib/games/sentenceBuilder.config';
 import { IMAGE_MATCH_CONFIG } from '@/lib/games/imageMatch.config';
 import { CITY_EXPLORER_CONFIG } from '@/lib/games/cityExplorer.config';
-import { uiGameTypeToDb } from '@/lib/game-type-mapping';
-import type { GameContent } from '@/types';
+import type { GameContent, MissionConfig } from '@/types';
 
 interface UniversalGameCanvasProps {
     gameType: 'word-catcher' | 'grammar-run' | 'sentence-builder' | 'image-match' | 'city-explorer';
     topicId: string;
     gameTypeId: string;
     studentId: string;
+    missionTitle?: string;
+    missionInstructions?: string;
+    missionConfig?: MissionConfig;
     onGameEnd?: (result: GameResult) => void;
     onError?: (error: Error) => void;
 }
@@ -37,6 +39,7 @@ interface GameResult {
     wrongCount: number;
     duration: number;
     accuracy: number;
+    sessionId?: string;
 }
 
 const GAME_CONFIGS = {
@@ -72,6 +75,9 @@ export default function UniversalGameCanvas({
     topicId,
     gameTypeId,
     studentId,
+    missionTitle,
+    missionInstructions,
+    missionConfig,
     onGameEnd,
     onError,
 }: UniversalGameCanvasProps) {
@@ -80,6 +86,7 @@ export default function UniversalGameCanvas({
     const sessionManagerRef = useRef<GameSessionManager | null>(null);
 
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('Initializing game...');
     const [error, setError] = useState<string | null>(null);
 
@@ -90,13 +97,12 @@ export default function UniversalGameCanvas({
             try {
                 setLoadingMessage('Loading game content...');
 
-                // CRÍTICO: Convertir gameType de UI (kebab-case) a DB (snake_case)
-                // para que el filtro de contenido funcione correctamente
-                const dbGameTypeId = uiGameTypeToDb(gameType);
-                console.log(`[UniversalGameCanvas] Loading content for game: ${gameType} (DB: ${dbGameTypeId})`);
+                // CRÍTICO: Usar el UUID directamente (proviene de la misión asignada)
+                // para asegurar que cargamos el contenido exacto vinculado al juego
+                console.log(`[UniversalGameCanvas] Loading content for game: ${gameType} (ID: ${gameTypeId})`);
 
-                // Load game content - AHORA FILTRADO POR JUEGO ESPECÍFICO
-                const gameContent = await GameLoader.loadGameContent(topicId, dbGameTypeId);
+                // Load game content - Usamos el UUID directo del prop
+                const gameContent = await GameLoader.loadGameContent(topicId, gameTypeId);
 
                 if (!isMounted) return;
 
@@ -175,6 +181,9 @@ export default function UniversalGameCanvas({
                             game.scene.start(sceneKey, {
                                 words: shuffledWords,
                                 sessionManager: sessionManager,
+                                missionTitle: missionTitle,
+                                missionInstructions: missionInstructions,
+                                missionConfig: missionConfig,
                             });
 
                             // 3. Forzar el ocultamiento del cargador poco después del inicio
@@ -237,22 +246,39 @@ export default function UniversalGameCanvas({
             }
         };
 
-        const handleGameOver = (data: any) => {
-            if (onGameEnd && sessionManagerRef.current) {
-                const sessionData = sessionManagerRef.current.getSessionData();
-                const duration = sessionManagerRef.current.getDuration();
+        const handleGameOver = async (data: any) => {
+            if (sessionManagerRef.current) {
+                setIsSaving(true);
 
-                const result: GameResult = {
-                    score: data.score || sessionData.score,
-                    correctCount: sessionData.correctCount,
-                    wrongCount: sessionData.wrongCount,
-                    duration: duration,
-                    accuracy: sessionData.correctCount + sessionData.wrongCount > 0
-                        ? Math.round((sessionData.correctCount / (sessionData.correctCount + sessionData.wrongCount)) * 100)
-                        : 0,
-                };
+                try {
+                    // 1. Finalizar la sesión en el servidor
+                    await sessionManagerRef.current.endSession();
+                    console.log('[UniversalGameCanvas] Session saved successfully');
+                } catch (saveError) {
+                    console.error('[UniversalGameCanvas] Error saving session:', saveError);
+                }
 
-                onGameEnd(result);
+                setIsSaving(false);
+
+                if (onGameEnd) {
+                    const sessionData = sessionManagerRef.current.getSessionData();
+                    const duration = sessionManagerRef.current.getDuration();
+
+                    const result: GameResult = {
+                        score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
+                        correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
+                        wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
+                        duration: data.durationSeconds !== undefined ? data.durationSeconds : duration,
+                        accuracy: (data.correctCount !== undefined && data.wrongCount !== undefined)
+                            ? (data.correctCount + data.wrongCount > 0 ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100) : 0)
+                            : (sessionData.correctCount + sessionData.wrongCount > 0
+                                ? Math.round((sessionData.correctCount / (sessionData.correctCount + sessionData.wrongCount)) * 100)
+                                : 0),
+                        sessionId: sessionManagerRef.current.getSessionId(),
+                    };
+
+                    onGameEnd(result);
+                }
             }
         };
 
@@ -298,6 +324,16 @@ export default function UniversalGameCanvas({
 
     return (
         <div className="flex flex-col items-center justify-center w-full relative">
+            {/* Indicador de guardado */}
+            {isSaving && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-xl">
+                    <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 text-center animate-in zoom-in duration-300">
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mb-4"></div>
+                        <p className="text-white font-bold">Guardando misión...</p>
+                        <p className="text-slate-400 text-xs mt-1">Espera un momento</p>
+                    </div>
+                </div>
+            )}
             {/* Game Canvas Container - ALWAYS rendered so the ref is available */}
             <div
                 ref={gameContainerRef}

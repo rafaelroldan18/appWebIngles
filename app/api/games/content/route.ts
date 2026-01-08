@@ -24,9 +24,16 @@ export async function GET(request: NextRequest) {
 
         // Si se proporciona targetGameTypeId, necesitamos buscar su UUID
         let gameTypeUuid = null;
-        if (targetGameTypeId) {
+
+        // Verificar si ya es un UUID (8-4-4-4-12 chars)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetGameTypeId || '');
+
+        if (isUuid) {
+            gameTypeUuid = targetGameTypeId;
+            console.log(`[API GET] Using UUID directly: ${gameTypeUuid}`);
+        } else if (targetGameTypeId) {
             const formattedName = formatGameTypeName(targetGameTypeId);
-            console.log(`[API GET] Converting '${targetGameTypeId}' to '${formattedName}'`);
+            console.log(`[API GET] Converting slug '${targetGameTypeId}' to name '${formattedName}'`);
 
             const { data: gameType } = await supabase
                 .from('game_types')
@@ -39,7 +46,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // Query con join a game_types para obtener el nombre
+        // Query principal
         let query = supabase
             .from('game_content')
             .select(`
@@ -50,14 +57,16 @@ export async function GET(request: NextRequest) {
             `)
             .eq('topic_id', topicId);
 
-        // Filtrar por UUID del game_type si se encontró
+        // Filtrar por UUID del game_type O incluir contenido genérico (null)
+        // Esto es CLAVE para que el contenido cargue si no está estrictamente vinculado
         if (gameTypeUuid) {
-            query = query.eq('target_game_type_id', gameTypeUuid);
+            query = query.or(`target_game_type_id.eq.${gameTypeUuid},target_game_type_id.is.null`);
         }
 
         const { data, error } = await query;
 
         if (error) {
+            console.error('[API GET] Supabase Error:', error);
             return NextResponse.json({ error: error.message }, { status: 400 });
         }
 
@@ -69,11 +78,12 @@ export async function GET(request: NextRequest) {
                 .join('_');
         };
 
-        // Transformar datos para incluir target_game_type_id como string (snake_case)
+        // Transformar datos para incluir el slug descriptivo pero MANTENER el target_game_type_id original (UUID)
         const enrichedData = data.map((item: any) => ({
             ...item,
-            target_game_type_id: item.game_types?.name ? toSnakeCase(item.game_types.name) : null,
-            game_types: undefined // Remover el objeto anidado
+            // Agregamos el slug como campo extra, pero no sobreescribimos el ID original
+            game_type_slug: item.game_types?.name ? toSnakeCase(item.game_types.name) : null,
+            game_types: undefined // Remover el objeto anidado para limpiar la respuesta
         }));
 
         console.log(`[API] Loaded ${enrichedData.length} items for topic ${topicId}${targetGameTypeId ? ` and game ${targetGameTypeId}` : ''}`);

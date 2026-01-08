@@ -8,6 +8,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Plus, Trash2, Edit2, Save, X, BookOpen, FileText } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Dynamic import for RichTextEditor to avoid SSR issues with TipTap
 const RichTextEditor = dynamic(() => import('./RichTextEditor'), {
@@ -40,6 +42,8 @@ interface Parallel {
 }
 
 export default function TopicManager({ teacherId }: TopicManagerProps) {
+    const { toast, success, error: toastError } = useToast();
+    const { t } = useLanguage();
     const [topics, setTopics] = useState<Topic[]>([]);
     const [parallels, setParallels] = useState<Parallel[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -105,7 +109,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
         e.preventDefault();
 
         if (!formData.title.trim()) {
-            alert('Please enter a topic title');
+            toastError('Por favor ingresa un título para el tema', 'Campo requerido');
             return;
         }
 
@@ -154,13 +158,14 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
             if (response.ok) {
                 await loadTopics();
                 resetForm();
+                success(editingId ? 'Tema actualizado correctamente' : 'Tema creado correctamente');
             } else {
-                const error = await response.json();
-                alert(`Error saving topic: ${error.error}`);
+                const errorData = await response.json();
+                toastError(`Error guardando tema: ${errorData.error}`, 'Error');
             }
         } catch (error) {
             console.error('Error saving topic:', error);
-            alert('Error saving topic');
+            toastError('Error inesperado al guardar el tema');
         }
     };
 
@@ -187,13 +192,19 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
             if (response.ok) {
                 await loadTopics();
+                success('Tema eliminado correctamente');
             } else {
-                const error = await response.json();
-                alert(`Error: ${error.error}`);
+                const errorData = await response.json();
+                // Check for specific error about existing content
+                if (errorData.error && errorData.error.includes('content')) {
+                    toastError('No se puede eliminar un tema que tiene contenido asociado. Elimina el contenido primero.', 'Error de dependencia');
+                } else {
+                    toastError(`Error: ${errorData.error}`, 'No se pudo eliminar');
+                }
             }
         } catch (error) {
             console.error('Error deleting topic:', error);
-            alert('Error deleting topic');
+            toastError('Error al intentar eliminar el tema');
         }
     };
 
@@ -214,8 +225,8 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Biblioteca de Temas</h2>
-                    <p className="text-slate-500 text-sm">Gestiona tus unidades de aprendizaje y contenido teórico.</p>
+                    <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{t.gamification.topic.libraryTitle}</h2>
+                    <p className="text-slate-500 text-sm">{t.gamification.topic.librarySubtitle}</p>
                 </div>
                 <button
                     onClick={() => {
@@ -228,7 +239,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                         }`}
                 >
                     {isAdding ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                    {isAdding ? 'Cerrar Editor' : 'Nuevo Tema'}
+                    {isAdding ? t.gamification.topic.closeEditor : t.gamification.topic.newTopic}
                 </button>
             </div>
 
@@ -240,7 +251,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                             <Plus className="w-4 h-4 text-indigo-600" />
                         </div>
                         <h3 className="text-lg font-black text-slate-800 dark:text-white">
-                            {editingId ? 'Editar Unidad' : 'Nueva Unidad'}
+                            {editingId ? t.gamification.topic.editUnit : t.gamification.topic.newUnit}
                         </h3>
                     </div>
 
@@ -249,31 +260,31 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {/* Title */}
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                    Título de la unidad *
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                    {t.gamification.topic.form.title} *
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
-                                    placeholder="Ej: Adjectives"
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
+                                    placeholder={t.gamification.topic.form.placeholderTitle}
                                     required
                                 />
                             </div>
 
                             {/* Parallel Select */}
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                    Paralelo
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                    {t.gamification.topic.form.parallel}
                                 </label>
                                 <select
                                     value={formData.level}
                                     onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
                                     required
                                 >
-                                    <option value="">Selecciona un paralelo</option>
+                                    <option value="">{t.gamification.topic.form.selectParallel}</option>
                                     {parallels.map((parallel) => (
                                         <option
                                             key={parallel.parallel_id}
@@ -285,21 +296,21 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                 </select>
                                 {parallels.length === 0 && (
                                     <p className="text-xs text-amber-600 mt-1">
-                                        No tienes paralelos asignados
+                                        {t.gamification.topic.form.noParallels}
                                     </p>
                                 )}
                             </div>
 
                             {/* Abstract / Summary */}
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                    Breve resumen
+                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                    {t.gamification.topic.form.summary}
                                 </label>
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white resize-none"
-                                    placeholder="Descripción breve..."
+                                    className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white resize-none"
+                                    placeholder={t.gamification.topic.form.placeholderDesc}
                                     rows={2}
                                 />
                             </div>
@@ -307,9 +318,9 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
                         {/* Theory Content (DESIGNER) */}
                         <div className="flex flex-col">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <BookOpen className="w-3.5 h-3.5" />
-                                Contenido teórico (diseño visual)
+                            <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                <BookOpen className="w-4 h-4" />
+                                {t.gamification.topic.form.theory}
                             </label>
                             <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-md">
                                 <RichTextEditor
@@ -318,7 +329,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                 />
                             </div>
                             <p className="mt-2 text-[9px] text-indigo-600 font-medium italic">
-                                💡 Recuerda pulsar "Confirmar Diseño" para guardar tu contenido visual
+                                {t.gamification.topic.form.designNote}
                             </p>
                         </div>
 
@@ -330,7 +341,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                     className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
                                 >
                                     <Save className="w-4 h-4" />
-                                    {editingId ? 'Guardar' : 'Crear'}
+                                    {editingId ? t.gamification.mission.save : t.gamification.mission.create}
                                 </button>
                                 {editingId && (
                                     <button
@@ -339,7 +350,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                         className="px-8 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
                                     >
                                         <Trash2 className="w-4 h-4" />
-                                        Eliminar
+                                        {t.gamification.mission.delete}
                                     </button>
                                 )}
                             </div>
@@ -348,7 +359,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                 onClick={resetForm}
                                 className="text-[9px] text-slate-400 hover:text-slate-600 font-medium transition-colors"
                             >
-                                Cancelar
+                                {t.gamification.mission.cancel}
                             </button>
                         </div>
                     </form>
@@ -358,21 +369,21 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
             {/* Topics List Grid */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">Unidades Disponibles ({topics.length})</h3>
+                    <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">{t.gamification.topic.list.availableUnits} ({topics.length})</h3>
                 </div>
 
                 {isLoading ? (
                     <div className="text-center py-12">
                         <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
-                        <p className="text-slate-500 font-bold mt-4">Sincronizando biblioteca...</p>
+                        <p className="text-slate-500 font-bold mt-4">{t.gamification.topic.list.syncing}</p>
                     </div>
                 ) : topics.length === 0 ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-20 text-center border-2 border-dashed border-slate-100 dark:border-gray-800">
                         <div className="w-20 h-20 bg-slate-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                             <BookOpen className="w-10 h-10 text-slate-300" />
                         </div>
-                        <h4 className="text-lg font-bold text-slate-700 dark:text-gray-200">Tu biblioteca está vacía</h4>
-                        <p className="text-slate-500 text-sm mt-2">Crea temas para que tus estudiantes puedan jugar.</p>
+                        <h4 className="text-lg font-bold text-slate-700 dark:text-gray-200">{t.gamification.topic.list.emptyTitle}</h4>
+                        <p className="text-slate-500 text-sm mt-2">{t.gamification.topic.list.emptyDesc}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -386,7 +397,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                         <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                                             <BookOpen className="w-4 h-4 text-indigo-500" />
                                         </div>
-                                        <span className="text-[10px] font-black uppercase text-indigo-500 tracking-widest">
+                                        <span className="text-[10px] font-black text-indigo-500 tracking-widest">
                                             {topic.level}
                                         </span>
                                     </div>
@@ -410,12 +421,12 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-gray-800">
                                     {topic.theory_content ? (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 text-green-600 rounded text-[10px] font-bold uppercase">
-                                            ✓ Con Teoría
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-50 text-green-600 rounded text-[10px] font-bold">
+                                            {t.gamification.topic.list.withTheory}
                                         </div>
                                     ) : (
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px] font-bold uppercase text-center w-full">
-                                            En construcción
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[10px] font-bold text-center w-full">
+                                            {t.gamification.topic.list.construction}
                                         </div>
                                     )}
                                 </div>

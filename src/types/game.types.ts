@@ -1,3 +1,45 @@
+export interface MissionConfig {
+    difficulty: 'fácil' | 'medio' | 'difícil';
+    time_limit_seconds: number;
+    content_constraints: {
+        items: number;
+        distractors_percent: number;
+    };
+    asset_pack: string;
+    hud_help_enabled: boolean;
+}
+
+export interface GameSessionDetails {
+    summary: {
+        score_raw: number;
+        score_final: number;
+        duration_seconds: number;
+        correct_count: number;
+        wrong_count: number;
+        accuracy: number;
+        performance: 'poor' | 'fair' | 'good' | 'excellent';
+        passed: boolean;
+    };
+    breakdown: {
+        base_points: number;
+        multiplier: number;
+        bonus_points: number;
+        penalty_points: number;
+        rules_used: {
+            minScoreToPass: number;
+            minAccuracyToPass: number;
+            excellentThreshold: number;
+        };
+    };
+    answers: Array<{
+        item_id?: string;
+        prompt: string;
+        student_answer: string;
+        correct_answer: string;
+        is_correct: boolean;
+        meta?: any;
+    }>;
+}
 
 export interface GameType {
     game_type_id: string;
@@ -16,6 +58,10 @@ export interface GameAvailability {
     show_theory: boolean;
     is_active: boolean;
     created_at: string;
+    activated_at: string | null; // Timestamp cuando se activó la misión
+    mission_title: string;
+    mission_instructions: string;
+    mission_config: MissionConfig;
     // Relaciones opcionales (cuando se hace join)
     game_types?: {
         name: string;
@@ -50,7 +96,7 @@ export interface GameSession {
     duration_seconds: number | null;
     correct_count: number;
     wrong_count: number;
-    details: any;
+    details: GameSessionDetails;
     played_at: string;
 }
 

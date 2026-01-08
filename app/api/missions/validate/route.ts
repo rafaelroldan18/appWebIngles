@@ -36,7 +36,13 @@ export async function GET(request: NextRequest) {
         // 1. Check if mission exists and is for the correct parallel
         const { data: availability, error: availError } = await supabase
             .from('game_availability')
-            .select('*')
+            .select(`
+                availability_id, game_type_id, topic_id, parallel_id, 
+                available_from, available_until, max_attempts, created_at, 
+                show_theory, is_active, mission_title, mission_instructions, mission_config,
+                game_types (name, description),
+                topics (title, description)
+            `)
             .eq('topic_id', topicId)
             .eq('game_type_id', gameTypeId)
             .eq('parallel_id', parallelId)

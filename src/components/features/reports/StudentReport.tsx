@@ -8,6 +8,7 @@ import {
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip
 } from 'recharts';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface StudentReportProps {
     studentId: string;
@@ -19,6 +20,7 @@ interface StudentReportProps {
  * Diseñado para motivar y facilitar la autorregulación mediante datos reales.
  */
 export default function StudentReport({ studentId }: StudentReportProps) {
+    const { t } = useLanguage();
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export default function StudentReport({ studentId }: StudentReportProps) {
                 const res = await fetch(`/api/reports/student-stats?studentId=${studentId}`);
                 if (!res.ok) {
                     const errorMsg = await res.json();
-                    throw new Error(errorMsg.details || errorMsg.error || 'No se pudieron cargar tus estadísticas');
+                    throw new Error(errorMsg.details || errorMsg.error || t.student.statistics.errorLoading);
                 }
                 const result = await res.json();
                 setData(result);
@@ -43,182 +45,189 @@ export default function StudentReport({ studentId }: StudentReportProps) {
         loadStudentData();
     }, [studentId]);
 
-    const cardStyle = "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm";
-    const sectionTitle = "text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2";
+    const sectionTitle = "text-lg font-bold text-slate-800 mb-6 flex items-center gap-2";
 
     if (loading) return (
-        <div className="flex flex-col items-center justify-center py-24 animate-pulse">
-            <Zap className="w-12 h-12 text-indigo-400 mb-4 animate-bounce" />
-            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Sincronizando tus logros...</p>
+        <div className="flex flex-col items-center justify-center py-24">
+            <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+            <p className="text-slate-600 font-medium text-lg">{t.student.statistics.loadingStats}</p>
         </div>
     );
 
     if (error) return (
-        <div className="text-center py-20 bg-red-50 rounded-2xl border border-red-100">
-            <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
-            <p className="text-red-700 font-bold">{error}</p>
+        <div className="text-center py-16 bg-red-50/30 rounded-2xl border border-red-100">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+            <p className="text-red-700 font-semibold text-lg">{error}</p>
         </div>
     );
 
+    // Calculate average accuracy after data is loaded
+    const avgAccuracy = data.topicPerformance.length > 0
+        ? Math.round(data.topicPerformance.reduce((acc: number, curr: any) => acc + curr.accuracy, 0) / data.topicPerformance.length)
+        : 0;
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
 
-            {/* 1. RESUMEN DE PROGRESO GENERAL */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group">
-                    <div className="relative z-10">
-                        <Trophy className="w-10 h-10 mb-4 opacity-80 group-hover:scale-110 transition-transform" />
-                        <p className="text-indigo-100 text-xs font-black uppercase tracking-widest mb-1">Puntos Totales</p>
-                        <h3 className="text-5xl font-black mb-2">{data.summary.totalPoints}</h3>
-                        <div className="flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full w-fit">
-                            <Star className="w-3 h-3 text-yellow-300 fill-yellow-300" />
-                            <span className="text-[10px] font-black uppercase tracking-tighter">Rango: {data.summary.rank}</span>
-                        </div>
-                    </div>
-                    <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-                </div>
+            {/* 1. HERO - RESUMEN DE PROGRESO INTEGRADO */}
+            <div className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm overflow-hidden">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-slate-50 dark:bg-slate-800/20 rounded-full -mr-40 -mt-40 blur-3xl opacity-50" />
 
-                <div className={`${cardStyle} flex flex-col justify-center`}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl flex items-center justify-center">
-                            <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-800 shadow-sm">
+                            <Trophy className="w-8 h-8 text-indigo-600" />
                         </div>
                         <div>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Actividades Completadas</p>
-                            <h3 className="text-3xl font-black text-slate-800 dark:text-white">{data.summary.completedActivities}</h3>
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1">{t.student.statistics.progressSummary}</h2>
+                            <p className="text-slate-500 text-sm font-medium">{t.student.statistics.reviewAchievements}</p>
                         </div>
                     </div>
-                </div>
 
-                <div className={`${cardStyle} flex flex-col justify-center`}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center">
-                            <Target className="w-7 h-7 text-blue-500" />
+                    <div className="grid grid-cols-3 gap-10 md:mr-6 text-center md:text-left">
+                        <div>
+                            <p className="text-xs font-semibold text-slate-400 mb-1">{t.student.statistics.totalPoints}</p>
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white">{data.summary.totalPoints}</p>
                         </div>
                         <div>
-                            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Temas Dominados</p>
-                            <h3 className="text-3xl font-black text-slate-800 dark:text-white">
-                                {data.topicPerformance.filter((t: any) => t.status === 'dominado').length}
-                            </h3>
+                            <p className="text-xs font-semibold text-slate-400 mb-1">{t.student.statistics.activities}</p>
+                            <p className="text-2xl font-bold text-slate-800 dark:text-white">{data.summary.completedActivities}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold text-slate-400 mb-1">{t.student.statistics.averageAccuracy}</p>
+                            <p className="text-2xl font-bold text-indigo-600">{avgAccuracy}%</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
-                {/* 2. MISIONES Y REGLAS DE ACCESO */}
-                <div className={cardStyle}>
-                    <h3 className={sectionTitle}><Zap className="w-4 h-4 text-amber-500" /> Misiones y Desafíos</h3>
+                {/* 2. MISIONES DISPONIBLES */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                    <h3 className={sectionTitle}><Zap className="w-6 h-6 text-amber-500" /> {t.student.statistics.availableMissions}</h3>
                     <div className="space-y-4">
                         {data.missionStatus.map((m: any) => (
-                            <div key={m.id} className="group p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 transition-all hover:border-indigo-200">
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-lg ${m.status === 'completada' ? 'bg-emerald-100 text-emerald-600' :
-                                            m.status === 'bloqueada' ? 'bg-slate-200 text-slate-500' : 'bg-blue-100 text-blue-600'
-                                            }`}>
-                                            {m.status === 'completada' ? <CheckCircle2 className="w-4 h-4" /> :
-                                                m.status === 'bloqueada' ? <Lock className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-slate-700 dark:text-white">{m.game}</h4>
-                                            <p className="text-[10px] text-slate-400 font-medium italic">{m.topic}</p>
-                                        </div>
+                            <div key={m.id} className="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-100/50 dark:border-slate-800 transition-colors">
+                                <div className="flex items-center gap-5">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${m.status === 'completada' ? 'bg-emerald-50 text-emerald-600' :
+                                        m.status === 'bloqueada' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'
+                                        }`}>
+                                        {m.status === 'completada' ? <CheckCircle2 className="w-6 h-6" /> : m.status === 'bloqueada' ? <Lock className="w-6 h-6" /> : <Star className="w-6 h-6" />}
                                     </div>
-                                    <div className="text-right">
-                                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${m.status === 'completada' ? 'bg-emerald-500 text-white' :
-                                            m.status === 'bloqueada' ? 'bg-slate-400 text-white' : 'bg-blue-500 text-white'
-                                            }`}>
-                                            {m.status}
-                                        </span>
-                                        <p className="text-[9px] text-slate-400 mt-1 font-bold">{m.remainingAttempts} intentos rest.</p>
+                                    <div>
+                                        <h4 className="text-base font-bold text-slate-800 dark:text-white">
+                                            {m.missionTitle || m.game}
+                                        </h4>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            {t.student.statistics.topic} <span className="font-semibold">{m.topic}</span> • {m.game}
+                                        </p>
+                                        {(m.activatedAt || m.createdAt) && (
+                                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                                {t.student.dashboard.activated} {m.activatedAt
+                                                    ? new Date(m.activatedAt).toLocaleString('es-ES', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })
+                                                    : new Date(m.createdAt).toLocaleString('es-ES', {
+                                                        day: '2-digit',
+                                                        month: '2-digit',
+                                                        year: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })
+                                                }
+                                            </p>
+                                        )}
                                     </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${m.status === 'completada' ? 'bg-emerald-100 text-emerald-700' :
+                                        m.status === 'bloqueada' ? 'bg-slate-100 text-slate-600' : 'bg-indigo-100 text-indigo-700'
+                                        }`}>
+                                        {t.student.statistics.statusLabels[m.status as keyof typeof t.student.statistics.statusLabels] || m.status}
+                                    </span>
+                                    <p className="text-xs text-slate-400 mt-2 font-medium">{m.remainingAttempts} {t.student.statistics.attempts}</p>
                                 </div>
                             </div>
                         ))}
-                        {data.missionStatus.length === 0 && (
-                            <div className="text-center py-10 italic text-slate-400 text-sm">No tienes misiones asignadas aún.</div>
-                        )}
                     </div>
                 </div>
 
-                {/* 3. RENDIMIENTO POR TEMA */}
-                <div className={cardStyle}>
-                    <h3 className={sectionTitle}><Star className="w-4 h-4 text-yellow-500" /> Rendimiento por Tema</h3>
-                    <div className="space-y-6">
-                        {data.topicPerformance.map((t: any) => (
-                            <div key={t.topic} className="space-y-2">
-                                <div className="flex justify-between items-end">
-                                    <div>
-                                        <h4 className="text-sm font-bold text-slate-700 dark:text-white lowercase first-letter:uppercase">{t.topic}</h4>
-                                        <p className="text-[10px] text-slate-400 uppercase tracking-tighter">{t.attempts} intentos realizados</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className={`text-[10px] font-black uppercase ${t.accuracy >= 80 ? 'text-emerald-500' : 'text-blue-500'}`}>
-                                            {t.accuracy}% precisión
-                                        </span>
-                                    </div>
+                {/* 3. LOGROS POR TEMÁTICA */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2"><Target className="w-6 h-6 text-indigo-500" /> {t.student.statistics.performanceByTopic}</h3>
+                    <div className="space-y-8">
+                        {data.topicPerformance.map((topic: any) => (
+                            <div key={topic.topic}>
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-base font-bold text-slate-800 dark:text-white">{topic.topic}</span>
+                                    <span className="text-base font-bold text-slate-700 dark:text-slate-300">{topic.accuracy}%</span>
                                 </div>
-                                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full transition-all duration-1000 ${t.accuracy >= 80 ? 'bg-emerald-500' : 'bg-blue-500'}`}
-                                        style={{ width: `${t.accuracy}%` }}
+                                        className={`h-full transition-all duration-1000 ${topic.accuracy >= 80 ? 'bg-indigo-600' : 'bg-slate-400'}`}
+                                        style={{ width: `${topic.accuracy}%` }}
                                     />
                                 </div>
+                                <div className="flex justify-between mt-2 px-1">
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{topic.attempts} {t.student.statistics.attemptsCompleted}</span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">{t.student.statistics.statusLabels[topic.status as keyof typeof t.student.statistics.statusLabels] || topic.status}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* 4. HISTORIAL DE JUEGOS */}
-                <div className={`${cardStyle} lg:col-span-2`}>
-                    <h3 className={sectionTitle}><Clock className="w-4 h-4 text-indigo-500" /> Historial de Actividad Reciente</h3>
-                    <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-xl">
-                        <table className="w-full text-left text-[11px]">
+                {/* 4. HISTORIAL */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm lg:col-span-2">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2"><Clock className="w-6 h-6 text-slate-400" /> {t.student.statistics.activityHistory}</h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-black uppercase tracking-widest">
-                                    <th className="px-6 py-4">Actividad / Juego</th>
-                                    <th className="px-6 py-4">Tema</th>
-                                    <th className="px-6 py-4">Fecha</th>
-                                    <th className="px-6 py-4">Puntaje</th>
-                                    <th className="px-6 py-4 text-right">Resultado</th>
+                                <tr className="text-sm text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
+                                    <th className="py-5 px-3">{t.student.statistics.activity}</th>
+                                    <th className="py-5 px-3">{t.student.statistics.topicHeader}</th>
+                                    <th className="py-5 px-3">{t.student.statistics.date}</th>
+                                    <th className="py-5 px-3">{t.student.statistics.points}</th>
+                                    <th className="py-5 px-3 text-right">{t.student.statistics.result}</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {data.history.map((h: any) => (
-                                    <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-slate-800 dark:text-white uppercase tracking-tighter">{h.game}</td>
-                                        <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-serif italic">{h.topic}</td>
-                                        <td className="px-6 py-4 text-slate-400">
-                                            {new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                            <tbody className="divide-y divide-slate-50 dark:divide-slate-800/40">
+                                {data.history.slice(0, 5).map((h: any) => (
+                                    <tr key={h.id} className="text-base">
+                                        <td className="py-5 px-3">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-slate-800 dark:text-white tracking-tight text-sm">
+                                                    {h.missionTitle || h.game}
+                                                </span>
+                                                <span className="text-xs text-slate-400 dark:text-slate-500 font-bold tracking-tight">{h.game}</span>
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 font-black text-indigo-600">{h.score} pts</td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${h.result === 'completado' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                                        <td className="py-5 px-3 text-slate-600 dark:text-slate-300 font-medium text-sm">{h.topic}</td>
+                                        <td className="py-5 px-3 text-slate-500 dark:text-slate-400 text-sm">
+                                            {new Date(h.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                                        </td>
+                                        <td className="py-5 px-3 font-bold text-slate-800 dark:text-white text-sm">{h.score}</td>
+                                        <td className="py-5 px-3 text-right">
+                                            <span className={`text-xs font-bold px-3 py-1 rounded-full ${h.result === 'completado' ? 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
                                                 }`}>
-                                                {h.result}
+                                                {h.result === 'completado' ? t.student.statistics.completed : h.result}
                                             </span>
                                         </td>
                                     </tr>
                                 ))}
-                                {data.history.length === 0 && (
-                                    <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No has realizado ninguna actividad todavía.</td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
 
             </div>
-
-            <footer className="text-center pt-8 border-t border-slate-200 dark:border-slate-800">
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.4em] lowercase first-letter:uppercase">
-                    Módulo de autorregulación del aprendizaje | Tesis 2026
-                </p>
-            </footer>
         </div>
+
+
     );
 }

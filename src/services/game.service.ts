@@ -26,7 +26,7 @@ export class GameService {
      * @param activeOnly - Si es true, solo devuelve misiones activas (default: true)
      */
     static async getAvailability(parallelId: string, activeOnly: boolean = true): Promise<GameAvailability[]> {
-        const response = await fetch(`/api/games/availability?parallelId=${parallelId}&activeOnly=${activeOnly}`);
+        const response = await fetch(`/api/games/availability?parallelId=${parallelId}&activeOnly=${activeOnly}&_t=${Date.now()}`);
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener disponibilidad de juegos');

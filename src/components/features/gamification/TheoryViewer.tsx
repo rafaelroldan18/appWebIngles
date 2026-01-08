@@ -8,6 +8,7 @@
 
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Sparkles, X, BookOpen, Minimize2, Maximize2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TheoryViewerProps {
     title: string;
@@ -16,18 +17,19 @@ interface TheoryViewerProps {
 }
 
 export default function TheoryViewer({ title, content, onClose }: TheoryViewerProps) {
+    const { t } = useLanguage();
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
 
     // Process the content for display
     const renderedContent = useMemo(() => {
-        if (!content) return { html: 'No hay contenido disponible.', css: '' };
+        if (!content) return { html: t.student.theory.noContentAvailable, css: '' };
 
         if (typeof content === 'string') {
             try {
                 const parsed = JSON.parse(content);
                 return {
-                    html: parsed.html || 'No se pudo cargar el diseño.',
+                    html: parsed.html || t.student.theory.couldNotLoadDesign,
                     css: parsed.css || ''
                 };
             } catch (e) {
@@ -36,10 +38,10 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
         }
 
         return {
-            html: content.html || 'No se pudo cargar el diseño.',
+            html: content.html || t.student.theory.couldNotLoadDesign,
             css: content.css || ''
         };
-    }, [content]);
+    }, [content, t]);
 
     // Adapt content scale to fix exactly in the modal width
     useEffect(() => {
@@ -72,17 +74,17 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                             <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
                         </div>
                         <div>
-                            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-1 opacity-80">
-                                <Sparkles className="w-2 h-2" /> REPASO RÁPIDO
+                            <span className="text-[10px] font-black text-indigo-400 flex items-center gap-1 opacity-80 mb-0.5">
+                                <Sparkles className="w-3 h-3" /> {t.student.theory.quickReview}
                             </span>
-                            <h2 className="text-sm font-black tracking-tight uppercase leading-none">{title}</h2>
+                            <h2 className="text-xl font-bold tracking-tight leading-none text-white">{title}</h2>
                         </div>
                     </div>
 
                     <button
                         onClick={onClose}
                         className="p-1.5 hover:bg-white/10 rounded-full transition-colors group"
-                        title="Cerrar"
+                        title={t.student.theory.close}
                     >
                         <X className="w-5 h-5 text-slate-400 group-hover:text-white" />
                     </button>
@@ -132,20 +134,20 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                 <div className="bg-white px-5 py-3 border-t border-slate-100 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         {scale < 1 ? (
-                            <span className="text-[8px] font-black text-slate-400 uppercase bg-slate-100 px-2 py-0.5 rounded">
-                                Vista adaptada al {Math.round(scale * 100)}%
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                                {t.student.theory.adaptedView.replace('{percentage}', Math.round(scale * 100).toString())}
                             </span>
                         ) : (
-                            <span className="text-[8px] font-black text-green-500 uppercase bg-green-50 px-2 py-0.5 rounded">
-                                Vista original
+                            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                {t.student.theory.originalView}
                             </span>
                         )}
                     </div>
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-slate-900 text-white rounded-lg font-black text-[9px] hover:bg-indigo-600 transition-all active:scale-95 shadow-sm uppercase tracking-widest"
+                        className="px-6 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-indigo-600 transition-all active:scale-95 shadow-sm"
                     >
-                        Cerrar Repaso
+                        {t.student.theory.closeReview}
                     </button>
                 </div>
             </div>

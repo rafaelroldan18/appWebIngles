@@ -500,6 +500,14 @@ export class CityExplorerScene extends Phaser.Scene {
 
             if (this.sessionManager) {
                 this.sessionManager.updateScore(points, true);
+                this.sessionManager.recordItem({
+                    id: this.currentTarget?.name || 'unknown',
+                    text: this.currentQuestion.text,
+                    result: 'correct',
+                    user_input: this.currentQuestion.options[answerIndex],
+                    correct_answer: this.currentQuestion.options[this.currentQuestion.correctAnswer],
+                    time_ms: 0
+                });
             }
 
             this.showFeedback('✓ Correct!', '#10b981');
@@ -510,6 +518,14 @@ export class CityExplorerScene extends Phaser.Scene {
 
             if (this.sessionManager) {
                 this.sessionManager.updateScore(penalty, false);
+                this.sessionManager.recordItem({
+                    id: this.currentTarget?.name || 'unknown',
+                    text: this.currentQuestion.text,
+                    result: 'wrong',
+                    user_input: this.currentQuestion.options[answerIndex],
+                    correct_answer: this.currentQuestion.options[this.currentQuestion.correctAnswer],
+                    time_ms: 0
+                });
             }
 
             this.showFeedback('✗ Wrong!', '#ef4444');
@@ -565,18 +581,6 @@ export class CityExplorerScene extends Phaser.Scene {
         if (this.gameTimer) this.gameTimer.remove();
 
         // End session
-        if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession({
-                    locationsFound: this.locationsFound,
-                    correctAnswers: this.correctAnswers,
-                    wrongAnswers: this.wrongAnswers,
-                    questionsAnswered: this.correctAnswers + this.wrongAnswers,
-                });
-            } catch (error) {
-                console.error('Error ending session:', error);
-            }
-        }
 
         // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
@@ -593,9 +597,20 @@ export class CityExplorerScene extends Phaser.Scene {
 
         // Emit event delayed
         this.time.delayedCall(2000, () => {
+            const sessionData = this.sessionManager?.getSessionData();
             this.events.emit('gameOver', {
-                score: this.score,
-                sessionData: this.sessionManager?.getSessionData(),
+                scoreRaw: this.score,
+                correctCount: sessionData?.correctCount || 0,
+                wrongCount: sessionData?.wrongCount || 0,
+                durationSeconds: this.sessionManager?.getDuration() || 0,
+                answers: sessionData?.items.map(item => ({
+                    item_id: item.id,
+                    prompt: item.text,
+                    student_answer: item.user_input || '',
+                    correct_answer: item.correct_answer || '',
+                    is_correct: item.result === 'correct',
+                    meta: { time_ms: item.time_ms }
+                })) || []
             });
         });
     }

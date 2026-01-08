@@ -69,23 +69,23 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
 
     // Validations
     if (!firstName.trim() || !lastName.trim()) {
-      setError('Nombre y apellido son obligatorios');
+      setError(t.admin.firstNameLastNameRequired);
       return;
     }
 
     // If student, parallel is required
     if (selectedRole === 'estudiante' && !selectedParallel) {
-      setError('Debe seleccionar un paralelo para el estudiante');
+      setError(t.admin.parallelRequiredForStudent);
       return;
     }
 
     // If teacher, at least one parallel is required
     if (selectedRole === 'docente' && selectedParallels.length === 0) {
-      setError('Debe seleccionar al menos un paralelo para el docente');
+      setError(t.admin.atLeastOneParallelRequired);
       return;
     }
 
-    if (!confirm(`¿Estás seguro de guardar los cambios?`)) {
+    if (!confirm(t.admin.confirmSaveChanges)) {
       return;
     }
 
@@ -109,7 +109,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al actualizar usuario');
+      setError(err instanceof Error ? err.message : t.admin.errorUpdateUser);
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <UserCog className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-white">Editar Usuario</h2>
+            <h2 className="text-xl font-bold text-white">{t.admin.editUser}</h2>
           </div>
           <button
             onClick={onClose}
@@ -135,7 +135,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
           <div className="mb-5 p-4 bg-slate-50 dark:bg-gray-700 rounded-lg border border-slate-200 dark:border-gray-600">
-            <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">Email (no editable)</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400 mb-1">{t.admin.emailNotEditable}</p>
             <p className="text-sm font-semibold text-slate-800 dark:text-white">{user.email}</p>
           </div>
 
@@ -143,14 +143,14 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             {/* First Name */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Nombre <span className="text-red-500">*</span>
+                {t.admin.firstNameRequired} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-                placeholder="Nombre del usuario"
+                placeholder={t.admin.firstNamePlaceholder}
                 required
               />
             </div>
@@ -158,14 +158,14 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             {/* Last Name */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Apellido <span className="text-red-500">*</span>
+                {t.admin.lastNameRequired} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
-                placeholder="Apellido del usuario"
+                placeholder={t.admin.lastNamePlaceholder}
                 required
               />
             </div>
@@ -173,7 +173,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             {/* Role */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Rol <span className="text-red-500">*</span>
+                {t.admin.roleRequired} <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedRole}
@@ -190,7 +190,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
               >
                 {roles.map((role) => (
                   <option key={role} value={role}>
-                    {role === 'estudiante' ? 'Estudiante' : 'Docente'}
+                    {role === 'estudiante' ? t.roles.student : t.roles.teacher}
                   </option>
                 ))}
               </select>
@@ -200,11 +200,11 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             {selectedRole === 'estudiante' && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                  Paralelo <span className="text-red-500">*</span>
+                  {t.admin.parallelRequired} <span className="text-red-500">*</span>
                 </label>
                 {loadingParallels ? (
                   <div className="text-sm text-slate-500 dark:text-gray-400 py-2">
-                    Cargando paralelos...
+                    {t.admin.loadingParallels}
                   </div>
                 ) : (
                   <>
@@ -214,7 +214,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                       className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
                       required
                     >
-                      <option value="">Seleccionar paralelo...</option>
+                      <option value="">{t.admin.selectParallel}</option>
                       {parallels.map((parallel) => (
                         <option key={parallel.parallel_id} value={parallel.parallel_id}>
                           {parallel.name} - {parallel.academic_year}
@@ -222,7 +222,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                       ))}
                     </select>
                     <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
-                      El estudiante será asignado a este paralelo
+                      {t.admin.studentAssignedToParallel}
                     </p>
                   </>
                 )}
@@ -233,11 +233,11 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
             {selectedRole === 'docente' && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                  Paralelos <span className="text-red-500">*</span>
+                  {t.admin.parallelsRequired} <span className="text-red-500">*</span>
                 </label>
                 {loadingParallels ? (
                   <div className="text-sm text-slate-500 dark:text-gray-400 py-2">
-                    Cargando paralelos...
+                    {t.admin.loadingParallels}
                   </div>
                 ) : (
                   <>
@@ -247,7 +247,7 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                       }`}>
                       {parallels.length === 0 ? (
                         <p className="text-sm text-slate-500 dark:text-gray-400 text-center py-4">
-                          No hay paralelos disponibles
+                          {t.admin.noParallelsAvailable}
                         </p>
                       ) : (
                         <div className="space-y-2">
@@ -271,11 +271,11 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                       )}
                     </div>
                     <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
-                      Selecciona al menos un paralelo. El docente tendrá acceso a todos los paralelos seleccionados.
+                      {t.admin.selectAtLeastOneParallel}
                     </p>
                     {selectedParallels.length > 0 && (
                       <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        ✓ {selectedParallels.length} paralelo(s) seleccionado(s)
+                        ✓ {selectedParallels.length} {t.admin.parallelsSelected}
                       </p>
                     )}
                   </>
@@ -296,14 +296,14 @@ export function CambiarRolModal({ user, onClose, onSuccess }: Props) {
                 className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
                 disabled={loading}
               >
-                Cancelar
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
                 className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 active:scale-98"
                 disabled={loading || loadingParallels}
               >
-                {loading ? 'Guardando...' : 'Guardar Cambios'}
+                {loading ? t.admin.saving : t.admin.saveChanges}
               </button>
             </div>
           </form>

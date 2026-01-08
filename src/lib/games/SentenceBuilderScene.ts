@@ -5,7 +5,7 @@
 
 import Phaser from 'phaser';
 import { SENTENCE_BUILDER_CONFIG } from './sentenceBuilder.config';
-import type { GameContent } from '@/types';
+import type { GameContent, MissionConfig } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 
 interface WordCard {
@@ -32,6 +32,10 @@ export class SentenceBuilderScene extends Phaser.Scene {
     private currentSentence: string[] = [];
     private score: number = 0;
     private timeRemaining: number = 0;
+    private missionTitle: string = '';
+    private missionInstructions: string = '';
+    private missionConfig: MissionConfig | null = null;
+    private isPaused: boolean = false;
     private sentenceTimeRemaining: number = 0;
     private hintsUsed: number = 0;
     private isCheckingAnswer: boolean = false;
@@ -64,13 +68,24 @@ export class SentenceBuilderScene extends Phaser.Scene {
         super({ key: 'SentenceBuilderScene' });
     }
 
-    init(data: { words: GameContent[]; sessionManager: GameSessionManager }) {
+    init(data: {
+        words: GameContent[];
+        sessionManager: GameSessionManager;
+        missionTitle?: string;
+        missionInstructions?: string;
+        missionConfig?: MissionConfig;
+    }) {
         this.gameContent = data.words || [];
         this.sessionManager = data.sessionManager || null;
+        this.missionTitle = data.missionTitle || '';
+        this.missionInstructions = data.missionInstructions || '';
+        this.missionConfig = data.missionConfig || null;
+
         this.currentSentenceIndex = 0;
         this.score = 0;
-        this.timeRemaining = SENTENCE_BUILDER_CONFIG.gameplay.gameDuration;
+        this.timeRemaining = this.missionConfig?.time_limit_seconds || SENTENCE_BUILDER_CONFIG.gameplay.gameDuration;
         this.isGameOver = false;
+        this.isPaused = false;
         this.wordCards = [];
         this.slots = [];
     }
@@ -132,6 +147,14 @@ export class SentenceBuilderScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(1, 0);
 
+        // Sentence Timer (Sub-timer)
+        this.sentenceTimerText = this.add.text(width / 2, 45, '', {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#f87171',
+            fontStyle: 'bold'
+        }).setOrigin(0.5, 0);
+
         // Instruction below HUD
         this.instructionText = this.add.text(width / 2, topBarHeight + 30, 'DRAG WORDS TO BUILD THE SENTENCE', {
             fontSize: '18px',
@@ -141,12 +164,75 @@ export class SentenceBuilderScene extends Phaser.Scene {
             align: 'center'
         }).setOrigin(0.5);
 
-        // Sentence Timer (Small)
-        this.sentenceTimerText = this.add.text(width / 2, topBarHeight + 60, '', {
-            fontSize: '16px',
-            fontFamily: 'Arial',
-            color: '#f59e0b',
+        // Help Button
+        if (this.missionConfig?.hud_help_enabled) {
+            const helpBtnX = width - 100;
+            const helpBtnBg = this.add.circle(helpBtnX, 30, 20, 0x1e293b, 0.8)
+                .setDepth(100)
+                .setStrokeStyle(2, 0x8b5cf6, 0.5);
+
+            const helpText = this.add.text(helpBtnX, 30, '?', {
+                fontSize: '18px',
+                fontFamily: 'Arial Black',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+
+            helpText.on('pointerdown', () => this.showHelpPanel());
+        }
+    }
+
+    private togglePause() {
+        if (this.isGameOver) return;
+        this.isPaused = !this.isPaused;
+
+        if (this.isPaused) {
+            if (this.gameTimer) this.gameTimer.paused = true;
+            if (this.sentenceTimer) this.sentenceTimer.paused = true;
+            this.tweens.pauseAll();
+            this.input.enabled = false;
+        } else {
+            if (this.gameTimer) this.gameTimer.paused = false;
+            if (this.sentenceTimer) this.sentenceTimer.paused = false;
+            this.tweens.resumeAll();
+            this.input.enabled = true;
+        }
+    }
+
+    private showHelpPanel() {
+        if (this.isGameOver) return;
+        const wasPaused = this.isPaused;
+        if (!wasPaused) this.togglePause();
+
+        const { width, height } = this.cameras.main;
+        const panel = this.add.container(0, 0).setDepth(1000);
+
+        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+        dim.setInteractive();
+
+        const bg = this.add.rectangle(width / 2, height / 2, 450, 300, 0x1e293b).setStrokeStyle(2, 0x3b82f6);
+
+        const title = this.add.text(width / 2, height / 2 - 100, 'INSTRUCCIONES', {
+            fontSize: '24px', fontStyle: 'bold', color: '#ffffff'
         }).setOrigin(0.5);
+
+        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions || 'Construye la oración correcta.', {
+            fontSize: '16px', color: '#e2e8f0', align: 'center', wordWrap: { width: 380 }
+        }).setOrigin(0.5);
+
+        const closeBtnBg = this.add.rectangle(width / 2, height / 2 + 100, 150, 40, 0x3b82f6)
+            .setInteractive({ useHandCursor: true });
+
+        const closeBtnText = this.add.text(width / 2, height / 2 + 100, 'CERRAR', {
+            fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+
+        closeBtnBg.on('pointerdown', () => {
+            panel.destroy();
+            if (!wasPaused) this.togglePause();
+        });
+
+        panel.add([dim, bg, title, instructions, closeBtnBg, closeBtnText]);
     }
 
     private startCountdown() {
@@ -575,13 +661,13 @@ export class SentenceBuilderScene extends Phaser.Scene {
         const isCorrect = builtSentence.join(' ') === this.currentSentence.join(' ');
 
         if (isCorrect) {
-            this.handleCorrectAnswer();
+            this.handleCorrectAnswer(builtSentence.join(' '));
         } else {
-            this.handleIncorrectAnswer();
+            this.handleIncorrectAnswer(builtSentence.join(' '));
         }
     }
 
-    private handleCorrectAnswer() {
+    private handleCorrectAnswer(builtSentence: string) {
         const timeBonus = Math.floor(this.sentenceTimeRemaining / 5) * SENTENCE_BUILDER_CONFIG.scoring.timeBonus;
         const points = SENTENCE_BUILDER_CONFIG.scoring.perfectSentence + timeBonus;
 
@@ -589,6 +675,14 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, true);
+            this.sessionManager.recordItem({
+                id: this.gameContent[this.currentSentenceIndex].content_id,
+                text: this.currentSentence.join(' '),
+                result: 'correct',
+                user_input: builtSentence,
+                correct_answer: this.currentSentence.join(' '),
+                time_ms: 0
+            });
         }
 
         // Visual feedback
@@ -601,9 +695,17 @@ export class SentenceBuilderScene extends Phaser.Scene {
         this.showNextButton();
     }
 
-    private handleIncorrectAnswer() {
+    private handleIncorrectAnswer(builtSentence: string) {
         if (this.sessionManager) {
             this.sessionManager.updateScore(0, false);
+            this.sessionManager.recordItem({
+                id: this.gameContent[this.currentSentenceIndex].content_id,
+                text: this.currentSentence.join(' '),
+                result: 'wrong',
+                user_input: builtSentence,
+                correct_answer: this.currentSentence.join(' '),
+                time_ms: 0
+            });
         }
 
         // Visual feedback
@@ -695,16 +797,6 @@ export class SentenceBuilderScene extends Phaser.Scene {
         this.clearSentence();
 
         // End session
-        if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession({
-                    sentencesCompleted: this.currentSentenceIndex - 1,
-                    hintsUsed: this.hintsUsed,
-                });
-            } catch (error) {
-                console.error('Error ending session:', error);
-            }
-        }
 
         // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
@@ -721,9 +813,20 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         // Emit event delayed
         this.time.delayedCall(2000, () => {
+            const sessionData = this.sessionManager?.getSessionData();
             this.events.emit('gameOver', {
-                score: this.score,
-                sessionData: this.sessionManager?.getSessionData(),
+                scoreRaw: this.score,
+                correctCount: sessionData?.correctCount || 0,
+                wrongCount: sessionData?.wrongCount || 0,
+                durationSeconds: this.sessionManager?.getDuration() || 0,
+                answers: sessionData?.items.map(item => ({
+                    item_id: item.id,
+                    prompt: item.text,
+                    student_answer: item.user_input || '',
+                    correct_answer: item.correct_answer || '',
+                    is_correct: item.result === 'correct',
+                    meta: { time_ms: item.time_ms }
+                })) || []
             });
         });
     }

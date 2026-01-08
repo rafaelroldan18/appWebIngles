@@ -2,7 +2,17 @@
  * GameSessionManager - Manages game session lifecycle and score tracking
  */
 
-import type { GameSession } from '@/types';
+import type { GameSession, GameSessionDetails } from '@/types';
+import { MissionEvaluator } from '../gamification/MissionEvaluator';
+
+export interface SessionItem {
+    id: string;
+    text: string;
+    result: 'correct' | 'wrong' | 'missed';
+    user_input?: string;
+    correct_answer?: string;
+    time_ms: number;
+}
 
 export interface SessionData {
     studentId: string;
@@ -11,7 +21,7 @@ export interface SessionData {
     score: number;
     correctCount: number;
     wrongCount: number;
-    details: any;
+    items: SessionItem[];
     startTime: number;
 }
 
@@ -28,7 +38,7 @@ export class GameSessionManager {
             score: 0,
             correctCount: 0,
             wrongCount: 0,
-            details: {},
+            items: [],
             startTime: Date.now(),
         };
     }
@@ -82,6 +92,13 @@ export class GameSessionManager {
     }
 
     /**
+     * Record a specific item interaction
+     */
+    recordItem(item: SessionItem): void {
+        this.sessionData.items.push(item);
+    }
+
+    /**
      * Get current session data
      */
     getSessionData(): SessionData {
@@ -106,27 +123,44 @@ export class GameSessionManager {
 
         try {
             const duration = this.getDuration();
+            const accuracy = this.calculateAccuracy();
+
+            // Map session items to standardized answers format
+            const answers: GameSessionDetails['answers'] = this.sessionData.items.map(item => ({
+                item_id: item.id,
+                prompt: item.text,
+                student_answer: item.user_input || '',
+                correct_answer: item.correct_answer || '',
+                is_correct: item.result === 'correct',
+                meta: { time_ms: item.time_ms }
+            }));
+
+            const details = MissionEvaluator.generateStandardizedDetails(
+                this.sessionData.score,
+                accuracy,
+                this.sessionData.correctCount,
+                this.sessionData.wrongCount,
+                duration,
+                answers
+            );
 
             const response = await fetch(`/api/games/sessions/${this.sessionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    score: Math.max(0, this.sessionData.score), // Ensure non-negative
+                    score: details.summary.score_final, // Enviar puntaje final (con multiplicador)
                     completed: true,
                     duration_seconds: duration,
                     correct_count: this.sessionData.correctCount,
                     wrong_count: this.sessionData.wrongCount,
-                    details: {
-                        ...this.sessionData.details,
-                        ...additionalDetails,
-                        finalScore: this.sessionData.score,
-                        accuracy: this.calculateAccuracy(),
-                    },
+                    details: details,
                 }),
             });
 
             if (!response.ok) {
-                throw new Error('Failed to end game session');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Failed to end session. Server response:', errorData);
+                throw new Error(`Failed to end game session: ${errorData.error || response.statusText}`);
             }
 
             this.isSessionActive = false;
@@ -143,6 +177,15 @@ export class GameSessionManager {
         const total = this.sessionData.correctCount + this.sessionData.wrongCount;
         if (total === 0) return 0;
         return Math.round((this.sessionData.correctCount / total) * 100);
+    }
+
+    /**
+     * Calculate average time per item
+     */
+    private calculateAvgTime(): number {
+        if (this.sessionData.items.length === 0) return 0;
+        const totalTime = this.sessionData.items.reduce((acc, item) => acc + item.time_ms, 0);
+        return Math.round(totalTime / this.sessionData.items.length);
     }
 
     /**

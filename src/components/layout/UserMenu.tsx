@@ -103,7 +103,7 @@ export function UserMenu({ usuario, onLogout, onProfile, onSettings, onReports, 
               >
                 <BarChart3 className="w-5 h-5" />
                 <span className="font-medium">
-                  {usuario.role === 'docente' ? 'Reportes' : 'Mis Estadísticas'}
+                  {usuario.role === 'docente' ? t.nav.reports : t.student.dashboard.myStats}
                 </span>
               </button>
             )}

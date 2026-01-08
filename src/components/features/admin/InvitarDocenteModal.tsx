@@ -68,7 +68,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
 
     // Validate parallel selection - at least one required
     if (selectedParallels.length === 0) {
-      setError('Debe seleccionar al menos un paralelo para el docente');
+      setError(t.invitations.messages.parallelRequiredForTeacher);
       return;
     }
 
@@ -88,7 +88,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
         setShowSuccess(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear invitación');
+      setError(err instanceof Error ? err.message : t.invitations.messages.errorCreateInvitation);
     } finally {
       setLoading(false);
     }
@@ -110,12 +110,12 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <UserPlus className="w-5 h-5 text-white" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-bold text-white">
-              {showSuccess ? 'Invitación Creada' : 'Invitar Docente'}
+              {showSuccess ? t.invitations.successTitle : t.invitations.createTitleTeacher}
             </h3>
           </div>
           <button
             onClick={handleClose}
-            aria-label="Cerrar"
+            aria-label={t.common.close}
             className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors focus:outline-none focus:ring-4 focus:ring-white/50 active:scale-90"
           >
             <X className="w-5 h-5 text-white" aria-hidden="true" />
@@ -130,29 +130,29 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                   <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" aria-hidden="true" />
                 </div>
                 <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
-                  ¡Invitación enviada con éxito!
+                  {t.invitations.messages.successIndividual}
                 </h4>
                 <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
-                  Se ha enviado un correo electrónico a {validation.values.email} con el enlace de registro.
+                  {t.invitations.messages.sentTo} {validation.values.email} con el enlace de registro.
                 </p>
                 {selectedParallels.length > 0 && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left mb-4">
                     <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
                       <Users className="w-4 h-4" aria-hidden="true" />
-                      Paralelos asignados: {selectedParallels.length}
+                      {t.invitations.messages.parallelsAssigned}: {selectedParallels.length}
                     </p>
                     <p className="text-xs text-blue-700 dark:text-blue-300">
-                      El docente tendrá acceso a los paralelos seleccionados una vez active su cuenta.
+                      {t.invitations.messages.teacherWillHaveAccess}
                     </p>
                   </div>
                 )}
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left">
                   <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-2">
                     <Mail className="w-4 h-4" aria-hidden="true" />
-                    IMPORTANTE
+                    {t.invitations.messages.important}
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    El invitado debe revisar su correo electrónico (incluyendo la carpeta de spam) y seguir las instrucciones para completar su registro.
+                    {t.invitations.messages.importantNote}
                   </p>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                 onClick={handleClose}
                 className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
               >
-                Cerrar
+                {t.common.close}
               </button>
             </div>
           ) : (
@@ -176,7 +176,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <div>
                 <input
                   type="text"
-                  placeholder="Nombre"
+                  placeholder={t.invitations.form.name}
                   value={validation.values.first_name}
                   onChange={(e) => validation.handleChange('first_name', e.target.value)}
                   onBlur={() => validation.handleBlur('first_name')}
@@ -195,7 +195,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <div>
                 <input
                   type="text"
-                  placeholder="Apellido"
+                  placeholder={t.invitations.form.lastName}
                   value={validation.values.last_name}
                   onChange={(e) => validation.handleChange('last_name', e.target.value)}
                   onBlur={() => validation.handleBlur('last_name')}
@@ -214,7 +214,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <div>
                 <input
                   type="text"
-                  placeholder="Cédula"
+                  placeholder={t.invitations.form.idCard}
                   value={validation.values.id_card}
                   onChange={(e) => validation.handleChange('id_card', e.target.value)}
                   onBlur={() => validation.handleBlur('id_card')}
@@ -233,7 +233,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               <div>
                 <input
                   type="email"
-                  placeholder="Correo Electrónico"
+                  placeholder={t.invitations.form.email}
                   value={validation.values.email}
                   onChange={(e) => validation.handleChange('email', e.target.value)}
                   onBlur={() => validation.handleBlur('email')}
@@ -252,7 +252,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
               {/* Parallels Selection - Multiple */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                  Paralelos <span className="text-red-500">*</span>
+                  {t.invitations.form.parallels} <span className="text-red-500">*</span>
                 </label>
                 <div className={`border rounded-lg p-3 bg-white dark:bg-gray-700 max-h-48 overflow-y-auto ${selectedParallels.length === 0 && error
                     ? 'border-red-500'
@@ -260,7 +260,7 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                   }`}>
                   {parallels.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-gray-400 text-center py-4">
-                      No hay paralelos disponibles
+                      {t.admin.noParallelsAvailable}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -284,40 +284,40 @@ export default function InvitarDocenteModal({ onClose, onSuccess }: InvitarDocen
                   )}
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
-                  Selecciona al menos un paralelo. El docente tendrá acceso a todos los paralelos seleccionados.
+                  {t.invitations.form.teacherAssignmentNote}
                 </p>
                 {selectedParallels.length > 0 && (
                   <p className="mt-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                    ✓ {selectedParallels.length} paralelo(s) seleccionado(s)
+                    ✓ {selectedParallels.length} {t.admin.parallelsSelected}
                   </p>
                 )}
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-start gap-2">
-                  <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-                  <p className="text-xs text-blue-800 dark:text-blue-300">
-                    Se enviará un correo electrónico con un código de invitación al docente para que active su cuenta.
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <p className="text-xs text-blue-800 dark:text-blue-300">
+                      {t.invitations.form.teacherEmailNote}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-4 focus:ring-slate-300"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
-                >
-                  {loading ? 'Enviando...' : 'Enviar Invitación'}
-                </button>
-              </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-4 focus:ring-slate-300"
+                  >
+                    {t.common.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-blue-300 active:scale-95"
+                  >
+                    {loading ? t.invitations.form.sending : t.invitations.form.send}
+                  </button>
+                </div>
             </form>
           )}
         </div>

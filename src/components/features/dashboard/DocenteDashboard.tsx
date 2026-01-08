@@ -17,7 +17,8 @@ import {
   Mail,
   UserPlus,
   GraduationCap,
-  Trophy
+  Trophy,
+  ArrowLeft
 } from 'lucide-react';
 import LogoutModal from '@/components/ui/LogoutModal';
 import GestionarEstudiantes from '@/components/features/admin/GestionarEstudiantes';
@@ -27,6 +28,7 @@ import EstudianteDashboard from './EstudianteDashboard';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 import GameManager from '@/components/features/gamification/GameManager';
 import ReportDashboard from '@/components/features/reports/ReportDashboard';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses, getButtonInfoClasses } from '@/config/colors';
@@ -35,6 +37,8 @@ import type { Parallel } from '@/types/parallel.types';
 interface Actividad {
   id_actividad: string;
   titulo: string;
+  tema?: string;
+  mission_title?: string;
   tipo: string;
   nivel_dificultad: string;
   fecha_creacion: string;
@@ -109,7 +113,9 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         // Flatten and process missions
         const allMissions: Actividad[] = missionsResults.flat().map((mission: any) => ({
           id_actividad: mission.availability_id,
-          titulo: mission.topics?.title || 'Misión sin título',
+          titulo: mission.mission_title || mission.topics?.title || 'Misión sin título',
+          mission_title: mission.mission_title,
+          tema: mission.topics?.title,
           tipo: mission.game_types?.name || 'Juego',
           nivel_dificultad: mission.is_active ? 'activo' : 'inactivo',
           fecha_creacion: mission.available_from
@@ -176,15 +182,15 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="pr-1 sm:pr-2">
-              <p className="font-bold text-xs sm:text-sm">Vista Previa</p>
-              <p className="text-[10px] sm:text-xs text-blue-100">Modo Estudiante</p>
+              <p className="font-bold text-xs sm:text-sm">{t.vistaPrevia}</p>
+              <p className="text-tiny sm:text-xs text-blue-100">{t.modoEstudiante}</p>
             </div>
             <button
               onClick={handleExitPreview}
               disabled={isTransitioning}
               className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50"
             >
-              Salir
+              {t.salir}
             </button>
           </div>
         </div>
@@ -211,20 +217,23 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               <p className={`hidden sm:block text-sm ${colors.text.secondary}`}>{t.panelDocente}</p>
             </div>
           </button>
-          <UserMenu
-            usuario={usuario!}
-            onProfile={() => setCurrentView('profile')}
-            onSettings={() => setCurrentView('settings')}
-            onReports={() => setCurrentView('reports')}
-            onLogout={() => setShowLogoutModal(true)}
-            onViewAsStudent={() => {
-              setIsTransitioning(true);
-              setTimeout(() => {
-                setIsStudentView(true);
-                setIsTransitioning(false);
-              }, 300);
-            }}
-          />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserMenu
+              usuario={usuario!}
+              onProfile={() => setCurrentView('profile')}
+              onSettings={() => setCurrentView('settings')}
+              onReports={() => setCurrentView('reports')}
+              onLogout={() => setShowLogoutModal(true)}
+              onViewAsStudent={() => {
+                setIsTransitioning(true);
+                setTimeout(() => {
+                  setIsStudentView(true);
+                  setIsTransitioning(false);
+                }, 300);
+              }}
+            />
+          </div>
         </div>
       </nav>
 
@@ -236,6 +245,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <ReportDashboard
             teacherId={usuario?.user_id || ''}
+            teacherName={`${usuario?.first_name || ''} ${usuario?.last_name || ''}`.trim()}
             preSelectedParallel={reportParallelId}
             onBack={() => setCurrentView('dashboard')}
           />
@@ -243,8 +253,14 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       ) : currentView === 'gamification' ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold">Gestión de Gamificación</h2>
-            <button onClick={() => setCurrentView('dashboard')} className={getButtonSecondaryClasses()}>Volver</button>
+            <h2 className="text-2xl font-bold">{t.gestionGamificacion}</h2>
+            <button
+              onClick={() => setCurrentView('dashboard')}
+              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-sm transition-all border border-slate-200 shadow-sm hover:shadow-md"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t.volverPanel}</span>
+            </button>
           </div>
           <GameManager
             teacherId={usuario?.user_id || ''}
@@ -260,7 +276,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             <div className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 transition-all duration-300 ${notificationFading ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
               }`}>
               <div className={`${colors.background.card} px-4 py-2 rounded-lg shadow-lg border ${colors.border.light}`}>
-                <p className={`text-sm font-semibold ${colors.text.secondary}`}>Modo Docente</p>
+                <p className={`text-sm font-semibold ${colors.text.secondary}`}>{t.modoDocente}</p>
               </div>
             </div>
           )}
@@ -269,11 +285,11 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             {/* Header Dashboard: Bienvenida + Métricas Integradas */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-gray-800">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-1">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1">
                   {t.bienvenidoProfesor}, {usuario?.first_name}!
                 </h2>
                 <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded text-[10px] font-bold uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded text-tiny font-bold tracking-wider">
                     Docente
                   </div>
                   <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t.gestionaActividadesEstudiantes}</p>
@@ -283,30 +299,30 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
               {/* Métricas Ultra Compactas al estilo 'Data Bar' */}
               <div className="flex items-center gap-6 sm:gap-10 overflow-x-auto no-scrollbar py-1">
                 <div className="flex flex-col">
-                  <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.misParalelos}</p>
+                  <p className="text-tiny font-bold text-slate-400 tracking-tighter mb-0.5">{t.misParalelos}</p>
                   <div className="flex items-center gap-2">
                     <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{misParalelos.length}</span>
+                    <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{misParalelos.length}</span>
                   </div>
                 </div>
 
                 <div className="hidden sm:block w-px h-8 bg-slate-100 dark:bg-gray-800 shrink-0"></div>
 
                 <div className="flex flex-col">
-                  <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.estudiantes}</p>
+                  <p className="text-tiny font-bold text-slate-400 tracking-tighter mb-0.5">{t.estudiantes}</p>
                   <div className="flex items-center gap-2">
                     <Users className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.totalEstudiantes}</span>
+                    <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.totalEstudiantes}</span>
                   </div>
                 </div>
 
                 <div className="hidden sm:block w-px h-8 bg-slate-100 dark:bg-gray-800 shrink-0"></div>
 
                 <div className="flex flex-col">
-                  <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.totalActividades}</p>
+                  <p className="text-tiny font-bold text-slate-400 tracking-tighter mb-0.5">{t.totalActividades}</p>
                   <div className="flex items-center gap-2">
                     <BookOpen className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.totalActividades}</span>
+                    <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.totalActividades}</span>
                   </div>
                 </div>
               </div>
@@ -315,19 +331,11 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             {/* Acciones Rápidas: Barra de Herramientas Compacta */}
             <div className="flex flex-wrap items-center gap-3 mb-8">
               <button
-                onClick={() => setShowInviteStudent(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                onClick={() => setCurrentView('gamification')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
               >
-                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Invitar estudiante</span>
-              </button>
-
-              <button
-                onClick={() => setShowInvitations(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
-              >
-                <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Mis invitaciones</span>
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>{t.gamificacion}</span>
               </button>
 
               <button
@@ -335,7 +343,23 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                 className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95"
               >
                 <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Gestionar estudiantes</span>
+                <span>{t.gestionarEstudiantes}</span>
+              </button>
+
+              <button
+                onClick={() => setShowInviteStudent(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+              >
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>{t.invitarEstudiante}</span>
+              </button>
+
+              <button
+                onClick={() => setShowInvitations(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+              >
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>{t.misInvitaciones}</span>
               </button>
 
               <button
@@ -343,15 +367,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                 className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
               >
                 <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Reportes</span>
-              </button>
-
-              <button
-                onClick={() => setCurrentView('gamification')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
-              >
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Gamificación</span>
+                <span>{t.nav.reports}</span>
               </button>
             </div>
 
@@ -361,7 +377,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                 <div className={`w-10 h-10 bg-gradient-to-br ${colors.primary.gradient} ${colors.primary.gradientDark} rounded-lg flex items-center justify-center`}>
                   <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h3 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>Misiones Recientes</h3>
+                <h3 className={`text-lg sm:text-xl font-bold ${colors.text.title}`}>{t.actividadesRecientes}</h3>
               </div>
 
               {actividades.length === 0 ? (
@@ -369,8 +385,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                   <div className={`w-20 h-20 sm:w-24 sm:h-24 ${colors.status.neutral.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
                     <Trophy className={`w-10 h-10 sm:w-12 sm:h-12 ${colors.text.secondary}`} />
                   </div>
-                  <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>No has creado misiones aún</p>
-                  <p className={`${colors.text.secondary} text-sm max-w-sm mx-auto`}>Ve a la sección "Gamificación" para crear tu primera misión y desafiar a tus estudiantes.</p>
+                  <p className={`${colors.text.secondary} text-base sm:text-lg font-semibold mb-2`}>{t.noActividadesCreadas}</p>
+                  <p className={`${colors.text.secondary} text-sm max-w-sm mx-auto`}>{t.comenzarPrimeraActividad}</p>
                 </div>
               ) : (
                 <div className="relative group">
@@ -389,7 +405,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
                         <div className="relative z-10">
                           <div className="flex justify-between items-start mb-3">
-                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${actividad.nivel_dificultad === 'activo' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
+                            <span className={`px-2.5 py-1 rounded-lg text-tiny font-bold tracking-wider ${actividad.nivel_dificultad === 'activo' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-500'}`}>
                               {actividad.nivel_dificultad}
                             </span>
                             <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
@@ -397,12 +413,17 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                             </div>
                           </div>
 
-                          <h4 className={`text-lg font-black ${colors.text.title} mb-2 line-clamp-2 h-14`}>
+                          <h4 className={`text-lg font-bold ${colors.text.title} mb-2 line-clamp-2 h-14`}>
                             {actividad.titulo}
+                            {actividad.mission_title && actividad.tema && (
+                              <span className="text-slate-400 font-medium text-xs block mt-1 tracking-tight">
+                                ({actividad.tema})
+                              </span>
+                            )}
                           </h4>
 
                           <div className="flex items-center gap-2 mb-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${colors.status.info.bg} ${colors.status.info.text}`}>
+                            <span className={`px-2 py-0.5 rounded text-tiny font-bold ${colors.status.info.bg} ${colors.status.info.text}`}>
                               {actividad.tipo}
                             </span>
                           </div>
@@ -417,8 +438,8 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                                 setCurrentView('gamification');
                                 window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
-                              className="text-xs font-black text-indigo-600 hover:text-indigo-700 flex items-center gap-1 group-hover/card:gap-2 transition-all">
-                              VER DETALLES →
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 group-hover/card:gap-2 transition-all">
+                              {t.verDetalles} →
                             </button>
                           </div>
                         </div>
@@ -435,7 +456,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                       <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center group-hover/new:scale-110 transition-transform">
                         <PlusCircle className="w-6 h-6 text-indigo-600" />
                       </div>
-                      <span className="text-sm font-bold text-slate-500 dark:text-gray-400">Crear Nueva Misión</span>
+                      <span className="text-sm font-bold text-slate-500 dark:text-gray-400">{t.crearNuevaMision}</span>
                     </div>
                   </div>
                   {/* Subtle fade effect on sides */}

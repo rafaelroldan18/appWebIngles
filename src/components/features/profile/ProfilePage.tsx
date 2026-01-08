@@ -11,6 +11,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   const { usuario } = useAuth();
   const { t } = useLanguage();
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
   const getRolColor = () => {
     switch (usuario?.role) {
       case 'administrador': return colors.accent.danger.gradient;
@@ -53,7 +55,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             </h2>
 
             <span className={`inline-block px-4 py-2 bg-gradient-to-r ${getRolColor()} text-white rounded-full text-sm font-bold shadow-md mb-4`}>
-              {t.roles[usuario?.role as keyof typeof t.roles]?.toUpperCase() || usuario?.role.toUpperCase()}
+              {usuario?.role ? (t.roles[usuario.role as keyof typeof t.roles] ? capitalize(t.roles[usuario.role as keyof typeof t.roles]) : capitalize(usuario.role)) : ''}
             </span>
 
             <div className={`mt-6 pt-6 border-t-2 ${colors.border.light}`}>
@@ -86,7 +88,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <Mail className={`w-6 h-6 ${colors.primary.main}`} />
                 </div>
                 <div className="flex-1">
-                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.email}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.email}</p>
                   <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.email}</p>
                 </div>
               </div>
@@ -96,7 +98,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <IdCard className={`w-6 h-6 ${colors.secondary.main}`} />
                 </div>
                 <div className="flex-1">
-                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.idCard}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.idCard}</p>
                   <p className={`${colors.text.primary} font-semibold text-sm`}>{usuario?.id_card}</p>
                 </div>
               </div>
@@ -106,14 +108,14 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   <Shield className={`w-6 h-6 ${colors.text.secondary}`} />
                 </div>
                 <div className="flex-1">
-                  <p className={`text-xs ${colors.text.secondary} font-semibold uppercase tracking-wide`}>{t.profile.accountStatus}</p>
+                  <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.accountStatus}</p>
                   <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${usuario?.account_status === 'activo'
-                      ? `${colors.status.success.bg} ${colors.status.success.text}`
-                      : usuario?.account_status === 'pendiente'
-                        ? `${colors.status.info.bg} ${colors.status.info.text}`
-                        : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
+                    ? `${colors.status.success.bg} ${colors.status.success.text}`
+                    : usuario?.account_status === 'pendiente'
+                      ? `${colors.status.info.bg} ${colors.status.info.text}`
+                      : `${colors.status.neutral.bg} ${colors.status.neutral.text}`
                     }`}>
-                    {t.status[usuario?.account_status as keyof typeof t.status]?.toUpperCase() || usuario?.account_status.toUpperCase()}
+                    {usuario?.account_status ? (t.status[usuario.account_status as keyof typeof t.status] ? capitalize(t.status[usuario.account_status as keyof typeof t.status]) : capitalize(usuario.account_status)) : ''}
                   </span>
                 </div>
               </div>

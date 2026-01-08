@@ -24,6 +24,7 @@ import InvitacionesView from '@/components/features/admin/InvitacionesView';
 import ProfilePage from '@/components/features/profile/ProfilePage';
 import SettingsPage from '@/components/features/settings/SettingsPage';
 import { UserMenu } from '@/components/layout/UserMenu';
+import ThemeToggle from '@/components/layout/ThemeToggle';
 import { GestionarParalelos } from '@/components/features/admin/GestionarParalelos';
 import AdminStats from '@/components/features/reports/AdminStats';
 import { ParallelService } from '@/services/parallel.service';
@@ -90,13 +91,13 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
   };
 
   const deleteUser = async (userId: string) => {
-    if (confirm('¿Estás seguro de eliminar este usuario?')) {
+    if (confirm(t.admin.confirmDeleteUser)) {
       try {
         await UserService.delete(userId);
         loadData();
       } catch (error) {
         console.error('Error al eliminar:', error);
-        alert('Error al eliminar usuario');
+        alert(t.admin.errorDeleteUser);
       }
     }
   };
@@ -142,12 +143,15 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               <p className={`hidden sm:block text-sm ${colors.text.secondary}`}>{t.panelAdministracion}</p>
             </div>
           </button>
-          <UserMenu
-            usuario={usuario!}
-            onProfile={() => setCurrentView('profile')}
-            onSettings={() => setCurrentView('settings')}
-            onLogout={() => setShowLogoutModal(true)}
-          />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserMenu
+              usuario={usuario!}
+              onProfile={() => setCurrentView('profile')}
+              onSettings={() => setCurrentView('settings')}
+              onLogout={() => setShowLogoutModal(true)}
+            />
+          </div>
         </div>
       </nav>
 
@@ -164,12 +168,12 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
           {/* Header Dashboard: Bienvenida + Métricas Integradas */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-gray-800">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-1">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1">
                 {t.bienvenido}, {usuario?.first_name}!
               </h2>
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold uppercase tracking-wider">
-                  Admin
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold tracking-wider capitalize">
+                  {t.admin.admin}
                 </div>
                 <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t.panelAdministracionSistema}</p>
               </div>
@@ -181,7 +185,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                 <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.totalUsuarios}</p>
                 <div className="flex items-center gap-2">
                   <Users className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.totalUsuarios}</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.totalUsuarios}</span>
                 </div>
               </div>
 
@@ -191,7 +195,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                 <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.estudiantes}</p>
                 <div className="flex items-center gap-2">
                   <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.totalEstudiantes}</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.totalEstudiantes}</span>
                 </div>
               </div>
 
@@ -201,7 +205,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                 <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.docentes}</p>
                 <div className="flex items-center gap-2">
                   <Shield className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.totalDocentes}</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.totalDocentes}</span>
                 </div>
               </div>
 
@@ -211,7 +215,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                 <p className="text-[10px] font-bold text-slate-400 tracking-tighter mb-0.5">{t.activos}</p>
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-lg font-black text-slate-800 dark:text-white leading-none">{estadisticas.usuariosActivos}</span>
+                  <span className="text-lg font-bold text-slate-800 dark:text-white leading-none">{estadisticas.usuariosActivos}</span>
                 </div>
               </div>
             </div>
@@ -224,7 +228,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
             >
               <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Invitar docente</span>
+              <span>{t.admin.inviteTeacher}</span>
             </button>
 
             <button
@@ -232,7 +236,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
             >
               <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Invitar estudiante</span>
+              <span>{t.admin.inviteStudent}</span>
             </button>
 
             <button
@@ -240,7 +244,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95"
             >
               <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Mis invitaciones</span>
+              <span>{t.admin.myInvitations}</span>
             </button>
 
             <button
@@ -248,7 +252,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95"
             >
               <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />
-              <span>Reportes</span>
+              <span>{t.nav.reports}</span>
             </button>
 
             <button
@@ -256,7 +260,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
               className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm font-bold hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95"
             >
               <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Cursos</span>
+              <span>{t.admin.courses}</span>
             </button>
           </div>
 
@@ -280,10 +284,10 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                     <select
                       value={filtroRol}
                       onChange={(e) => setFiltroRol(e.target.value)}
-                      aria-label="Filtrar por rol"
+                      aria-label={t.admin.filterByRole}
                       className="px-3 sm:px-4 py-2 text-sm border-2 border-[#E5E7EB] dark:border-[#334155] rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-[#2B6BEE] dark:focus:border-[#6FA0FF] transition-all bg-white dark:bg-[#1E293B] text-[#374151] dark:text-[#F8FAFC]"
                     >
-                      <option value="todos">{t.todos} (Roles)</option>
+                      <option value="todos">{t.todos} ({t.admin.roles})</option>
                       <option value="estudiante">{t.estudiantes}</option>
                       <option value="docente">{t.docentes}</option>
                     </select>
@@ -291,10 +295,10 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                     <select
                       value={filtroParalelo}
                       onChange={(e) => setFiltroParalelo(e.target.value)}
-                      aria-label="Filtrar por paralelo"
+                      aria-label={t.admin.filterByParallel}
                       className="px-3 sm:px-4 py-2 text-sm border-2 border-[#E5E7EB] dark:border-[#334155] rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 focus:border-[#2B6BEE] dark:focus:border-[#6FA0FF] transition-all bg-white dark:bg-[#1E293B] text-[#374151] dark:text-[#F8FAFC]"
                     >
-                      <option value="todos">{t.todos} (Paralelos)</option>
+                      <option value="todos">{t.todos} ({t.admin.parallels})</option>
                       {paralelos.map(p => (
                         <option key={p.parallel_id} value={p.parallel_id}>
                           {p.name} - {p.academic_year}
@@ -303,7 +307,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                     </select>
                     <button
                       onClick={loadData}
-                      aria-label="Actualizar lista de usuarios"
+                      aria-label={t.admin.refreshList}
                       className={`px-3 sm:px-4 py-2 text-sm ${getButtonPrimaryClasses()} rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800 active:scale-95 transition-all whitespace-nowrap font-medium`}
                     >
                       {t.actualizar}
@@ -327,7 +331,7 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB]">{t.usuario}</th>
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB] hidden md:table-cell">{t.email}</th>
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB]">{t.rol}</th>
-                            <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB] hidden lg:table-cell">Paralelo</th>
+                            <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB] hidden lg:table-cell">{t.admin.parallel}</th>
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB]">{t.estado}</th>
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB] hidden xl:table-cell">{t.fechaRegistro}</th>
                             <th className="text-left py-3 px-4 text-xs sm:text-sm font-bold text-[#6B7280] dark:text-[#E5E7EB]">{t.acciones}</th>
@@ -377,8 +381,8 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                                 </td>
                                 <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden md:table-cell">{user.email}</td>
                                 <td className="py-4 px-4">
-                                  <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getRolColor(user.role)}`}>
-                                    {user.role === 'estudiante' ? t.roles.student.toUpperCase() : user.role === 'docente' ? t.roles.teacher.toUpperCase() : t.roles.admin.toUpperCase()}
+                                  <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold capitalize ${getRolColor(user.role)}`}>
+                                    {user.role === 'estudiante' ? t.roles.student : user.role === 'docente' ? t.roles.teacher : t.roles.admin}
                                   </span>
                                 </td>
                                 <td className="py-4 px-4 hidden lg:table-cell">
@@ -387,8 +391,8 @@ export default function AdministradorDashboard({ onLogout }: AdministradorDashbo
                                   </span>
                                 </td>
                                 <td className="py-4 px-4">
-                                  <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold ${getEstadoColor(user.account_status)}`}>
-                                    {user.account_status === 'activo' ? t.status.active.toUpperCase() : user.account_status === 'pendiente' ? t.status.pending.toUpperCase() : t.status.inactive.toUpperCase()}
+                                  <span className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold capitalize ${getEstadoColor(user.account_status)}`}>
+                                    {user.account_status === 'activo' ? t.status.active : user.account_status === 'pendiente' ? t.status.pending : t.status.inactive}
                                   </span>
                                 </td>
                                 <td className="py-4 px-4 text-[#6B7280] dark:text-[#E5E7EB] text-sm hidden xl:table-cell">

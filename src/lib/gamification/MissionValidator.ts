@@ -8,6 +8,7 @@ export interface MissionValidation {
     canPlay: boolean;
     reason?: string;
     attemptsRemaining?: number;
+    maxAttempts?: number;
     availabilityData?: any;
 }
 

@@ -146,11 +146,11 @@ export function ActivateAccountView() {
                   type="text"
                   value={code}
                   onChange={(e) => {
-                    setCode(e.target.value.toUpperCase());
+                    setCode(e.target.value);
                     setError('');
                   }}
                   placeholder="XXXXXXXX"
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white text-center text-2xl font-mono tracking-wider uppercase"
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white text-center text-2xl font-mono tracking-wider"
                   maxLength={8}
                 />
               </div>
@@ -184,7 +184,7 @@ export function ActivateAccountView() {
             <form onSubmit={handleActivate} className="space-y-5">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-xs text-blue-800 dark:text-blue-300">
-                  Activando cuenta como <span className="font-bold">{invitation.role === 'docente' ? 'DOCENTE' : 'ESTUDIANTE'}</span>
+                  Activando cuenta como <span className="font-bold">{invitation.role === 'docente' ? 'Docente' : 'Estudiante'}</span>
                 </p>
               </div>
 

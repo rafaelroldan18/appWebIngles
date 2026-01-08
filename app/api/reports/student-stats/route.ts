@@ -82,14 +82,18 @@ export async function GET(request: NextRequest) {
         const finalPoints = Math.max(totalPointsFromDB, calculatedPoints);
 
         // B. Game History
-        const history = sessionsData.map(s => ({
-            id: s.session_id,
-            game: gameTypeMap.get(s.game_type_id) || 'Juego',
-            topic: topicMap.get(s.topic_id) || 'Tema',
-            date: s.played_at,
-            score: s.score || 0,
-            result: s.completed ? 'completado' : 'fallido'
-        }));
+        const history = sessionsData.map(s => {
+            const mission = (missions || []).find(m => m.topic_id === s.topic_id && m.game_type_id === s.game_type_id);
+            return {
+                id: s.session_id,
+                game: gameTypeMap.get(s.game_type_id) || 'Juego',
+                topic: topicMap.get(s.topic_id) || 'Tema',
+                missionTitle: mission?.mission_title,
+                date: s.played_at,
+                score: s.score || 0,
+                result: s.completed ? 'completado' : 'fallido'
+            };
+        });
 
         // C. Performance by Topic
         const topicsPerformanceMap = new Map();
@@ -145,8 +149,11 @@ export async function GET(request: NextRequest) {
                 id: m.availability_id,
                 game: gameTypeMap.get(m.game_type_id) || 'Desconocido',
                 topic: topicMap.get(m.topic_id) || 'Desconocido',
+                missionTitle: m.mission_title,
                 status,
-                remainingAttempts
+                remainingAttempts,
+                createdAt: m.created_at,
+                activatedAt: m.activated_at
             };
         });
 

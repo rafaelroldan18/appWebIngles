@@ -3,6 +3,7 @@ import { X, UserPlus } from 'lucide-react';
 import { AuthService } from '@/services/auth.service';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { commonValidations } from '@/lib/utils/formValidation';
+import { useLanguage } from '@/contexts/LanguageContext';
 import FocusLock from 'react-focus-lock';
 
 interface AgregarUsuarioModalProps {
@@ -11,6 +12,7 @@ interface AgregarUsuarioModalProps {
 }
 
 export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuarioModalProps) {
+  const { t } = useLanguage();
   const [rol, setRol] = useState('estudiante');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,7 +59,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Error al crear usuario');
+      setError(err.message || t.admin.errorCreateUser);
     } finally {
       setLoading(false);
     }
@@ -92,7 +94,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                 <UserPlus className="w-5 h-5 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-white">Agregar Usuario</h2>
+              <h2 className="text-xl font-bold text-white">{t.admin.addUser}</h2>
             </div>
             <button
               onClick={onClose}
@@ -111,7 +113,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Nombre
+                {t.accountFirstName}
               </label>
               <input
                 type="text"
@@ -132,7 +134,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Apellido
+                {t.accountLastName}
               </label>
               <input
                 type="text"
@@ -153,7 +155,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Cédula
+                {t.loginIdCard}
               </label>
               <input
                 type="text"
@@ -174,7 +176,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Correo Electrónico
+                {t.loginEmail}
               </label>
               <input
                 type="email"
@@ -195,7 +197,7 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Contraseña
+                {t.loginPassword}
               </label>
               <input
                 type="password"
@@ -216,15 +218,15 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1.5">
-                Rol
+                {t.rol}
               </label>
               <select
                 value={rol}
                 onChange={(e) => setRol(e.target.value)}
                 className="w-full px-4 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white"
               >
-                <option value="estudiante">Estudiante</option>
-                <option value="docente">Docente</option>
+                <option value="estudiante">{t.roles.student}</option>
+                <option value="docente">{t.roles.teacher}</option>
               </select>
             </div>
 
@@ -234,14 +236,14 @@ export default function AgregarUsuarioModal({ onClose, onSuccess }: AgregarUsuar
                 onClick={onClose}
                 className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors"
               >
-                Cancelar
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 active:scale-98"
               >
-                {loading ? 'Creando...' : 'Crear Usuario'}
+                {loading ? t.admin.creating : t.admin.createUser}
               </button>
             </div>
           </form>

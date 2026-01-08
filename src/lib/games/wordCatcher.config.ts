@@ -23,14 +23,23 @@ export const WORD_CATCHER_CONFIG = {
         maxWordsOnScreen: 6,
     },
 
-    // Visual settings - ESTILO NEÓN
+    // Visual settings - ESTILO MODERNO Y PULIDO
     visual: {
-        backgroundColor: '#1e293b',
-        wordCorrectColor: '#00ff00', // Verde neón
-        wordIncorrectColor: '#ff0000', // Rojo neón
-        wordNeutralColor: '#ffffff',
-        fontSize: 22,
+        backgroundColor: '#0f172a', // Fondo más oscuro y elegante
+        wordCorrectColor: '#10b981', // Verde esmeralda moderno
+        wordIncorrectColor: '#ef4444', // Rojo coral moderno
+        wordNeutralColor: '#f8fafc', // Blanco suave
+        fontSize: 24, // Ligeramente más grande para mejor legibilidad
         fontFamily: 'Arial Black, sans-serif',
+        // Nuevos colores para UI mejorada
+        hudBackground: 'rgba(15, 23, 42, 0.9)', // Fondo HUD con transparencia
+        hudBorder: '#3b82f6', // Azul brillante para bordes
+        scoreColor: '#60a5fa', // Azul cielo para score
+        timerColor: '#fbbf24', // Amarillo dorado para timer
+        correctCountColor: '#34d399', // Verde menta para contador
+        textShadow: '#000000', // Sombra negra para contraste
+        glowColor: '#3b82f6', // Color de resplandor
+        particleColor: '#60a5fa', // Color de partículas
     },
 
     // Physics (Opcional si no usas motor de física arcade directo)

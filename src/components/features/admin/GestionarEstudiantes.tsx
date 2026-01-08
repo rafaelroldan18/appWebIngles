@@ -36,6 +36,8 @@ interface GestionarEstudiantesProps {
 export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesProps) {
   const { usuario } = useAuth();
   const { t } = useLanguage();
+
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   const [estudiantes, setEstudiantes] = useState<Usuario[]>([]);
   const [paralelos, setParalelos] = useState<Parallel[]>([]);
   const [filtroParalelo, setFiltroParalelo] = useState<string>('todos');
@@ -108,7 +110,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
   };
 
   const deleteStudent = async (userId: string) => {
-    if (confirm('¿Estás seguro de eliminar este estudiante?')) {
+    if (confirm(t.students.actions.confirmDelete)) {
       try {
         await UserService.delete(userId);
         loadData();
@@ -187,7 +189,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">{t.gestionarEstudiantes}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{t.students.title}</h2>
           </div>
           <button
             onClick={onClose}
@@ -206,7 +208,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
               onChange={(e) => setFiltroParalelo(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 transition-all text-sm font-medium"
             >
-              <option value="todos">Todos los Paralelos</option>
+              <option value="todos">{t.students.filters.allParallels}</option>
               {paralelos.map(p => (
                 <option key={p.parallel_id} value={p.parallel_id}>
                   {p.name} - {p.academic_year}
@@ -216,7 +218,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
           </div>
 
           <div className="text-sm font-medium text-slate-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-slate-200 dark:border-gray-700 shadow-sm">
-            Estudiantes: <span className="text-blue-600 dark:text-blue-400 font-bold">{filteredEstudiantes.length}</span>
+            {t.students.filters.count}: <span className="text-blue-600 dark:text-blue-400 font-bold">{filteredEstudiantes.length}</span>
           </div>
         </div>
 
@@ -225,16 +227,16 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
-              <p className="text-slate-500 dark:text-gray-400 font-medium">Cargando...</p>
+              <p className="text-slate-500 dark:text-gray-400 font-medium">{t.common.loading}</p>
             </div>
           ) : paralelos.length === 0 && usuario?.role === 'docente' ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-4">
                 <GraduationCap className="w-10 h-10 text-orange-600 dark:text-orange-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No tienes paralelos asignados</h3>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{t.students.list.emptyParallels}</h3>
               <p className="text-slate-500 dark:text-gray-400 max-w-md">
-                Para poder gestionar alumnos, un administrador debe asignarte uno o más paralelos académicos.
+                {t.students.list.emptyParallelsDesc}
               </p>
             </div>
           ) : filteredEstudiantes.length === 0 ? (
@@ -242,9 +244,9 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
               <div className="w-20 h-20 bg-slate-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-10 h-10 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No se encontraron estudiantes</h3>
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">{t.students.list.emptyStudents}</h3>
               <p className="text-slate-500 dark:text-gray-400">
-                {filtroParalelo !== 'todos' ? 'No hay estudiantes en este paralelo' : 'Comienza invitando a nuevos estudiantes'}
+                {filtroParalelo !== 'todos' ? t.students.list.emptyStudentsDesc : t.students.list.startInviting}
               </p>
             </div>
           ) : (
@@ -252,12 +254,12 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-gray-700 border-b border-slate-200 dark:border-gray-600">
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Estudiante</th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Cédula</th>
-                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Paralelo</th>
-                    <th className="text-center px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
-                    <th className="text-right px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.student}</th>
+                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.email}</th>
+                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.idCard}</th>
+                    <th className="text-left px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.parallel}</th>
+                    <th className="text-center px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.status}</th>
+                    <th className="text-right px-4 py-4 text-xs font-bold text-slate-500 dark:text-gray-300 tracking-wider">{t.students.list.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-gray-700">
@@ -288,17 +290,17 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                       <td className="px-4 py-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-md text-xs font-bold border border-orange-100 dark:border-orange-800">
                           <GraduationCap className="w-3.5 h-3.5" />
-                          {estudiante.parallel_name || 'Sin asignar'}
+                          {estudiante.parallel_name || t.students.list.unassigned}
                         </span>
                       </td>
                       <td className="px-4 py-4 text-center">
                         {estudiante.account_status === 'activo' ? (
-                          <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-black tracking-widest uppercase border border-emerald-200 dark:border-emerald-800">
-                            Activo
+                          <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-full text-[10px] font-black tracking-widest border border-emerald-200 dark:border-emerald-800">
+                            {t.students.list.active}
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-400 rounded-full text-[10px] font-black tracking-widest uppercase border border-slate-200 dark:border-gray-600">
-                            {estudiante.account_status.toUpperCase()}
+                          <span className="px-2.5 py-1 bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-400 rounded-full text-[10px] font-black tracking-widest border border-slate-200 dark:border-gray-600">
+                            {capitalize(estudiante.account_status)}
                           </span>
                         )}
                       </td>
@@ -307,14 +309,14 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                           <button
                             onClick={() => handleEditClick(estudiante)}
                             className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-all border border-transparent hover:border-blue-200 dark:hover:border-blue-800 active:scale-95"
-                            title="Editar"
+                            title={t.students.actions.edit}
                           >
                             <Pencil className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => toggleStatus(estudiante.user_id, estudiante.account_status)}
                             className="p-2 hover:bg-white dark:hover:bg-gray-600 rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-gray-500 active:scale-95"
-                            title={estudiante.account_status === 'activo' ? 'Desactivar' : 'Activar'}
+                            title={estudiante.account_status === 'activo' ? t.students.actions.deactivate : t.students.actions.activate}
                           >
                             {estudiante.account_status === 'activo' ? (
                               <ToggleRight className="w-6 h-6 text-emerald-500" />
@@ -325,7 +327,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                           <button
                             onClick={() => deleteStudent(estudiante.user_id)}
                             className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-all border border-transparent hover:border-red-200 dark:hover:border-red-800 active:scale-95"
-                            title="Eliminar"
+                            title={t.students.actions.delete}
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -347,7 +349,7 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
             <div className="bg-blue-600 p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Pencil className="w-6 h-6 text-white" />
-                <h3 className="text-xl font-bold text-white">Editar Estudiante</h3>
+                <h3 className="text-xl font-bold text-white">{t.students.modal.editTitle}</h3>
               </div>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -359,46 +361,46 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
 
             <form onSubmit={handleUpdateStudent} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Nombre</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.students.modal.name}</label>
                 <input
                   type="text"
                   value={editForm.first_name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, first_name: e.target.value }))}
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Apellido</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.students.modal.lastName}</label>
                 <input
                   type="text"
                   value={editForm.last_name}
                   onChange={(e) => setEditForm(prev => ({ ...prev, last_name: e.target.value }))}
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Cédula</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.students.list.idCard}</label>
                 <input
                   type="text"
                   value={editForm.id_card}
                   onChange={(e) => setEditForm(prev => ({ ...prev, id_card: e.target.value }))}
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900 dark:text-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">Paralelo</label>
+                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.students.list.parallel}</label>
                 <select
                   value={editForm.parallel_id}
                   onChange={(e) => setEditForm(prev => ({ ...prev, parallel_id: e.target.value }))}
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900"
+                  className="w-full px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none dark:bg-gray-900 dark:text-white"
                 >
-                  <option value="">Sin asignar</option>
+                  <option value="">{t.students.list.unassigned}</option>
                   {paralelos.map(p => (
                     <option key={p.parallel_id} value={p.parallel_id}>
                       {p.name} - {p.academic_year}
@@ -413,13 +415,13 @@ export default function GestionarEstudiantes({ onClose }: GestionarEstudiantesPr
                   onClick={() => setShowEditModal(false)}
                   className="flex-1 px-4 py-2.5 border-2 border-slate-200 dark:border-gray-700 rounded-xl font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all"
                 >
-                  Cancelar
+                  {t.students.actions.cancel}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95"
                 >
-                  Guardar Cambios
+                  {t.students.actions.save}
                 </button>
               </div>
             </form>

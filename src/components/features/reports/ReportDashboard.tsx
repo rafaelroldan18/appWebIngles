@@ -9,6 +9,7 @@ import AdvancedStats from './AdvancedStats';
 
 interface ReportDashboardProps {
     teacherId: string;
+    teacherName?: string;
     preSelectedParallel?: string;
     onBack?: () => void;
 }
@@ -17,7 +18,10 @@ interface ReportDashboardProps {
  * ReportDashboard - Container for Smart Analytics
  * Manages data fetching and delegates all UI to AdvancedStats (Dashboard Pro)
  */
-export default function ReportDashboard({ teacherId, preSelectedParallel, onBack }: ReportDashboardProps) {
+import { useLanguage } from '@/contexts/LanguageContext';
+
+export default function ReportDashboard({ teacherId, teacherName, preSelectedParallel, onBack }: ReportDashboardProps) {
+    const { t } = useLanguage();
     const [parallels, setParallels] = useState<Parallel[]>([]);
     const [selectedParallel, setSelectedParallel] = useState<string>(preSelectedParallel || '');
     const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
@@ -66,7 +70,7 @@ export default function ReportDashboard({ teacherId, preSelectedParallel, onBack
         return (
             <div className="flex flex-col items-center justify-center py-24">
                 <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                <p className="mt-4 text-slate-400 font-bold animate-pulse">Cargando Inteligencia Académica...</p>
+                <p className="mt-4 text-slate-400 font-bold animate-pulse">{t.reports.loading.sync}</p>
             </div>
         );
     }
@@ -74,6 +78,7 @@ export default function ReportDashboard({ teacherId, preSelectedParallel, onBack
     return (
         <AdvancedStats
             parallelId={selectedParallel}
+            teacherName={teacherName}
             parallels={parallels}
             onParallelChange={setSelectedParallel}
             definitions={definitions}

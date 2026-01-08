@@ -68,6 +68,8 @@ export async function GET(request: NextRequest) {
                 max_attempts,
                 available_from,
                 available_until,
+                created_at,
+                activated_at,
                 game_types(name),
                 topics(title)
             `)
@@ -108,7 +110,9 @@ export async function GET(request: NextRequest) {
                 showTheory: m.show_theory,
                 maxAttempts: m.max_attempts,
                 availableFrom: m.available_from,
-                availableUntil: m.available_until
+                availableUntil: m.available_until,
+                createdAt: m.created_at,
+                activatedAt: m.activated_at
             }))
         });
 

@@ -5,7 +5,7 @@
 
 import Phaser from 'phaser';
 import { GRAMMAR_RUN_CONFIG } from './grammarRun.config';
-import type { GameContent } from '@/types';
+import type { GameContent, MissionConfig } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 
 interface Gate {
@@ -19,6 +19,10 @@ interface Gate {
 export class GrammarRunScene extends Phaser.Scene {
     private gameContent: GameContent[] = [];
     private sessionManager: GameSessionManager | null = null;
+    private missionTitle: string = '';
+    private missionInstructions: string = '';
+    private missionConfig: MissionConfig | null = null;
+    private isPaused: boolean = false;
 
     // Game objects
     private player!: Phaser.GameObjects.Rectangle;
@@ -51,15 +55,26 @@ export class GrammarRunScene extends Phaser.Scene {
         super({ key: 'GrammarRunScene' });
     }
 
-    init(data: { words: GameContent[]; sessionManager: GameSessionManager }) {
+    init(data: {
+        words: GameContent[];
+        sessionManager: GameSessionManager;
+        missionTitle?: string;
+        missionInstructions?: string;
+        missionConfig?: MissionConfig;
+    }) {
         this.gameContent = data.words || [];
         this.sessionManager = data.sessionManager || null;
+        this.missionTitle = data.missionTitle || '';
+        this.missionInstructions = data.missionInstructions || '';
+        this.missionConfig = data.missionConfig || null;
+
         this.score = 0;
         this.lives = GRAMMAR_RUN_CONFIG.gameplay.maxLives;
-        this.timeRemaining = GRAMMAR_RUN_CONFIG.gameplay.gameDuration;
+        this.timeRemaining = this.missionConfig?.time_limit_seconds || GRAMMAR_RUN_CONFIG.gameplay.gameDuration;
         this.distance = 0;
         this.currentLane = 1;
         this.isGameOver = false;
+        this.isPaused = false;
         this.currentSpeed = GRAMMAR_RUN_CONFIG.gameplay.runnerSpeed;
         this.contentIndex = 0;
         this.gates = [];
@@ -146,6 +161,76 @@ export class GrammarRunScene extends Phaser.Scene {
             fontStyle: 'bold',
             align: 'center'
         }).setOrigin(0.5);
+
+        // Help Button
+        if (this.missionConfig?.hud_help_enabled) {
+            const helpBtnX = width - 150;
+            const helpBtnBg = this.add.circle(helpBtnX, 30, 20, 0x1e293b, 0.8)
+                .setDepth(100)
+                .setStrokeStyle(2, 0x8b5cf6, 0.5);
+
+            const helpText = this.add.text(helpBtnX, 30, '?', {
+                fontSize: '18px',
+                fontFamily: 'Arial Black',
+                color: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+
+            helpText.on('pointerdown', () => this.showHelpPanel());
+        }
+    }
+
+    private togglePause() {
+        if (this.isGameOver) return;
+        this.isPaused = !this.isPaused;
+
+        if (this.isPaused) {
+            this.physics.world.pause();
+            if (this.gameTimer) this.gameTimer.paused = true;
+            if (this.gateSpawnTimer) this.gateSpawnTimer.paused = true;
+            if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = true;
+            this.tweens.pauseAll();
+        } else {
+            this.physics.world.resume();
+            if (this.gameTimer) this.gameTimer.paused = false;
+            if (this.gateSpawnTimer) this.gateSpawnTimer.paused = false;
+            if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = false;
+            this.tweens.resumeAll();
+        }
+    }
+
+    private showHelpPanel() {
+        if (this.isGameOver) return;
+        const wasPaused = this.isPaused;
+        if (!wasPaused) this.togglePause();
+
+        const { width, height } = this.cameras.main;
+        const panel = this.add.container(0, 0).setDepth(1000);
+
+        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+        const bg = this.add.rectangle(width / 2, height / 2, 450, 300, 0x1e293b).setStrokeStyle(2, 0x3b82f6);
+
+        const title = this.add.text(width / 2, height / 2 - 100, 'INSTRUCCIONES', {
+            fontSize: '24px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+
+        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions || 'Sigue las reglas del juego.', {
+            fontSize: '16px', color: '#e2e8f0', align: 'center', wordWrap: { width: 380 }
+        }).setOrigin(0.5);
+
+        const closeBtnBg = this.add.rectangle(width / 2, height / 2 + 100, 150, 40, 0x3b82f6)
+            .setInteractive({ useHandCursor: true });
+
+        const closeBtnText = this.add.text(width / 2, height / 2 + 100, 'CERRAR', {
+            fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
+        }).setOrigin(0.5);
+
+        closeBtnBg.on('pointerdown', () => {
+            panel.destroy();
+            if (!wasPaused) this.togglePause();
+        });
+
+        panel.add([dim, bg, title, instructions, closeBtnBg, closeBtnText]);
     }
 
     private startCountdown() {
@@ -455,6 +540,14 @@ export class GrammarRunScene extends Phaser.Scene {
 
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, true);
+            this.sessionManager.recordItem({
+                id: gate.content.content_id,
+                text: gate.content.content_text,
+                result: 'correct',
+                user_input: gate.content.content_text,
+                correct_answer: gate.content.content_text,
+                time_ms: 0
+            });
         }
 
         // Visual feedback
@@ -469,6 +562,14 @@ export class GrammarRunScene extends Phaser.Scene {
 
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, false);
+            this.sessionManager.recordItem({
+                id: gate.content.content_id,
+                text: gate.content.content_text,
+                result: 'wrong',
+                user_input: gate.content.content_text,
+                correct_answer: this.gameContent.find(c => c.is_correct)?.content_text || '',
+                time_ms: 0
+            });
         }
 
         // Visual feedback
@@ -533,17 +634,6 @@ export class GrammarRunScene extends Phaser.Scene {
         this.gates = [];
 
         // End session
-        if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession({
-                    gatesShown: this.contentIndex,
-                    finalDistance: Math.floor(this.distance),
-                    finalSpeed: this.currentSpeed,
-                });
-            } catch (error) {
-                console.error('Error ending session:', error);
-            }
-        }
 
         // Show Mission Complete Overlay
         const { width, height } = this.cameras.main;
@@ -560,9 +650,20 @@ export class GrammarRunScene extends Phaser.Scene {
 
         // Emit event delayed
         this.time.delayedCall(2000, () => {
+            const sessionData = this.sessionManager?.getSessionData();
             this.events.emit('gameOver', {
-                score: this.score,
-                sessionData: this.sessionManager?.getSessionData(),
+                scoreRaw: this.score,
+                correctCount: sessionData?.correctCount || 0,
+                wrongCount: sessionData?.wrongCount || 0,
+                durationSeconds: this.sessionManager?.getDuration() || 0,
+                answers: sessionData?.items.map(item => ({
+                    item_id: item.id,
+                    prompt: item.text,
+                    student_answer: item.user_input || '',
+                    correct_answer: item.correct_answer || '',
+                    is_correct: item.result === 'correct',
+                    meta: { time_ms: item.time_ms }
+                })) || []
             });
         });
     }

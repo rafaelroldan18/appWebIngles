@@ -31,9 +31,11 @@ export function StatusBadge({ status }: { status: AccountStatus | AssignmentStat
     return 'default';
   };
 
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
   const getLabel = () => {
-    if (status === 'en_curso') return 'EN CURSO';
-    return status.toUpperCase();
+    if (status === 'en_curso') return 'En curso';
+    return capitalize(status);
   };
 
   return <Badge variant={getVariant()}>{getLabel()}</Badge>;
@@ -46,7 +48,9 @@ export function DifficultyBadge({ level }: { level: DifficultyLevel }) {
     alto: 'danger' as const,
   };
 
-  return <Badge variant={variants[level]}>{level.toUpperCase()}</Badge>;
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+  return <Badge variant={variants[level]}>{capitalize(level)}</Badge>;
 }
 
 export function RoleBadge({ role }: { role: string }) {
@@ -63,5 +67,7 @@ export function RoleBadge({ role }: { role: string }) {
     }
   };
 
-  return <Badge variant={getVariant()}>{role.toUpperCase()}</Badge>;
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+  return <Badge variant={getVariant()}>{capitalize(role)}</Badge>;
 }

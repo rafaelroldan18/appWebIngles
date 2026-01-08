@@ -232,12 +232,12 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
               <UserPlus className="w-5 h-5 text-white" aria-hidden="true" />
             </div>
             <h3 className="text-xl font-bold text-white">
-              {showSuccess ? 'Invitación Creada' : 'Invitar Estudiante'}
+              {showSuccess ? t.invitations.successTitle : t.invitations.createTitle}
             </h3>
           </div>
           <button
             onClick={handleClose}
-            aria-label="Cerrar"
+            aria-label={t.common.close}
             className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors focus:outline-none focus:ring-4 focus:ring-white/50 active:scale-90"
           >
             <X className="w-5 h-5 text-white" aria-hidden="true" />
@@ -253,21 +253,21 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                 </div>
                 <h4 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
                   {mode === 'individual'
-                    ? '¡Invitación enviada con éxito!'
-                    : `¡${uploadSuccess} invitaciones creadas con éxito!`}
+                    ? t.invitations.messages.successIndividual
+                    : `¡${uploadSuccess} ${t.invitations.messages.successBulk}`}
                 </h4>
                 <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
                   {mode === 'individual'
-                    ? `Se ha enviado un correo electrónico a ${validation.values.email} con el enlace de registro.`
-                    : `Se han creado ${uploadSuccess} invitaciones. Los estudiantes recibirán un correo electrónico con las instrucciones.`}
+                    ? `${t.invitations.messages.sentTo} ${validation.values.email}.`
+                    : t.invitations.messages.bulkSent}
                 </p>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-left">
                   <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1 flex items-center gap-2">
                     <Mail className="w-4 h-4" aria-hidden="true" />
-                    IMPORTANTE
+                    {t.invitations.messages.important}
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Los invitados deben revisar su correo electrónico (incluyendo la carpeta de spam) y seguir las instrucciones para completar su registro.
+                    {t.invitations.messages.importantNote}
                   </p>
                 </div>
               </div>
@@ -276,7 +276,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                 onClick={handleClose}
                 className="w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all focus:outline-none focus:ring-4 focus:ring-orange-300 active:scale-95"
               >
-                Cerrar
+                {t.common.close}
               </button>
             </div>
           ) : (
@@ -290,7 +290,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                     }`}
                 >
                   <UserPlus className="w-4 h-4 inline-block mr-2" aria-hidden="true" />
-                  Individual
+                  {t.invitations.form.individual}
                 </button>
                 <button
                   onClick={() => setMode('bulk')}
@@ -300,7 +300,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                     }`}
                 >
                   <Users className="w-4 h-4 inline-block mr-2" aria-hidden="true" />
-                  Masivo
+                  {t.invitations.form.bulk}
                 </button>
               </div>
 
@@ -316,7 +316,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   <div>
                     <input
                       type="text"
-                      placeholder="Nombre"
+                      placeholder={t.invitations.form.name}
                       value={validation.values.first_name}
                       onChange={(e) => validation.handleChange('first_name', e.target.value)}
                       onBlur={() => validation.handleBlur('first_name')}
@@ -335,7 +335,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   <div>
                     <input
                       type="text"
-                      placeholder="Apellido"
+                      placeholder={t.invitations.form.lastName}
                       value={validation.values.last_name}
                       onChange={(e) => validation.handleChange('last_name', e.target.value)}
                       onBlur={() => validation.handleBlur('last_name')}
@@ -354,7 +354,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   <div>
                     <input
                       type="text"
-                      placeholder="Cédula"
+                      placeholder={t.invitations.form.idCard}
                       value={validation.values.id_card}
                       onChange={(e) => validation.handleChange('id_card', e.target.value)}
                       onBlur={() => validation.handleBlur('id_card')}
@@ -373,7 +373,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   <div>
                     <input
                       type="email"
-                      placeholder="Correo Electrónico"
+                      placeholder={t.invitations.form.email}
                       value={validation.values.email}
                       onChange={(e) => validation.handleChange('email', e.target.value)}
                       onBlur={() => validation.handleBlur('email')}
@@ -392,7 +392,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   {/* Parallel Selection */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
-                      Paralelo <span className="text-red-500">*</span>
+                      {t.invitations.form.parallel} <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={selectedParallel}
@@ -403,7 +403,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                         : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
                         }`}
                     >
-                      <option value="">Seleccionar paralelo...</option>
+                      <option value="">{t.invitations.form.selectParallel}</option>
                       {parallels.map((parallel) => (
                         <option key={parallel.parallel_id} value={parallel.parallel_id}>
                           {parallel.name} - {parallel.academic_year}
@@ -411,7 +411,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       ))}
                     </select>
                     <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
-                      El estudiante será asignado a este paralelo.
+                      {t.invitations.form.assignmentNote}
                     </p>
                   </div>
 
@@ -419,7 +419,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                     <div className="flex items-start gap-2">
                       <Mail className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                       <p className="text-xs text-orange-800 dark:text-orange-300">
-                        Se enviará un correo electrónico con un código de invitación al estudiante para que active su cuenta.
+                        {t.invitations.form.emailNote}
                       </p>
                     </div>
                   </div>
@@ -430,14 +430,14 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       onClick={onClose}
                       className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-4 focus:ring-slate-300"
                     >
-                      Cancelar
+                      {t.common.cancel}
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
                       className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-orange-300 active:scale-95"
                     >
-                      {loading ? 'Enviando...' : 'Enviar Invitación'}
+                      {loading ? t.invitations.form.sending : t.invitations.form.send}
                     </button>
                   </div>
                 </form>
@@ -446,7 +446,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   {/* Download Template Buttons - Compact Design */}
                   <div className="bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg p-4">
                     <p className="text-xs font-semibold text-slate-600 dark:text-gray-400 mb-2">
-                      Descargar plantilla:
+                      {t.invitations.form.downloadTemplate}
                     </p>
                     <div className="flex gap-2">
                       <button
@@ -470,7 +470,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                     <div className="flex items-start gap-2">
                       <Download className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                       <div className="text-xs text-blue-800 dark:text-blue-300">
-                        <p className="font-semibold mb-1">Instrucciones:</p>
+                        <p className="font-semibold mb-1">{t.invitations.form.instructions}</p>
                         <ol className="list-decimal list-inside space-y-1">
                           <li>Descarga la plantilla en el formato que prefieras</li>
                           <li>Completa los datos de los estudiantes</li>
@@ -490,7 +490,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       <>
                         <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-3" aria-hidden="true" />
                         <p className="text-sm font-semibold text-green-700 dark:text-green-300 mb-1">
-                          Archivo seleccionado
+                          {t.invitations.form.fileSelected}
                         </p>
                         <p className="text-xs text-green-600 dark:text-green-400 mb-4">
                           {selectedFile.name}
@@ -499,17 +499,17 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                           onClick={() => setSelectedFile(null)}
                           className="text-xs text-red-600 dark:text-red-400 hover:underline"
                         >
-                          Cambiar archivo
+                          {t.invitations.form.changeFile}
                         </button>
                       </>
                     ) : (
                       <>
                         <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3" aria-hidden="true" />
                         <p className="text-sm font-semibold text-slate-700 dark:text-gray-300 mb-1">
-                          Cargar archivo CSV o Excel
+                          {t.invitations.form.upload}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-gray-400 mb-4">
-                          Formatos aceptados: .csv, .xlsx, .xls
+                          {t.invitations.form.formats}
                         </p>
                         <input
                           type="file"
@@ -522,7 +522,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                           htmlFor="file-upload-bulk"
                           className="inline-block px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold cursor-pointer transition-all shadow-sm hover:shadow-md focus:outline-none focus:ring-4 focus:ring-orange-300 active:scale-95"
                         >
-                          Seleccionar Archivo
+                          {t.invitations.form.selectFile}
                         </label>
                       </>
                     )}
@@ -532,7 +532,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                   {loading && uploadProgress > 0 && (
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-slate-700 dark:text-gray-300">Procesando...</span>
+                        <span className="text-slate-700 dark:text-gray-300">{t.invitations.form.bulkProcessing}</span>
                         <span className="text-slate-700 dark:text-gray-300 font-semibold">{uploadProgress}%</span>
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-gray-700 rounded-full h-2">
@@ -550,7 +550,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       <div className="flex items-start gap-2 mb-2">
                         <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-                          Errores encontrados:
+                          {t.invitations.messages.errorValidation}
                         </p>
                       </div>
                       <ul className="list-disc list-inside space-y-1 text-xs text-red-700 dark:text-red-300 ml-7">
@@ -574,7 +574,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       disabled={!selectedFile || loading}
                       className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-orange-300 active:scale-95"
                     >
-                      {loading ? 'Procesando...' : 'Enviar Invitaciones'}
+                      {loading ? t.invitations.form.bulkProcessing : t.invitations.form.bulkSend}
                     </button>
                   </div>
                 </div>

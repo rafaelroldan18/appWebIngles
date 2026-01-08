@@ -14,6 +14,7 @@
     "@blocknote/mantine": "^0.45.0",
     "@blocknote/react": "^0.45.0",
     "@emotion/react": "^11.14.0",
+    "@google/generative-ai": "^0.24.1",
     "@mantine/core": "^8.3.10",
     "@mantine/hooks": "^8.3.10",
     "@supabase/ssr": "^0.7.0",
@@ -32,6 +33,9 @@
     "dotenv": "^16.3.1",
     "grapesjs": "^0.22.14",
     "grapesjs-preset-webpage": "^1.0.3",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.554.0",
     "next": "^16.0.0",
     "phaser": "^3.90.0",
@@ -40,7 +44,8 @@
     "react-dom": "^19.0.0",
     "react-focus-lock": "^2.13.6",
     "recharts": "^3.6.0",
-    "tailwindcss": "^3.4.18"
+    "tailwindcss": "^3.4.18",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22",

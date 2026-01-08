@@ -315,7 +315,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                     but usually, when there are sessions, we show the metric summary instead. */}
                 {data && data.summary.total_sessions > 0 && (
                     <div className="mt-12 pt-12 border-t border-slate-200">
-                        <h3 className="text-xl font-black text-slate-800 mb-6 uppercase tracking-wider">Desempeño Detallado</h3>
+                        <h3 className="text-xl font-black text-slate-800 mb-6 tracking-wider">Desempeño Detallado</h3>
                         {/* The rest of the dashboard will render here if we don't return early */}
                     </div>
                 )}
@@ -471,7 +471,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                 <Zap className="w-7 h-7 text-yellow-300 animate-pulse" />
                             </div>
                             <div>
-                                <span className="font-black text-xs uppercase tracking-[0.2em] text-blue-100">Capital de Aprendizaje</span>
+                                <span className="font-black text-xs tracking-[0.2em] text-blue-100">Capital de Aprendizaje</span>
                                 <h4 className="font-black text-lg">Total XP Bruto</h4>
                             </div>
                         </div>
@@ -493,7 +493,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                             <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
                                 <Target className="w-6 h-6 text-green-600" />
                             </div>
-                            <span className="font-black text-xs uppercase tracking-widest text-slate-400">Precisión Global</span>
+                            <span className="font-black text-xs tracking-widest text-slate-400">Precisión Global</span>
                         </div>
                         <div>
                             <div className="text-5xl font-black text-slate-800 tracking-tighter">{data.summary.avg_accuracy}%</div>
@@ -534,7 +534,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                                 <Clock className="w-6 h-6 text-blue-600" />
                             </div>
-                            <span className="font-black text-xs uppercase tracking-widest text-slate-400">Misiones Logradas</span>
+                            <span className="font-black text-xs tracking-widest text-slate-400">Misiones Logradas</span>
                         </div>
                         <div>
                             <div className="text-5xl font-black text-slate-800 tracking-tighter">{data.summary.total_sessions}</div>
@@ -629,11 +629,11 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden flex flex-col">
                     <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-3">
-                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Lista de Estudiantes</h3>
+                            <h3 className="text-xl font-black text-slate-800 tracking-tight">Lista de Estudiantes</h3>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Registrados</span>
+                            <span className="text-[10px] font-black text-slate-400 tracking-widest">Registrados</span>
                         </div>
                     </div>
                     <div className="p-4 flex-1">
@@ -662,7 +662,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                         </div>
                                         <div className="text-right">
                                             <p className="font-black text-slate-700 text-lg group-hover:text-indigo-600 transition-colors">{student.total_points.toLocaleString()}</p>
-                                            <div className="flex items-center justify-end gap-1 text-[10px] uppercase font-black text-slate-300">
+                                            <div className="flex items-center justify-end gap-1 text-[10px] font-black text-slate-300">
                                                 <span>Sesiones:</span>
                                                 <span className="text-slate-400">{student.sessions_done}</span>
                                             </div>
@@ -692,7 +692,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                 <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-100">
                                     <BarChart2 className="w-6 h-6 text-white" />
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Desempeño por Juego</h3>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Desempeño por Juego</h3>
                             </div>
                         </div>
                         <div className="space-y-8">
@@ -711,12 +711,12 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                                 <div className="flex items-center gap-4">
                                                     <div className="text-right">
                                                         <p className="text-sm font-black text-slate-800">{game.avg_accuracy}%</p>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Precisión</p>
+                                                        <p className="text-[10px] font-bold text-slate-400">Precisión</p>
                                                     </div>
                                                     <div className="w-px h-6 bg-slate-100"></div>
                                                     <div className="text-right">
                                                         <p className="text-sm font-black text-indigo-600">{game.total_sessions}</p>
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Jugadas</p>
+                                                        <p className="text-[10px] font-bold text-slate-400">Jugadas</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -747,7 +747,7 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                 <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center shadow-lg shadow-slate-200">
                                     <Zap className="w-6 h-6 text-yellow-400" />
                                 </div>
-                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Actividad Reciente</h3>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Actividad Reciente</h3>
                             </div>
                         </div>
                         <div className="space-y-4">
@@ -768,13 +768,13 @@ export default function RealTimeStats({ parallelId }: RealTimeStatsProps) {
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className="text-lg font-black text-green-600 tracking-tighter">+{activity.score}</p>
-                                            <p className="text-[10px] font-black text-slate-300 uppercase italic">{activity.accuracy}% acc</p>
+                                            <p className="text-[10px] font-black text-slate-300 italic">{activity.accuracy}% acc</p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
                                 <div className="text-center py-10 border border-dashed border-slate-100 rounded-2xl">
-                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Sin actividad nueva</p>
+                                    <p className="text-xs text-slate-400 font-bold tracking-widest">Sin actividad nueva</p>
                                 </div>
                             )}
                         </div>

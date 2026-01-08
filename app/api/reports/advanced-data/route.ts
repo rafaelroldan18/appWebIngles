@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
                 return {
                     id: m.availability_id,
                     name: `${gameTypeMap.get(m.game_type_id)}: ${topicMap.get(m.topic_id)}`,
+                    missionTitle: m.mission_title,
                     completed: isDone
                 };
             });
@@ -126,8 +127,13 @@ export async function GET(request: NextRequest) {
             id: m.availability_id,
             game: gameTypeMap.get(m.game_type_id) || 'Desconocido',
             topic: topicMap.get(m.topic_id) || 'Desconocido',
+            missionTitle: m.mission_title,
             isActive: m.is_active,
-            completionCount: new Set(sessions.filter(s => s.topic_id === m.topic_id && s.game_type_id === m.game_type_id).map(s => s.student_id)).size
+            completionCount: new Set(sessions.filter(s => s.topic_id === m.topic_id && s.game_type_id === m.game_type_id).map(s => s.student_id)).size,
+            createdAt: m.created_at,
+            activatedAt: m.activated_at,
+            availableFrom: m.available_from,
+            maxAttempts: m.max_attempts
         }));
 
         // F. Evolution

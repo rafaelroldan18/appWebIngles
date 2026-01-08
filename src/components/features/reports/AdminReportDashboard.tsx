@@ -90,8 +90,8 @@ export default function AdminReportDashboard() {
                     <button
                         onClick={() => setTimeRange('week')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${timeRange === 'week'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         Semana
@@ -99,8 +99,8 @@ export default function AdminReportDashboard() {
                     <button
                         onClick={() => setTimeRange('month')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${timeRange === 'month'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         Mes
@@ -108,8 +108,8 @@ export default function AdminReportDashboard() {
                     <button
                         onClick={() => setTimeRange('all')}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${timeRange === 'all'
-                                ? 'bg-white text-indigo-600 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-indigo-600 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         Todo
@@ -122,7 +122,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <GraduationCap className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Docentes</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Docentes</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.total_teachers}</p>
                     <p className="text-sm opacity-80 mt-1">Profesores activos</p>
@@ -131,7 +131,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <Users className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Estudiantes</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Estudiantes</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.total_students}</p>
                     <p className="text-sm opacity-80 mt-1">Alumnos registrados</p>
@@ -140,7 +140,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <School className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Paralelos</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Paralelos</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.total_parallels}</p>
                     <p className="text-sm opacity-80 mt-1">Clases activas</p>
@@ -149,7 +149,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <Trophy className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Total Puntos</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Total Puntos</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.total_points.toLocaleString()}</p>
                     <p className="text-sm opacity-80 mt-1">XP acumulados</p>
@@ -158,7 +158,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <Target className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Precisión</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Precisión</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.avg_accuracy}%</p>
                     <p className="text-sm opacity-80 mt-1">Promedio global</p>
@@ -167,7 +167,7 @@ export default function AdminReportDashboard() {
                 <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
                     <div className="flex items-center justify-between mb-4">
                         <Zap className="w-10 h-10 opacity-80" />
-                        <span className="text-xs font-bold uppercase tracking-wider opacity-80">Sesiones</span>
+                        <span className="text-xs font-bold tracking-wider opacity-80">Sesiones</span>
                     </div>
                     <p className="text-4xl font-black">{stats.global.total_sessions}</p>
                     <p className="text-sm opacity-80 mt-1">Juegos completados</p>
@@ -185,9 +185,9 @@ export default function AdminReportDashboard() {
                         {stats.topParallels.map((parallel, index) => (
                             <div key={parallel.parallel_id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-600' :
-                                        index === 1 ? 'bg-slate-200 text-slate-600' :
-                                            index === 2 ? 'bg-orange-100 text-orange-600' :
-                                                'bg-slate-100 text-slate-500'
+                                    index === 1 ? 'bg-slate-200 text-slate-600' :
+                                        index === 2 ? 'bg-orange-100 text-orange-600' :
+                                            'bg-slate-100 text-slate-500'
                                     }`}>
                                     {index + 1}
                                 </div>
@@ -214,9 +214,9 @@ export default function AdminReportDashboard() {
                         {stats.topTeachers.map((teacher, index) => (
                             <div key={teacher.teacher_id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm ${index === 0 ? 'bg-yellow-100 text-yellow-600' :
-                                        index === 1 ? 'bg-slate-200 text-slate-600' :
-                                            index === 2 ? 'bg-orange-100 text-orange-600' :
-                                                'bg-slate-100 text-slate-500'
+                                    index === 1 ? 'bg-slate-200 text-slate-600' :
+                                        index === 2 ? 'bg-orange-100 text-orange-600' :
+                                            'bg-slate-100 text-slate-500'
                                     }`}>
                                     {index + 1}
                                 </div>

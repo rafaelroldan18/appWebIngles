@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { ParallelService } from '@/services/parallel.service';
 import type { ParallelWithStats } from '@/types/parallel.types';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses } from '@/config/colors';
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function GestionarParalelos({ onBack }: Props) {
+    const { t } = useLanguage();
     const [parallels, setParallels] = useState<ParallelWithStats[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -80,7 +82,7 @@ export function GestionarParalelos({ onBack }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name.trim() || !formData.academic_year.trim()) {
-            setError('Todos los campos son obligatorios');
+            setError(t.admin.allFieldsRequired);
             return;
         }
 
@@ -97,19 +99,19 @@ export function GestionarParalelos({ onBack }: Props) {
             await loadParallels();
             setShowModal(false);
         } catch (err: any) {
-            setError(err.message || 'Error al guardar el paralelo');
+            setError(err.message || t.admin.errorSaveParallel);
         } finally {
             setFormLoading(false);
         }
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (confirm(`¿Estás seguro de eliminar el paralelo "${name}"? Esta acción no se puede deshacer.`)) {
+        if (confirm(t.admin.confirmDeleteParallel.replace('{name}', name))) {
             try {
                 await ParallelService.delete(id);
                 await loadParallels();
             } catch (err: any) {
-                alert(err.message || 'Error al eliminar el paralelo');
+                alert(err.message || t.admin.errorDeleteParallel);
             }
         }
     };
@@ -118,7 +120,7 @@ export function GestionarParalelos({ onBack }: Props) {
         try {
             setLoadingMembers(true);
             const response = await fetch(`/api/parallels/${parallel.parallel_id}/users`);
-            if (!response.ok) throw new Error('Error al cargar miembros');
+            if (!response.ok) throw new Error(t.admin.errorLoadMembers);
             const data = await response.json();
             setSelectedParallelMembers({
                 parallel,
@@ -126,7 +128,7 @@ export function GestionarParalelos({ onBack }: Props) {
                 teachers: data.teachers
             });
         } catch (err: any) {
-            alert(err.message || 'Error al cargar los miembros del paralelo');
+            alert(err.message || t.admin.errorLoadParallelMembers);
         } finally {
             setLoadingMembers(false);
         }
@@ -147,8 +149,8 @@ export function GestionarParalelos({ onBack }: Props) {
                             <Users className="w-6 h-6" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Gestionar Paralelos</h2>
-                            <p className="text-blue-100 text-xs">Administra los paralelos y años académicos</p>
+                            <h2 className="text-xl font-bold text-white">{t.admin.manageParallels}</h2>
+                            <p className="text-blue-100 text-xs">{t.admin.manageParallelsDesc}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -157,7 +159,7 @@ export function GestionarParalelos({ onBack }: Props) {
                             className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-all"
                         >
                             <Plus className="w-4 h-4" />
-                            <span>Nuevo</span>
+                            <span>{t.admin.new}</span>
                         </button>
                         <button
                             onClick={onBack}
@@ -182,18 +184,18 @@ export function GestionarParalelos({ onBack }: Props) {
                                     </button>
                                     <div>
                                         <h3 className={`text-xl font-black ${colors.text.title}`}>{selectedParallelMembers.parallel.name}</h3>
-                                        <p className={`text-xs font-bold text-slate-400 uppercase tracking-tighter`}>{selectedParallelMembers.parallel.academic_year}</p>
+                                        <p className={`text-xs font-bold text-slate-400 tracking-tighter`}>{selectedParallelMembers.parallel.academic_year}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-8">
                                     <div className="text-right">
                                         <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{selectedParallelMembers.students.length}</p>
-                                        <p className="text-[11px] text-slate-400">Estudiantes</p>
+                                        <p className="text-[11px] text-slate-400">{t.admin.students}</p>
                                     </div>
                                     <div className="w-px h-8 bg-slate-200 dark:bg-gray-800"></div>
                                     <div className="text-right">
                                         <p className="text-lg font-black text-slate-900 dark:text-white leading-none">{selectedParallelMembers.teachers.length}</p>
-                                        <p className="text-[11px] text-slate-400">Docentes</p>
+                                        <p className="text-[11px] text-slate-400">{t.admin.teachers}</p>
                                     </div>
                                 </div>
                             </div>
@@ -203,11 +205,11 @@ export function GestionarParalelos({ onBack }: Props) {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-gray-800">
                                         <User className="w-4 h-4 text-slate-400" />
-                                        <h4 className="text-[11px] font-black tracking-wider text-slate-500">Docentes</h4>
+                                        <h4 className="text-[11px] font-black tracking-wider text-slate-500">{t.admin.teachers}</h4>
                                     </div>
                                     <div className="divide-y divide-slate-100 dark:divide-gray-800/50">
                                         {selectedParallelMembers.teachers.length === 0 ? (
-                                            <p className="text-xs italic text-slate-400 py-4">No hay docentes asignados.</p>
+                                            <p className="text-xs italic text-slate-400 py-4">{t.admin.noTeachersAssigned}</p>
                                         ) : (
                                             selectedParallelMembers.teachers.map((teacher) => (
                                                 <div key={teacher.user_id} className="py-3 flex items-center gap-3 group">
@@ -228,11 +230,11 @@ export function GestionarParalelos({ onBack }: Props) {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-gray-800">
                                         <GraduationCap className="w-4 h-4 text-slate-400" />
-                                        <h4 className="text-[11px] font-black tracking-wider text-slate-500">Estudiantes</h4>
+                                        <h4 className="text-[11px] font-black tracking-wider text-slate-500">{t.admin.students}</h4>
                                     </div>
                                     <div className="divide-y divide-slate-100 dark:divide-gray-800/50">
                                         {selectedParallelMembers.students.length === 0 ? (
-                                            <p className="text-xs italic text-slate-400 py-4">No hay estudiantes inscritos.</p>
+                                            <p className="text-xs italic text-slate-400 py-4">{t.admin.noStudentsEnrolled}</p>
                                         ) : (
                                             selectedParallelMembers.students.map((student) => (
                                                 <div key={student.user_id} className="py-3 flex items-center justify-between group">
@@ -242,7 +244,7 @@ export function GestionarParalelos({ onBack }: Props) {
                                                         </div>
                                                         <div className="min-w-0">
                                                             <p className="text-sm font-bold truncate text-slate-700 dark:text-gray-200">{student.first_name} {student.last_name}</p>
-                                                            <p className="text-[10px] text-slate-400">Alumno activo</p>
+                                                            <p className="text-[10px] text-slate-400">{t.admin.activeStudent}</p>
                                                         </div>
                                                     </div>
                                                     <div className="text-[9px] font-black text-green-500 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded border border-green-100 dark:border-green-900/40 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -262,7 +264,7 @@ export function GestionarParalelos({ onBack }: Props) {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Buscar paralelo..."
+                                    placeholder={t.admin.searchParallel}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2.5 text-sm border-2 border-slate-200 dark:border-gray-800 rounded-xl focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-900 transition-all"
@@ -277,7 +279,7 @@ export function GestionarParalelos({ onBack }: Props) {
                             ) : filteredParallels.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400">
                                     <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p className="text-sm font-medium">No se encontraron paralelos.</p>
+                                    <p className="text-sm font-medium">{t.admin.noParallelsFound}</p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col border border-slate-200 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 overflow-hidden">
@@ -292,18 +294,18 @@ export function GestionarParalelos({ onBack }: Props) {
                                                 </div>
                                                 <div className="min-w-0">
                                                     <h4 className={`text-base font-bold ${colors.text.title} truncate`}>{parallel.name}</h4>
-                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">{parallel.academic_year}</p>
+                                                    <p className="text-xs font-bold text-slate-400 tracking-tighter">{parallel.academic_year}</p>
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center gap-6 shrink-0 mr-4">
                                                 <div className="text-center min-w-[50px]">
                                                     <p className="text-sm font-black text-slate-700 dark:text-gray-200 leading-none">{parallel.student_count}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400">Estudiantes</p>
+                                                    <p className="text-[10px] font-bold text-slate-400">{t.admin.students}</p>
                                                 </div>
                                                 <div className="text-center min-w-[50px]">
                                                     <p className="text-sm font-black text-slate-700 dark:text-gray-200 leading-none">{parallel.teacher_count}</p>
-                                                    <p className="text-[10px] font-bold text-slate-400">Docentes</p>
+                                                    <p className="text-[10px] font-bold text-slate-400">{t.admin.teachers}</p>
                                                 </div>
                                             </div>
 
@@ -312,7 +314,7 @@ export function GestionarParalelos({ onBack }: Props) {
                                                     onClick={() => handleViewMembers(parallel)}
                                                     className="px-2 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs font-bold hover:underline underline-offset-4 transition-all"
                                                 >
-                                                    Ver miembros
+                                                    {t.admin.viewMembers}
                                                 </button>
                                                 <button
                                                     onClick={() => handleOpenModal(parallel)}
@@ -343,7 +345,7 @@ export function GestionarParalelos({ onBack }: Props) {
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="bg-blue-600 p-6 flex items-center justify-between">
                             <h3 className="text-xl font-bold text-white">
-                                {editingParallel ? 'Editar Paralelo' : 'Nuevo Paralelo'}
+                                {editingParallel ? t.admin.editParallel : t.admin.newParallel}
                             </h3>
                             <button
                                 onClick={() => setShowModal(false)}
@@ -356,28 +358,28 @@ export function GestionarParalelos({ onBack }: Props) {
                         <form onSubmit={handleSubmit} className="p-6 space-y-5">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                                    Nombre del Paralelo (ej. "A", "B", "Primero A")
+                                    {t.admin.parallelNameLabel}
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 dark:text-white transition-all"
-                                    placeholder="Ej: A"
+                                    placeholder={t.admin.parallelNamePlaceholder}
                                     required
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                                    Año Académico
+                                    {t.admin.academicYear}
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.academic_year}
                                     onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
                                     className="w-full px-4 py-3 border-2 border-slate-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 dark:text-white transition-all"
-                                    placeholder="Ej: 2025-2026"
+                                    placeholder={t.admin.academicYearPlaceholder}
                                     required
                                 />
                             </div>
@@ -395,7 +397,7 @@ export function GestionarParalelos({ onBack }: Props) {
                                     onClick={() => setShowModal(false)}
                                     className="flex-1 px-4 py-3 border-2 border-slate-200 dark:border-gray-700 rounded-xl font-bold text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-gray-700 transition-all"
                                 >
-                                    Cancelar
+                                    {t.common.cancel}
                                 </button>
                                 <button
                                     type="submit"
@@ -405,7 +407,7 @@ export function GestionarParalelos({ onBack }: Props) {
                                     {formLoading ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        editingParallel ? 'Guardar Cambios' : 'Crear Paralelo'
+                                        editingParallel ? t.admin.saveChanges : t.admin.newParallel
                                     )}
                                 </button>
                             </div>

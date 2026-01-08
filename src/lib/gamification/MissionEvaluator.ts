@@ -1,3 +1,5 @@
+import type { GameSessionDetails } from '@/types';
+
 /**
  * MissionEvaluator - Evaluates game results as mission completion
  * Pedagogical layer: Interprets scores and determines success/failure
@@ -153,6 +155,56 @@ export class MissionEvaluator {
         // In the future, this could load from database
         // For now, return default criteria
         return this.DEFAULT_CRITERIA;
+    }
+
+    /**
+     * Generate standardized details for database storage
+     */
+    static generateStandardizedDetails(
+        score: number,
+        accuracy: number,
+        correctCount: number,
+        wrongCount: number,
+        durationSeconds: number,
+        answers: GameSessionDetails['answers'],
+        criteria: EvaluationCriteria = this.DEFAULT_CRITERIA
+    ): GameSessionDetails {
+        const success = this.isMissionSuccessful(score, accuracy, criteria);
+        const performance = this.calculatePerformance(accuracy, criteria);
+
+        const multipliers = {
+            excellent: 1.5,
+            good: 1.2,
+            fair: 1.0,
+            poor: 0.5,
+        };
+        const multiplier = multipliers[performance];
+        const scoreFinal = Math.floor(score * multiplier);
+
+        return {
+            summary: {
+                score_raw: score,
+                score_final: scoreFinal,
+                duration_seconds: durationSeconds,
+                correct_count: correctCount,
+                wrong_count: wrongCount,
+                accuracy: accuracy,
+                performance: performance,
+                passed: success
+            },
+            breakdown: {
+                base_points: score,
+                multiplier: multiplier,
+                bonus_points: 0,
+                penalty_points: 0,
+                rules_used: {
+                    minScoreToPass: criteria.minScoreToPass,
+                    minAccuracyToPass: criteria.minAccuracyToPass,
+                    excellentThreshold: criteria.excellentThreshold
+                }
+            },
+            answers: answers
+        };
     }
 
     /**
