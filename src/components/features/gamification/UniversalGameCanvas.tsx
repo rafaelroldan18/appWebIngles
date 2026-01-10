@@ -14,6 +14,8 @@ import { ImageMatchScene } from '@/lib/games/ImageMatchScene';
 import { CityExplorerScene } from '@/lib/games/CityExplorerScene';
 import { GameLoader } from '@/lib/games/GameLoader';
 import { GameSessionManager } from '@/lib/games/GameSessionManager';
+import { buildImageMatchCards } from '@/lib/games/gameLoader.utils';
+import { resolveImageMatchConfig } from '@/lib/games/imageMatch.config';
 import { WORD_CATCHER_CONFIG } from '@/lib/games/wordCatcher.config';
 import { GRAMMAR_RUN_CONFIG } from '@/lib/games/grammarRun.config';
 import { SENTENCE_BUILDER_CONFIG } from '@/lib/games/sentenceBuilder.config';
@@ -176,15 +178,32 @@ export default function UniversalGameCanvas({
                                 game.scene.add(sceneKey, gameConfig.scene);
                             }
 
-                            // 2. Iniciar escena pasándole los datos
-                            console.log(`[UniversalGameCanvas] Calling game.scene.start(${sceneKey})`);
-                            game.scene.start(sceneKey, {
-                                words: shuffledWords,
+                            // 2. Preparar datos según el tipo de juego
+                            let sceneData: any = {
                                 sessionManager: sessionManager,
                                 missionTitle: missionTitle,
                                 missionInstructions: missionInstructions,
                                 missionConfig: missionConfig,
-                            });
+                            };
+
+                            if (gameType === 'image-match') {
+                                // Para ImageMatch, construir pares de cartas
+                                const resolvedConfig = resolveImageMatchConfig(missionConfig);
+                                const cards = buildImageMatchCards(
+                                    gameContent,
+                                    resolvedConfig.grid,
+                                    resolvedConfig.shuffle
+                                );
+                                sceneData.cards = cards;
+                                sceneData.words = gameContent; // Mantener words para compatibilidad
+                            } else {
+                                // Para otros juegos, usar words normal
+                                sceneData.words = shuffledWords;
+                            }
+
+                            // 3. Iniciar escena pasándole los datos
+                            console.log(`[UniversalGameCanvas] Calling game.scene.start(${sceneKey})`);
+                            game.scene.start(sceneKey, sceneData);
 
                             // 3. Forzar el ocultamiento del cargador poco después del inicio
                             // Esto evita que el usuario se quede atrapado si el evento 'create' falla.

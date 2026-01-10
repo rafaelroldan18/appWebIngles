@@ -7,6 +7,26 @@ export interface MissionConfig {
     };
     asset_pack: string;
     hud_help_enabled: boolean;
+    // Configuración específica de WordCatcher
+    word_catcher?: {
+        fall_speed: number;          // Velocidad de caída en píxeles/segundo (ej: 220)
+        spawn_rate_ms: number;        // Intervalo entre spawns en milisegundos (ej: 900)
+        miss_penalty_enabled: boolean; // Si se penaliza dejar pasar palabras correctas
+    };
+    // Configuración específica de ImageMatch
+    image_match?: {
+        board_size?: 'small' | 'medium' | 'large'; // Tamaño del tablero (2x2, 4x4, 6x6)
+        pairs_count?: number;          // Número de pares a emparejar
+        flip_back_delay_ms?: number;  // Delay antes de voltear tarjetas incorrectas (ms)
+        match_delay_ms?: number;      // Delay para mostrar par correcto (ms) - alias: reveal_delay_ms
+        reveal_delay_ms?: number;     // Delay para revelar par correcto (ms) - preferido sobre match_delay_ms
+        max_moves?: number;           // Límite de movimientos (opcional)
+        shuffle?: boolean;            // Si se barajan las tarjetas (default: true)
+        grid?: {                      // Grid explícito (opcional, sobreescribe board_size)
+            cols: number;
+            rows: number;
+        };
+    };
 }
 
 export interface GameSessionDetails {

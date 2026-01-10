@@ -1,64 +1,71 @@
-/**
- * ImageMatchScene - Memory/card matching game
- * Players flip cards to find matching pairs of images and words
- */
-
 import Phaser from 'phaser';
-import { IMAGE_MATCH_CONFIG } from './imageMatch.config';
-import type { GameContent } from '@/types';
+import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
+import { preloadImageMatchAssets } from './assets.config';
+import { AnswerTracker } from './answerTracker';
+import type { ImageMatchCard } from './gameLoader.utils';
+import type { GameContent, MissionConfig } from '@/types/game.types';
 import type { GameSessionManager } from './GameSessionManager';
 
-interface Card {
-    sprite: Phaser.GameObjects.Rectangle;
-    text: Phaser.GameObjects.Text;
-    content: GameContent;
-    index: number;
+interface CardObject {
+    container: Phaser.GameObjects.Container;
+    backSprite: Phaser.GameObjects.Image;
+    frontImage?: Phaser.GameObjects.Image;
+    frontText?: Phaser.GameObjects.Text;
+    frame?: Phaser.GameObjects.Image;
+    cardData: ImageMatchCard;
+    pairId: string;
     isFlipped: boolean;
     isMatched: boolean;
-    isImage: boolean; // true for emoji/image, false for word
 }
 
 export class ImageMatchScene extends Phaser.Scene {
-    private gameContent: GameContent[] = [];
-    private sessionManager: GameSessionManager | null = null;
+    // Game data
+    private cardsData: ImageMatchCard[] = [];
+    private answerTracker!: AnswerTracker;
 
     // Game state
-    private cards: Card[] = [];
-    private flippedCards: Card[] = [];
-    private matchedPairs: number = 0;
-    private totalPairs: number = 0;
+    private cards: CardObject[] = [];
+    private firstPick: CardObject | null = null;
+    private secondPick: CardObject | null = null;
+    private isProcessing: boolean = false;
+
+    private moves: number = 0;
+    private matches: number = 0;
+    private streak: number = 0;
+    private bestStreak: number = 0;
     private score: number = 0;
     private timeRemaining: number = 0;
-    private wrongMatches: number = 0;
-    private isProcessing: boolean = false;
+    private isGameOver: boolean = false;
+    private isPaused: boolean = false;
+    private gameStartTime: number = 0;
+
+    // Configuration
+    private sessionManager: GameSessionManager | null = null;
+    private missionTitle: string = '';
+    private missionInstructions: string = '';
+    private missionConfig: MissionConfig | null = null;
+    private resolvedConfig: any = null;
 
     // UI Elements
     private scoreText!: Phaser.GameObjects.Text;
     private timerText!: Phaser.GameObjects.Text;
     private pairsText!: Phaser.GameObjects.Text;
-    private instructionText!: Phaser.GameObjects.Text;
+    private movesText!: Phaser.GameObjects.Text;
+    private pauseOverlay!: Phaser.GameObjects.Container;
 
-    // Timer
+    // Timers
     private gameTimer!: Phaser.Time.TimerEvent;
 
-    private isGameOver: boolean = false;
-
-    // Emoji mapping for vocabulary (can be replaced with actual images)
+    // Fallback Emojis
     private emojiMap: { [key: string]: string } = {
-        // Animals
         'cat': '🐱', 'dog': '🐶', 'bird': '🐦', 'fish': '🐟',
         'elephant': '🐘', 'lion': '🦁', 'monkey': '🐵', 'tiger': '🐯',
-        // Food
         'apple': '🍎', 'banana': '🍌', 'pizza': '🍕', 'burger': '🍔',
         'cake': '🍰', 'cookie': '🍪', 'bread': '🍞', 'cheese': '🧀',
-        // Objects
         'book': '📚', 'pen': '🖊️', 'phone': '📱', 'computer': '💻',
         'car': '🚗', 'house': '🏠', 'tree': '🌳', 'flower': '🌸',
-        // Weather
         'sun': '☀️', 'rain': '🌧️', 'cloud': '☁️', 'snow': '❄️',
-        // Colors
         'red': '🔴', 'blue': '🔵', 'green': '🟢', 'yellow': '🟡',
-        // Actions
         'run': '🏃', 'walk': '🚶', 'jump': '🦘', 'swim': '🏊',
         'eat': '🍽️', 'drink': '🥤', 'sleep': '😴', 'study': '📖',
     };
@@ -67,445 +74,435 @@ export class ImageMatchScene extends Phaser.Scene {
         super({ key: 'ImageMatchScene' });
     }
 
-    init(data: { words: GameContent[]; sessionManager: GameSessionManager }) {
-        this.gameContent = data.words || [];
+    init(data: {
+        cards?: ImageMatchCard[];
+        words?: GameContent[];
+        sessionManager: GameSessionManager;
+        missionTitle?: string;
+        missionInstructions?: string;
+        missionConfig?: MissionConfig;
+    }) {
+        this.cardsData = data.cards || [];
         this.sessionManager = data.sessionManager || null;
-        this.matchedPairs = 0;
+        this.missionTitle = data.missionTitle || 'IMAGE MATCH';
+        this.missionInstructions = data.missionInstructions || 'Match the images with the correct words!';
+        this.missionConfig = data.missionConfig || null;
+
+        this.resolvedConfig = resolveImageMatchConfig(this.missionConfig);
+        this.answerTracker = new AnswerTracker();
+
         this.score = 0;
-        this.timeRemaining = IMAGE_MATCH_CONFIG.gameplay.gameDuration;
-        this.wrongMatches = 0;
+        this.timeRemaining = this.resolvedConfig.time_limit_seconds || 90;
+        this.moves = 0;
+        this.matches = 0;
+        this.streak = 0;
+        this.bestStreak = 0;
         this.isGameOver = false;
-        this.cards = [];
-        this.flippedCards = [];
+        this.isPaused = false;
         this.isProcessing = false;
+        this.cards = [];
+        this.gameStartTime = Date.now();
+    }
+
+    preload() {
+        const assetPack = this.resolvedConfig.asset_pack || 'kenney-ui-1';
+        preloadImageMatchAssets(this, assetPack);
+
+        // Preload content images
+        this.cardsData.forEach(card => {
+            if (card.kind === 'image' && card.imageUrl) {
+                const key = `img_${card.pairId}`;
+                if (!this.textures.exists(key)) {
+                    this.load.image(key, card.imageUrl);
+                }
+            }
+        });
     }
 
     create() {
         const { width, height } = this.cameras.main;
 
-        // Set background
-        this.cameras.main.setBackgroundColor(IMAGE_MATCH_CONFIG.visual.backgroundColor);
+        // 1. Background
+        const bg = this.add.image(width / 2, height / 2, 'im-bg');
+        if (bg.texture.key !== '__MISSING') {
+            const scale = Math.max(width / bg.width, height / bg.height);
+            bg.setScale(scale).setScrollFactor(0);
+        }
 
-        // Create UI (Standard HUD)
+        // 2. HUD
         this.createStandardHUD();
 
-        // Create cards (Wait for gameplay start for interaction, or create them but block input?)
-        // Better to create them but maybe disable input? 
-        // Or create them in startGameplay.
-        // If I create them now, they are visible during countdown. That's fine.
-        this.createCards();
+        // 3. Cards/Board
+        this.createBoard();
 
-        // Start Countdown
+        // 4. Pause Overlay
+        this.createPauseOverlay();
+
+        // 5. Inputs
+        this.input.keyboard?.on('keydown-P', () => this.togglePause());
+
+        // 6. Countdown
         this.startCountdown();
+
+        this.events.emit('scene-ready');
     }
 
     private createStandardHUD() {
         const { width } = this.cameras.main;
-        const topBarHeight = 60;
+        const hudDepth = 1000;
+        const padding = 20;
 
-        // Background bar
-        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7);
+        const bannerBg = this.add.rectangle(width / 2, 45, width * 0.98, 80, 0x000000, 0.6)
+            .setDepth(hudDepth)
+            .setStrokeStyle(3, 0x3b82f6, 0.8);
 
-        // Score
-        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#10b981',
-            fontStyle: 'bold'
-        });
+        this.scoreText = this.add.text(padding + 20, 30, `SCORE: ${this.score}`, {
+            fontSize: '24px', fontFamily: 'Arial Black', color: '#60a5fa', stroke: '#000000', strokeThickness: 4
+        }).setDepth(hudDepth + 1);
 
-        // Time
-        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
-            fontSize: '24px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5, 0);
+        this.movesText = this.add.text(padding + 20, 60, 'MOVES: 0', {
+            fontSize: '18px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 3
+        }).setDepth(hudDepth + 1);
 
-        // Pairs
-        this.pairsText = this.add.text(width - 20, 20, 'PAIRS: 0/0', {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#fbbf24',
-            fontStyle: 'bold'
-        }).setOrigin(1, 0);
+        this.timerText = this.add.text(width / 2, 35, `${this.timeRemaining}`, {
+            fontSize: '48px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
 
-        // Instruction below HUD
-        this.instructionText = this.add.text(width / 2, topBarHeight + 20, 'FIND MATCHING PAIRS OF IMAGES AND WORDS', {
-            fontSize: '18px',
-            fontFamily: 'Arial',
-            color: '#94a3b8',
-            fontStyle: 'bold',
-            align: 'center'
-        }).setOrigin(0.5);
-    }
+        this.add.text(width / 2, 70, this.missionTitle.toUpperCase(), {
+            fontSize: '14px', fontFamily: 'Arial Black', color: '#ffffff', backgroundColor: '#3b82f6', padding: { x: 10, y: 3 }
+        }).setOrigin(0.5).setDepth(hudDepth + 1);
 
-    private startCountdown() {
-        const { width, height } = this.cameras.main;
+        const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
+        this.pairsText = this.add.text(width - padding - 80, 45, `PAIRS: 0/${totalPairs}`, {
+            fontSize: '24px', fontFamily: 'Arial Black', color: '#34d399', stroke: '#000000', strokeThickness: 4
+        }).setOrigin(1, 0.5).setDepth(hudDepth + 1);
 
-        // Initial blockade
-        this.isProcessing = true; // Block input
+        const pauseBtn = this.add.image(width - padding - 30, 45, 'ui-icon-pause')
+            .setDisplaySize(45, 45)
+            .setDepth(hudDepth + 1)
+            .setInteractive({ useHandCursor: true });
+        pauseBtn.on('pointerdown', () => this.togglePause());
 
-        let count = 3;
-        const countText = this.add.text(width / 2, height / 2, `${count}`, {
-            fontSize: '120px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 8
-        }).setOrigin(0.5).setDepth(100);
-
-        const timer = this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                count--;
-                if (count > 0) {
-                    countText.setText(`${count}`);
-                    this.cameras.main.shake(100, 0.01);
-                } else if (count === 0) {
-                    countText.setText('MATCH!');
-                    countText.setColor('#10b981');
-                    this.cameras.main.flash(500);
-                } else {
-                    countText.destroy();
-                    timer.remove();
-                    this.startGameplay();
-                }
-            },
-            repeat: 3
-        });
-    }
-
-    private startGameplay() {
-        this.isProcessing = false; // Unblock input
-
-        // Start timer
-        this.startGameTimer();
-    }
-
-    private createUI() {
-        // Deprecated
-    }
-
-    private createCards() {
-        // Select pairs from content
-        const correctWords = this.gameContent.filter(c => c.is_correct);
-        let pairsToUse = Math.min(IMAGE_MATCH_CONFIG.gameplay.pairsCount, correctWords.length);
-
-        // Fallback content if no correct words
-        let selectedContent = [];
-        if (pairsToUse === 0) {
-            console.warn('[ImageMatch] No correct words found. Using fallback pairs.');
-            selectedContent = [
-                { content_id: 'f1', content_text: 'cat', is_correct: true },
-                { content_id: 'f2', content_text: 'dog', is_correct: true }
-            ] as GameContent[];
-            pairsToUse = 2;
-        } else {
-            selectedContent = Phaser.Utils.Array.Shuffle([...correctWords]).slice(0, pairsToUse);
+        if (this.resolvedConfig.hud_help_enabled) {
+            const helpBtn = this.add.image(width - padding - 30, 85, 'ui-icon-help')
+                .setDisplaySize(35, 35)
+                .setOrigin(0.5)
+                .setDepth(hudDepth + 1)
+                .setInteractive({ useHandCursor: true });
+            helpBtn.on('pointerdown', () => this.showHelpPanel());
         }
+    }
 
-        this.totalPairs = pairsToUse;
-
-        // Create card data (each word gets 2 cards: one with emoji, one with text)
-        const cardData: { content: GameContent; isImage: boolean }[] = [];
-
-        selectedContent.forEach(content => {
-            cardData.push({ content, isImage: true });  // Emoji card
-            cardData.push({ content, isImage: false }); // Word card
-        });
-
-        // Shuffle cards
-        Phaser.Utils.Array.Shuffle(cardData);
-
-        // Calculate grid position
+    private createBoard() {
         const { width, height } = this.cameras.main;
-        const { rows, cols, cardWidth, cardHeight, cardSpacing } = IMAGE_MATCH_CONFIG.grid;
+        const { rows, cols, cardWidth, cardHeight, cardSpacing } = this.resolvedConfig.grid;
 
         const gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
         const gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
         const startX = (width - gridWidth) / 2 + cardWidth / 2;
-        const startY = (height - gridHeight) / 2 + cardHeight / 2 + 30;
+        const startY = (height - gridHeight) / 2 + cardHeight / 2 + 40;
 
-        // Create cards
-        cardData.forEach((data, index) => {
+        this.cardsData.forEach((cardData, index) => {
             const row = Math.floor(index / cols);
             const col = index % cols;
             const x = startX + col * (cardWidth + cardSpacing);
             const y = startY + row * (cardHeight + cardSpacing);
 
-            this.createCard(x, y, data.content, index, data.isImage);
+            this.createCard(x, y, cardData, cardWidth, cardHeight);
         });
-
-        // Update pairs text
-        this.pairsText.setText(`Pairs: 0/${this.totalPairs}`);
     }
 
-    private createCard(x: number, y: number, content: GameContent, index: number, isImage: boolean) {
-        const { cardWidth, cardHeight } = IMAGE_MATCH_CONFIG.grid;
+    private createCard(x: number, y: number, cardData: ImageMatchCard, cardWidth: number, cardHeight: number) {
+        const container = this.add.container(x, y).setSize(cardWidth, cardHeight);
 
-        // Card back (blue)
-        const cardSprite = this.add.rectangle(
-            x, y, cardWidth, cardHeight,
-            parseInt(IMAGE_MATCH_CONFIG.visual.cardBackColor.replace('#', '0x'))
-        ).setInteractive({ useHandCursor: true });
+        const back = this.add.image(0, 0, 'im-card-back').setDisplaySize(cardWidth, cardHeight);
+        const frame = this.add.image(0, 0, 'im-card-front-frame').setDisplaySize(cardWidth, cardHeight).setVisible(false);
 
-        // Add rounded corners effect with stroke
-        cardSprite.setStrokeStyle(3, 0x1e40af);
+        let frontContent: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+        if (cardData.kind === 'image') {
+            const key = `img_${cardData.pairId}`;
+            if (this.textures.exists(key)) {
+                frontContent = this.add.image(0, 0, key).setDisplaySize(cardWidth * 0.8, cardHeight * 0.8).setVisible(false);
+            } else {
+                const emoji = this.emojiMap[cardData.prompt.toLowerCase()] || '🖼️';
+                frontContent = this.add.text(0, 0, emoji, { fontSize: '64px' }).setOrigin(0.5).setVisible(false);
+            }
+        } else {
+            frontContent = this.add.text(0, 0, cardData.prompt.toUpperCase(), {
+                fontSize: '18px', fontFamily: 'Arial Black', color: '#1e293b', align: 'center', wordWrap: { width: cardWidth - 10 }
+            }).setOrigin(0.5).setVisible(false);
+        }
 
-        // Card text (hidden initially)
-        const displayText = isImage
-            ? this.getEmojiForWord(content.content_text)
-            : content.content_text;
+        container.add([back, frame, frontContent]);
+        container.setInteractive({ useHandCursor: true });
 
-        const cardText = this.add.text(x, y, displayText, {
-            fontSize: isImage ? '48px' : `${IMAGE_MATCH_CONFIG.visual.fontSize}px`,
-            color: '#1e293b',
-            fontStyle: 'bold',
-            align: 'center',
-            wordWrap: { width: cardWidth - 20 },
-        }).setOrigin(0.5).setVisible(false);
-
-        const card: Card = {
-            sprite: cardSprite,
-            text: cardText,
-            content: content,
-            index: index,
+        const cardObj: CardObject = {
+            container,
+            backSprite: back,
+            frontImage: cardData.kind === 'image' && frontContent instanceof Phaser.GameObjects.Image ? frontContent : undefined,
+            frontText: cardData.kind === 'word' && frontContent instanceof Phaser.GameObjects.Text ? frontContent : undefined,
+            frame,
+            cardData,
+            pairId: cardData.pairId,
             isFlipped: false,
-            isMatched: false,
-            isImage: isImage,
+            isMatched: false
         };
 
-        this.cards.push(card);
+        this.cards.push(cardObj);
+        container.on('pointerdown', () => this.handleCardClick(cardObj));
 
-        // Setup click event
-        cardSprite.on('pointerdown', () => this.onCardClick(card));
-        cardSprite.on('pointerover', () => {
-            if (!card.isFlipped && !card.isMatched && !this.isProcessing) {
-                cardSprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardHoverColor.replace('#', '0x')));
+        // Hover effects
+        container.on('pointerover', () => {
+            if (!cardObj.isFlipped && !cardObj.isMatched && !this.isProcessing) {
+                back.setTint(0xdddddd);
+                container.setScale(1.05);
             }
         });
-        cardSprite.on('pointerout', () => {
-            if (!card.isFlipped && !card.isMatched) {
-                cardSprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardBackColor.replace('#', '0x')));
-            }
+        container.on('pointerout', () => {
+            back.clearTint();
+            container.setScale(1);
         });
     }
 
-    private getEmojiForWord(word: string): string {
-        const normalized = word.toLowerCase().trim();
-        return this.emojiMap[normalized] || '❓';
-    }
+    private handleCardClick(card: CardObject) {
+        if (this.isProcessing || this.isPaused || this.isGameOver || card.isFlipped || card.isMatched) return;
 
-    private onCardClick(card: Card) {
-        if (this.isProcessing || card.isFlipped || card.isMatched || this.isGameOver) {
-            return;
-        }
-
-        // Flip card
         this.flipCard(card, true);
 
-        // Add to flipped cards
-        this.flippedCards.push(card);
-
-        // Check if we have 2 flipped cards
-        if (this.flippedCards.length === 2) {
+        if (!this.firstPick) {
+            this.firstPick = card;
+        } else {
+            this.secondPick = card;
             this.isProcessing = true;
-            this.checkMatch();
+            this.moves++;
+            this.movesText.setText(`MOVES: ${this.moves}`);
+
+            this.time.delayedCall(this.resolvedConfig.reveal_delay_ms || 400, () => this.checkMatch());
+        }
+
+        if (this.resolvedConfig.max_moves && this.moves >= this.resolvedConfig.max_moves) {
+            this.endGame();
         }
     }
 
-    private flipCard(card: Card, faceUp: boolean) {
-        card.isFlipped = faceUp;
+    private flipCard(card: CardObject, faceUp: boolean) {
+        this.tweens.add({
+            targets: card.container,
+            scaleX: 0,
+            duration: 150,
+            onComplete: () => {
+                card.isFlipped = faceUp;
+                card.backSprite.setVisible(!faceUp);
+                if (card.frontImage) card.frontImage.setVisible(faceUp);
+                if (card.frontText) card.frontText.setVisible(faceUp);
+                if (card.frame) card.frame.setVisible(faceUp);
 
-        if (faceUp) {
-            // Show front (white with text)
-            card.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardFrontColor.replace('#', '0x')));
-            card.text.setVisible(true);
-        } else {
-            // Show back (blue)
-            card.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardBackColor.replace('#', '0x')));
-            card.text.setVisible(false);
-        }
+                this.tweens.add({
+                    targets: card.container,
+                    scaleX: 1,
+                    duration: 150
+                });
+            }
+        });
     }
 
     private checkMatch() {
-        const [card1, card2] = this.flippedCards;
+        if (!this.firstPick || !this.secondPick) return;
 
-        // Check if cards match (same content_id but different card types)
-        const isMatch = card1.content.content_id === card2.content.content_id &&
-            card1.isImage !== card2.isImage;
+        const p1 = this.firstPick;
+        const p2 = this.secondPick;
+        const isMatch = p1.pairId === p2.pairId && p1.cardData.kind !== p2.cardData.kind;
+
+        const timeMs = Date.now() - this.gameStartTime;
+        this.answerTracker.recordMatchAttempt({
+            pairId: p1.pairId,
+            contentId: p1.cardData.contentId,
+            first: { kind: p1.cardData.kind, value: p1.cardData.kind === 'image' ? `img_${p1.pairId}` : p1.cardData.prompt },
+            second: { kind: p2.cardData.kind, value: p2.cardData.kind === 'image' ? `img_${p2.pairId}` : p2.cardData.prompt },
+            isCorrect: isMatch,
+            moves: this.moves,
+            timeMs: timeMs
+        });
 
         if (isMatch) {
-            this.handleMatch(card1, card2);
+            this.handleMatch(p1, p2);
         } else {
-            this.handleMismatch(card1, card2);
+            this.handleMismatch(p1, p2);
         }
     }
 
-    private handleMatch(card1: Card, card2: Card) {
-        // Mark as matched
-        card1.isMatched = true;
-        card2.isMatched = true;
+    private handleMatch(p1: CardObject, p2: CardObject) {
+        p1.isMatched = true;
+        p2.isMatched = true;
+        this.matches++;
+        this.streak++;
+        if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
-        // Change color to green
-        this.time.delayedCall(IMAGE_MATCH_CONFIG.gameplay.matchDelay, () => {
-            card1.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardMatchedColor.replace('#', '0x')));
-            card2.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardMatchedColor.replace('#', '0x')));
-            card1.sprite.setStrokeStyle(3, 0x059669);
-            card2.sprite.setStrokeStyle(3, 0x059669);
+        const points = IMAGE_MATCH_CONFIG.scoring.matchFound;
+        this.score += points;
+        this.sessionManager?.updateScore(points, true);
 
-            // Update score
-            const points = IMAGE_MATCH_CONFIG.scoring.matchFound;
-            this.score += points;
+        const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
+        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.pairsText.setText(`PAIRS: ${this.matches}/${totalPairs}`);
 
-            if (this.sessionManager) {
-                this.sessionManager.updateScore(points, true);
-                this.sessionManager.recordItem({
-                    id: card1.content.content_id,
-                    text: card1.content.content_text,
-                    result: 'correct',
-                    user_input: card2.content.content_text,
-                    correct_answer: card1.content.content_text,
-                    time_ms: 0
-                });
-            }
+        // Glow effect
+        const glow1 = this.add.image(p1.container.x, p1.container.y, 'im-card-match-glow').setDisplaySize(p1.container.width * 1.2, p1.container.height * 1.2).setAlpha(0);
+        const glow2 = this.add.image(p2.container.x, p2.container.y, 'im-card-match-glow').setDisplaySize(p2.container.width * 1.2, p2.container.height * 1.2).setAlpha(0);
 
-            // Update pairs count
-            this.matchedPairs++;
-            this.updateUI();
+        this.tweens.add({
+            targets: [glow1, glow2],
+            alpha: 1,
+            duration: 200,
+            yoyo: true,
+            onComplete: () => {
+                glow1.destroy();
+                glow2.destroy();
+                this.createParticles(p1.container.x, p1.container.y, 0x10b981);
+                this.createParticles(p2.container.x, p2.container.y, 0x10b981);
+                p1.container.setAlpha(0.6);
+                p2.container.setAlpha(0.6);
 
-            // Clear flipped cards
-            this.flippedCards = [];
-            this.isProcessing = false;
+                this.firstPick = null;
+                this.secondPick = null;
+                this.isProcessing = false;
 
-            // Check if game is complete
-            if (this.matchedPairs === this.totalPairs) {
-                this.handleGameComplete();
+                const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
+                if (this.matches === totalPairs) {
+                    this.time.delayedCall(800, () => this.endGame());
+                }
             }
         });
     }
 
-    private handleMismatch(card1: Card, card2: Card) {
-        // Show wrong color briefly
-        card1.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardWrongColor.replace('#', '0x')));
-        card2.sprite.setFillStyle(parseInt(IMAGE_MATCH_CONFIG.visual.cardWrongColor.replace('#', '0x')));
-
-        this.wrongMatches++;
-
-        // Penalty
+    private handleMismatch(p1: CardObject, p2: CardObject) {
+        this.streak = 0;
         const penalty = IMAGE_MATCH_CONFIG.scoring.wrongMatch;
         this.score += penalty;
+        this.sessionManager?.updateScore(penalty, false);
+        this.scoreText.setText(`SCORE: ${this.score}`);
 
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(penalty, false);
-            this.sessionManager.recordItem({
-                id: card1.content.content_id,
-                text: card1.content.content_text,
-                result: 'wrong',
-                user_input: card2.content.content_text,
-                correct_answer: card1.content.content_text,
-                time_ms: 0
-            });
-        }
+        this.cameras.main.shake(150, 0.01);
 
-        // Flip back after delay
-        this.time.delayedCall(IMAGE_MATCH_CONFIG.gameplay.flipBackDelay, () => {
-            this.flipCard(card1, false);
-            this.flipCard(card2, false);
-
-            this.flippedCards = [];
+        this.time.delayedCall(this.resolvedConfig.flip_back_delay_ms || 600, () => {
+            this.flipCard(p1, false);
+            this.flipCard(p2, false);
+            this.firstPick = null;
+            this.secondPick = null;
             this.isProcessing = false;
         });
-
-        this.updateUI();
     }
 
-    private startGameTimer() {
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.timeRemaining--;
-                this.timerText.setText(`Time: ${this.timeRemaining}s`);
-
-                if (this.timeRemaining <= 0) {
-                    this.endGame();
-                }
-            },
-            callbackScope: this,
-            loop: true,
+    private createParticles(x: number, y: number, tint: number) {
+        const p = this.add.particles(x, y, 'im-particle', {
+            speed: { min: 50, max: 150 }, scale: { start: 0.8, end: 0 }, lifespan: 500, quantity: 15, tint: tint
         });
+        this.time.delayedCall(500, () => p.destroy());
     }
 
-    private handleGameComplete() {
-        // Perfect game bonus
-        if (this.wrongMatches === 0) {
-            this.score += IMAGE_MATCH_CONFIG.scoring.perfectGame;
-        }
-
-        // Time bonus
-        const timeBonus = Math.floor(this.timeRemaining / 10) * IMAGE_MATCH_CONFIG.scoring.timeBonus;
-        this.score += timeBonus;
-
-        this.updateUI();
-
-        // End game after short delay
-        this.time.delayedCall(1500, () => {
-            this.endGame();
-        });
-    }
-
-    private updateUI() {
-        this.scoreText.setText(`SCORE: ${this.score}`);
-        this.pairsText.setText(`PAIRS: ${this.matchedPairs}/${this.totalPairs}`);
-        this.timerText.setText(`TIME: ${this.timeRemaining}`);
-    }
-
-    private async endGame() {
-        if (this.isGameOver) return;
-
-        this.isGameOver = true;
-
-        // Stop timer
-        if (this.gameTimer) this.gameTimer.remove();
-
-        // End session
-
-        // Show Mission Complete Overlay
+    private createPauseOverlay() {
         const { width, height } = this.cameras.main;
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+        this.pauseOverlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
 
-        this.add.text(width / 2, height / 2, 'MISSION COMPLETE!', {
-            fontSize: '48px',
-            fontFamily: 'Arial',
-            color: '#10b981',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 6
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
+        const panel = this.add.image(width / 2, height / 2, 'ui-panel').setDisplaySize(400, 300);
+        const title = this.add.text(width / 2, height / 2 - 60, 'PAUSE', { fontSize: '42px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
+
+        const resumeBtn = this.add.container(width / 2, height / 2 + 60);
+        const btnBg = this.add.image(0, 0, 'ui-button').setDisplaySize(160, 50).setInteractive({ useHandCursor: true });
+        const btnText = this.add.text(0, 0, 'RESUME', { fontSize: '20px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
+        resumeBtn.add([btnBg, btnText]);
+        btnBg.on('pointerdown', () => this.togglePause());
+
+        this.pauseOverlay.add([dim, panel, title, resumeBtn]);
+    }
+
+    private togglePause() {
+        if (this.isGameOver) return;
+        this.isPaused = !this.isPaused;
+        this.pauseOverlay.setVisible(this.isPaused);
+        if (this.gameTimer) this.gameTimer.paused = this.isPaused;
+        if (this.isPaused) this.tweens.pauseAll(); else this.tweens.resumeAll();
+    }
+
+    private showHelpPanel() {
+        const wasPaused = this.isPaused;
+        if (!wasPaused) this.togglePause();
+
+        const { width, height } = this.cameras.main;
+        const helpOverlay = this.add.container(0, 0).setDepth(3000);
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
+        const panel = this.add.image(width / 2, height / 2, 'ui-panel').setDisplaySize(500, 400);
+
+        const title = this.add.text(width / 2, height / 2 - 130, 'INSTRUCTIONS', {
+            fontSize: '28px', fontFamily: 'Arial Black', color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Emit event delayed
-        this.time.delayedCall(2000, () => {
-            const sessionData = this.sessionManager?.getSessionData();
-            this.events.emit('gameOver', {
-                scoreRaw: this.score,
-                correctCount: sessionData?.correctCount || 0,
-                wrongCount: sessionData?.wrongCount || 0,
-                durationSeconds: this.sessionManager?.getDuration() || 0,
-                answers: sessionData?.items.map(item => ({
-                    item_id: item.id,
-                    prompt: item.text,
-                    student_answer: item.user_input || '',
-                    correct_answer: item.correct_answer || '',
-                    is_correct: item.result === 'correct',
-                    meta: { time_ms: item.time_ms }
-                })) || []
-            });
+        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions, {
+            fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', align: 'center', wordWrap: { width: 400 }
+        }).setOrigin(0.5);
+
+        const closeBtn = this.add.container(width / 2, height / 2 + 130);
+        const btnBg = this.add.image(0, 0, 'ui-button').setDisplaySize(140, 50).setInteractive({ useHandCursor: true });
+        const btnText = this.add.text(0, 0, 'READY', { fontSize: '18px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
+        closeBtn.add([btnBg, btnText]);
+        btnBg.on('pointerdown', () => {
+            helpOverlay.destroy();
+            if (!wasPaused) this.togglePause();
+        });
+
+        helpOverlay.add([dim, panel, title, instructions, closeBtn]);
+    }
+
+    private startCountdown() {
+        const { width, height } = this.cameras.main;
+        let count = 3;
+        const txt = this.add.text(width / 2, height / 2, '3', { fontSize: '120px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 10 }).setOrigin(0.5).setDepth(1500);
+
+        this.time.addEvent({
+            delay: 1000, repeat: 3,
+            callback: () => {
+                count--;
+                if (count > 0) txt.setText(count.toString());
+                else if (count === 0) txt.setText('GO!').setColor('#10b981');
+                else {
+                    txt.destroy();
+                    this.startGameplay();
+                }
+            }
         });
     }
 
-    update(time: number, delta: number) {
-        // Game loop updates if needed
+    private startGameplay() {
+        this.gameStartTime = Date.now();
+        this.gameTimer = this.time.addEvent({
+            delay: 1000, loop: true,
+            callback: () => {
+                this.timeRemaining--;
+                this.timerText.setText(`${this.timeRemaining}`);
+                if (this.timeRemaining <= 0) this.endGame();
+            }
+        });
+    }
+
+    private endGame() {
+        if (this.isGameOver) return;
+        this.isGameOver = true;
+        this.isPaused = true;
+        this.gameTimer?.remove();
+
+        this.events.emit('gameOver', {
+            scoreRaw: this.score,
+            correctCount: this.matches,
+            wrongCount: this.moves - this.matches,
+            durationSeconds: Math.floor((Date.now() - this.gameStartTime) / 1000),
+            answers: this.answerTracker.getAnswers(),
+            meta: {
+                moves: this.moves,
+                totalPairs: new Set(this.cardsData.map(c => c.pairId)).size,
+                matchedPairs: this.matches,
+                bestStreak: this.bestStreak
+            }
+        });
     }
 }

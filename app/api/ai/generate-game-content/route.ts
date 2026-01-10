@@ -20,19 +20,15 @@ interface GenerateContentRequest {
 }
 
 export async function POST(request: NextRequest) {
-    console.log('🚀 [AI Endpoint] Iniciando generación de contenido con IA...');
 
     try {
         // Validar que existe la API Key
         if (!process.env.GEMINI_API_KEY) {
-            console.error('❌ [AI Endpoint] GEMINI_API_KEY no está configurada');
             return NextResponse.json(
                 { error: 'GEMINI_API_KEY no está configurada en las variables de entorno' },
                 { status: 500 }
             );
         }
-
-        console.log('✅ [AI Endpoint] API Key encontrada');
 
         const body: GenerateContentRequest = await request.json();
         const { topicId, topicTitle, gameTypeId, count, contextNote } = body;

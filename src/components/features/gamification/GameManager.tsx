@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses } from '@/config/colors';
-import type { GameType, GameAvailability, Topic } from '@/types';
+import type { GameType, GameAvailability, Topic, MissionConfig } from '@/types';
 import type { Parallel } from '@/types/parallel.types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -36,7 +36,18 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
     const [topics, setTopics] = useState<Topic[]>([]);
 
     // Form state for new mission
-    const [missionForm, setMissionForm] = useState({
+    const [missionForm, setMissionForm] = useState<{
+        game_type_id: string;
+        topic_id: string;
+        available_from: string;
+        available_until: string;
+        max_attempts: number;
+        show_theory: boolean;
+        is_active: boolean;
+        mission_title: string;
+        mission_instructions: string;
+        mission_config: MissionConfig;
+    }>({
         game_type_id: '',
         topic_id: '',
         available_from: new Date().toISOString().split('T')[0],
@@ -133,7 +144,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
             content_constraints: {
                 ...defaultConfig.content_constraints,
                 ...(mission.mission_config.content_constraints || {})
-            }
+            },
+            // Preservar word_catcher si existe
+            word_catcher: mission.mission_config.word_catcher || undefined
         } : defaultConfig;
 
         setMissionForm({
@@ -532,6 +545,97 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* WordCatcher Specific Configuration */}
+                                    {gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name === 'Word Catcher' && (
+                                        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-2xl space-y-4 border border-purple-200 dark:border-purple-800">
+                                            <h4 className="text-sm font-black text-purple-800 dark:text-purple-200 flex items-center gap-2">
+                                                <Gamepad2 className="w-4 h-4 text-purple-500" />
+                                                Word Catcher - Configuración Específica
+                                            </h4>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                                        Velocidad de Caída (px/s)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="50"
+                                                        max="500"
+                                                        step="10"
+                                                        value={missionForm.mission_config?.word_catcher?.fall_speed ?? 220}
+                                                        onChange={(e) => setMissionForm({
+                                                            ...missionForm,
+                                                            mission_config: {
+                                                                ...missionForm.mission_config,
+                                                                word_catcher: {
+                                                                    ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
+                                                                    fall_speed: parseInt(e.target.value)
+                                                                }
+                                                            }
+                                                        })}
+                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg text-sm"
+                                                        placeholder="220"
+                                                    />
+                                                    <p className="text-[10px] text-slate-500 mt-1">Más alto = más rápido</p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                                        Intervalo de Spawn (ms)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="300"
+                                                        max="3000"
+                                                        step="100"
+                                                        value={missionForm.mission_config?.word_catcher?.spawn_rate_ms ?? 900}
+                                                        onChange={(e) => setMissionForm({
+                                                            ...missionForm,
+                                                            mission_config: {
+                                                                ...missionForm.mission_config,
+                                                                word_catcher: {
+                                                                    ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
+                                                                    spawn_rate_ms: parseInt(e.target.value)
+                                                                }
+                                                            }
+                                                        })}
+                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg text-sm"
+                                                        placeholder="900"
+                                                    />
+                                                    <p className="text-[10px] text-slate-500 mt-1">Más bajo = más frecuente</p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
+                                                        Penalización por Fallos
+                                                    </label>
+                                                    <label className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={missionForm.mission_config?.word_catcher?.miss_penalty_enabled ?? true}
+                                                            onChange={(e) => setMissionForm({
+                                                                ...missionForm,
+                                                                mission_config: {
+                                                                    ...missionForm.mission_config,
+                                                                    word_catcher: {
+                                                                        ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
+                                                                        miss_penalty_enabled: e.target.checked
+                                                                    }
+                                                                }
+                                                            })}
+                                                            className="w-4 h-4 text-purple-600 bg-white border-purple-300 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                                                        />
+                                                        <span className="text-xs font-medium text-slate-700 dark:text-white">
+                                                            Penalizar palabras perdidas
+                                                        </span>
+                                                    </label>
+                                                    <p className="text-[10px] text-slate-500 mt-1">Si está activo, se resta puntos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Row 3: Checkboxes */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
