@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
 import { preloadImageMatchAssets } from './assets.config';
-import { AnswerTracker } from './answerTracker';
+import { AnswerTracker } from '@/lib/games/answerTracker';
 import type { ImageMatchCard } from './gameLoader.utils';
 import type { GameContent, MissionConfig } from '@/types/game.types';
 import type { GameSessionManager } from './GameSessionManager';

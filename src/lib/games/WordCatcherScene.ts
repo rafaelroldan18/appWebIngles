@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { WORD_CATCHER_CONFIG, resolveWordCatcherConfig } from './wordCatcher.config';
 import { preloadWordCatcherAssets } from './assets.config';
 import { buildGameDataset, type PreparedGameItem, type GameDataset } from './gameLoader.utils';
-import { AnswerTracker } from './answerTracker';
+import { AnswerTracker } from '@/lib/games/answerTracker';
 import type { GameContent, MissionConfig } from '@/types/game.types';
 import type { GameSessionManager } from './GameSessionManager';
 
