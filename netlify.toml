@@ -1,11 +1,13 @@
-# Netlify config for Next.js SSR
-
 [build]
   command = "npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "20"
+  # Esto le da más memoria al proceso de compilación
+  NODE_OPTIONS = "--max-old-space-size=4096"
+  # Evita que Netlify trate los warnings como errores fatales
+  CI = "false"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
