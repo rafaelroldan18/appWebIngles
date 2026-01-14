@@ -1,6 +1,9 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
-import { preloadImageMatchAssets } from './assets.config';
+import { preloadCommonAndGame } from './assets/assetLoader';
+import { ASSET_MANIFEST } from './assets/manifest';
+import { createHud } from './ui/hudFactory';
+import { showFeedback, showGlow, showBurst } from './UIKit';
 import { AnswerTracker } from './answerTracker';
 import type { ImageMatchCard } from './gameLoader.utils';
 import type { GameContent, MissionConfig } from '@/types/game.types';
@@ -46,9 +49,8 @@ export class ImageMatchScene extends Phaser.Scene {
     private missionConfig: MissionConfig | null = null;
     private resolvedConfig: any = null;
 
-    // UI Elements
-    private scoreText!: Phaser.GameObjects.Text;
-    private timerText!: Phaser.GameObjects.Text;
+    // UI Elements (ahora usa GameHUD)
+    private gameHUD!: GameHUD;
     private pairsText!: Phaser.GameObjects.Text;
     private movesText!: Phaser.GameObjects.Text;
     private pauseOverlay!: Phaser.GameObjects.Container;
@@ -74,6 +76,9 @@ export class ImageMatchScene extends Phaser.Scene {
         super({ key: 'ImageMatchScene' });
     }
 
+    // Data for restart
+    private initData: any = null;
+
     init(data: {
         cards?: ImageMatchCard[];
         words?: GameContent[];
@@ -82,6 +87,7 @@ export class ImageMatchScene extends Phaser.Scene {
         missionInstructions?: string;
         missionConfig?: MissionConfig;
     }) {
+        this.initData = data;
         this.cardsData = data.cards || [];
         this.sessionManager = data.sessionManager || null;
         this.missionTitle = data.missionTitle || 'IMAGE MATCH';
@@ -105,8 +111,8 @@ export class ImageMatchScene extends Phaser.Scene {
     }
 
     preload() {
-        const assetPack = this.resolvedConfig.asset_pack || 'kenney-ui-1';
-        preloadImageMatchAssets(this, assetPack);
+        // Cargar atlas común (UI) + atlas específico de Image Match
+        loadGameAtlases(this, 'im');
 
         // Preload content images
         this.cardsData.forEach(card => {
@@ -149,48 +155,45 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private createStandardHUD() {
         const { width } = this.cameras.main;
-        const hudDepth = 1000;
-        const padding = 20;
 
-        const bannerBg = this.add.rectangle(width / 2, 45, width * 0.98, 80, 0x000000, 0.6)
-            .setDepth(hudDepth)
-            .setStrokeStyle(3, 0x3b82f6, 0.8);
+        // Crear HUD usando el sistema común
+        this.gameHUD = new GameHUD(this, {
+            showScore: true,
+            showTimer: true,
+            showLives: false,
+            showProgress: false,
+            showPauseButton: true,
+            showHelpButton: this.resolvedConfig.hud_help_enabled
+        });
 
-        this.scoreText = this.add.text(padding + 20, 30, `SCORE: ${this.score}`, {
-            fontSize: '24px', fontFamily: 'Arial Black', color: '#60a5fa', stroke: '#000000', strokeThickness: 4
-        }).setDepth(hudDepth + 1);
+        // Configurar callbacks
+        this.gameHUD.onPause(() => this.togglePause());
+        this.gameHUD.onHelp(() => this.showHelpPanel());
 
-        this.movesText = this.add.text(padding + 20, 60, 'MOVES: 0', {
-            fontSize: '18px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 3
-        }).setDepth(hudDepth + 1);
+        // Inicializar con valores actuales
+        this.gameHUD.update({
+            score: this.score,
+            timeRemaining: this.timeRemaining
+        });
 
-        this.timerText = this.add.text(width / 2, 35, `${this.timeRemaining}`, {
-            fontSize: '48px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5).setDepth(hudDepth + 1);
-
-        this.add.text(width / 2, 70, this.missionTitle.toUpperCase(), {
-            fontSize: '14px', fontFamily: 'Arial Black', color: '#ffffff', backgroundColor: '#3b82f6', padding: { x: 10, y: 3 }
-        }).setOrigin(0.5).setDepth(hudDepth + 1);
-
+        // Textos adicionales específicos de Image Match
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
-        this.pairsText = this.add.text(width - padding - 80, 45, `PAIRS: 0/${totalPairs}`, {
-            fontSize: '24px', fontFamily: 'Arial Black', color: '#34d399', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(1, 0.5).setDepth(hudDepth + 1);
 
-        const pauseBtn = this.add.image(width - padding - 30, 45, 'ui-icon-pause')
-            .setDisplaySize(45, 45)
-            .setDepth(hudDepth + 1)
-            .setInteractive({ useHandCursor: true });
-        pauseBtn.on('pointerdown', () => this.togglePause());
+        this.pairsText = this.add.text(width - 200, 25, `PAIRS: 0/${totalPairs}`, {
+            fontSize: '18px',
+            fontFamily: 'Arial Black',
+            color: '#34d399',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setDepth(1001).setScrollFactor(0);
 
-        if (this.resolvedConfig.hud_help_enabled) {
-            const helpBtn = this.add.image(width - padding - 30, 85, 'ui-icon-help')
-                .setDisplaySize(35, 35)
-                .setOrigin(0.5)
-                .setDepth(hudDepth + 1)
-                .setInteractive({ useHandCursor: true });
-            helpBtn.on('pointerdown', () => this.showHelpPanel());
-        }
+        this.movesText = this.add.text(80, 65, 'MOVES: 0', {
+            fontSize: '16px',
+            fontFamily: 'Arial Black',
+            color: '#fbbf24',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setDepth(1001).setScrollFactor(0);
     }
 
     private createBoard() {
@@ -321,7 +324,8 @@ export class ImageMatchScene extends Phaser.Scene {
             second: { kind: p2.cardData.kind, value: p2.cardData.kind === 'image' ? `img_${p2.pairId}` : p2.cardData.prompt },
             isCorrect: isMatch,
             moves: this.moves,
-            timeMs: timeMs
+            timeMs: timeMs,
+            ruleTag: p1.cardData.ruleTag
         });
 
         if (isMatch) {
@@ -343,12 +347,30 @@ export class ImageMatchScene extends Phaser.Scene {
         this.sessionManager?.updateScore(points, true);
 
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
-        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.gameHUD.update({ score: this.score });
         this.pairsText.setText(`PAIRS: ${this.matches}/${totalPairs}`);
 
-        // Glow effect
-        const glow1 = this.add.image(p1.container.x, p1.container.y, 'im-card-match-glow').setDisplaySize(p1.container.width * 1.2, p1.container.height * 1.2).setAlpha(0);
-        const glow2 = this.add.image(p2.container.x, p2.container.y, 'im-card-match-glow').setDisplaySize(p2.container.width * 1.2, p2.container.height * 1.2).setAlpha(0);
+        // Efectos visuales profesionales usando UIKit
+        const x1 = p1.container.x;
+        const y1 = p1.container.y;
+        const x2 = p2.container.x;
+        const y2 = p2.container.y;
+
+        // Feedback de éxito
+        showFeedback(this, x1, y1, true);
+        showFeedback(this, x2, y2, true);
+
+        // Glow dorado
+        showGlow(this, x1, y1, 0xFFD700, 800);
+        showGlow(this, x2, y2, 0xFFD700, 800);
+
+        // Burst verde
+        showBurst(this, x1, y1, 0x10B981, 600);
+        showBurst(this, x2, y2, 0x10B981, 600);
+
+        // Glow effect del atlas (mantener el original)
+        const glow1 = this.add.image(x1, y1, 'im_atlas', 'image-match/cards/card_glow').setDisplaySize(p1.container.width * 1.2, p1.container.height * 1.2).setAlpha(0);
+        const glow2 = this.add.image(x2, y2, 'im_atlas', 'image-match/cards/card_glow').setDisplaySize(p2.container.width * 1.2, p2.container.height * 1.2).setAlpha(0);
 
         this.tweens.add({
             targets: [glow1, glow2],
@@ -358,8 +380,8 @@ export class ImageMatchScene extends Phaser.Scene {
             onComplete: () => {
                 glow1.destroy();
                 glow2.destroy();
-                this.createParticles(p1.container.x, p1.container.y, 0x10b981);
-                this.createParticles(p2.container.x, p2.container.y, 0x10b981);
+                this.createParticles(x1, y1, 0x10b981);
+                this.createParticles(x2, y2, 0x10b981);
                 p1.container.setAlpha(0.6);
                 p2.container.setAlpha(0.6);
 
@@ -380,7 +402,7 @@ export class ImageMatchScene extends Phaser.Scene {
         const penalty = IMAGE_MATCH_CONFIG.scoring.wrongMatch;
         this.score += penalty;
         this.sessionManager?.updateScore(penalty, false);
-        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.gameHUD.update({ score: this.score });
 
         this.cameras.main.shake(150, 0.01);
 
@@ -479,7 +501,7 @@ export class ImageMatchScene extends Phaser.Scene {
             delay: 1000, loop: true,
             callback: () => {
                 this.timeRemaining--;
-                this.timerText.setText(`${this.timeRemaining}`);
+                this.gameHUD.update({ timeRemaining: this.timeRemaining });
                 if (this.timeRemaining <= 0) this.endGame();
             }
         });
@@ -491,18 +513,136 @@ export class ImageMatchScene extends Phaser.Scene {
         this.isPaused = true;
         this.gameTimer?.remove();
 
-        this.events.emit('gameOver', {
-            scoreRaw: this.score,
-            correctCount: this.matches,
-            wrongCount: this.moves - this.matches,
-            durationSeconds: Math.floor((Date.now() - this.gameStartTime) / 1000),
-            answers: this.answerTracker.getAnswers(),
+        const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+        const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
+
+        // Stats
+        const attempts = this.moves;
+        const matches = this.matches;
+        const accuracy = attempts > 0 ? Math.round((matches / attempts) * 100) : 0;
+        const perfectMatch = matches > 0 && matches === attempts;
+
+        // Event Payload
+        const gameOverPayload = {
+            scoreRaw: this.score + (perfectMatch ? 500 : 0),
+            correctCount: matches,
+            wrongCount: attempts - matches,
+            durationSeconds: duration,
+            answers: this.answerTracker.getAnswers().map(ans => ({
+                ...ans,
+                is_correct: ans.is_correct || (ans as any).result === 'correct'
+            })),
             meta: {
                 moves: this.moves,
-                totalPairs: new Set(this.cardsData.map(c => c.pairId)).size,
-                matchedPairs: this.matches,
+                totalPairs: totalPairs,
+                matchedPairs: matches,
                 bestStreak: this.bestStreak
             }
+        };
+
+        this.createMissionCompleteModal({
+            pairs: matches,
+            totalPairs: totalPairs,
+            accuracy: accuracy,
+            perfectMatch: perfectMatch,
+            eventData: gameOverPayload
         });
+    }
+
+    private createMissionCompleteModal(stats: any) {
+        const { width, height } = this.cameras.main;
+        const container = this.add.container(width / 2, height / 2).setDepth(2000);
+
+        // 1. DIMMER
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+            .setDepth(1999).setInteractive();
+
+        // 2. MODAL BACKGROUND
+        const bgWidth = 600;
+        const bgHeight = 500;
+        const bg = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x1e293b)
+            .setStrokeStyle(4, 0xfbbf24);
+
+        // 3. TITLE
+        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
+            fontSize: '48px',
+            fontFamily: 'Arial Black',
+            color: '#fbbf24',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Separator
+        const separator = this.add.rectangle(0, -bgHeight / 2 + 100, 300, 2, 0xfbbf24, 0.5);
+
+        // 4. STATS
+        const statsStartY = -50;
+        const lineHeight = 50;
+
+        // Pairs
+        const pairsText = this.add.text(0, statsStartY, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
+            fontSize: '28px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(pairsText);
+
+        // Memory Master Bonus
+        const bonusStatus = stats.perfectMatch ? 'ACTIVE' : 'INACTIVE';
+        const bonusColor = stats.perfectMatch ? '#10b981' : '#94a3b8';
+        const bonusText = this.add.text(0, statsStartY + lineHeight, `MEMORY MASTER BONUS: ${bonusStatus}`, {
+            fontSize: '22px', fontFamily: 'Arial', color: bonusColor, fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(bonusText);
+
+        // Rank
+        let rank = 'NOVICE';
+        let icon = '🌱';
+        if (stats.accuracy >= 90) { rank = 'MASTER'; icon = '👑'; }
+        else if (stats.accuracy >= 70) { rank = 'EXPERT'; icon = '🎓'; }
+        else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
+
+        const rankText = this.add.text(0, statsStartY + lineHeight * 2, `RANK: ${icon} ${rank}`, {
+            fontSize: '32px', fontFamily: 'Arial', color: '#fbbf24', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(rankText);
+
+        // 5. BUTTONS
+        const btnY = bgHeight / 2 - 80;
+
+        const summaryBtn = this.createModalButton(-140, btnY, 'SUMMARY', 0x3b82f6, () => {
+            this.tweens.add({
+                targets: container, scale: 0, duration: 300,
+                onComplete: () => this.events.emit('gameOver', stats.eventData)
+            });
+        });
+
+        const repeatBtn = this.createModalButton(140, btnY, 'REPEAT', 0x10b981, () => {
+            this.tweens.add({
+                targets: container, scale: 0, duration: 300,
+                onComplete: () => {
+                    if (this.initData) this.scene.restart(this.initData);
+                    else this.scene.restart();
+                }
+            });
+        });
+
+        container.add([bg, title, separator, ...summaryBtn, ...repeatBtn]);
+        container.setScale(0);
+        this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
+    }
+
+    private createModalButton(x: number, y: number, text: string, color: number, callback: () => void) {
+        const width = 180, height = 60;
+        const bg = this.add.rectangle(x, y, width, height, color).setInteractive({ useHandCursor: true }).setStrokeStyle(3, 0xffffff);
+        const shadow = this.add.rectangle(x + 5, y + 5, width, height, 0x000000, 0.3);
+        const label = this.add.text(x, y, text, { fontSize: '24px', fontFamily: 'Arial', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+
+        bg.on('pointerdown', () => {
+            this.tweens.add({ targets: [bg, label, shadow], scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true, onComplete: callback });
+        });
+        bg.on('pointerover', () => bg.setFillStyle(color, 0.8));
+        bg.on('pointerout', () => bg.setFillStyle(color, 1));
+
+        return [shadow, bg, label];
     }
 }

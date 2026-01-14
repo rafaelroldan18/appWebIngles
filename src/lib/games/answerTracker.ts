@@ -33,7 +33,8 @@ export class AnswerTracker {
     recordCorrectCatch(
         itemId: string,
         wordText: string,
-        position?: { x: number; y: number }
+        position?: { x: number; y: number },
+        tags?: string[]
     ): void {
         const timeMs = Date.now() - this.gameStartTime;
 
@@ -47,7 +48,8 @@ export class AnswerTracker {
                 event: 'catch',
                 was_distractor: false,
                 time_ms: timeMs,
-                position
+                position,
+                rule_tag: tags && tags.length > 0 ? tags[0] : undefined
             }
         });
 
@@ -60,7 +62,8 @@ export class AnswerTracker {
     recordDistractorCatch(
         itemId: string,
         wordText: string,
-        position?: { x: number; y: number }
+        position?: { x: number; y: number },
+        tags?: string[]
     ): void {
         const timeMs = Date.now() - this.gameStartTime;
 
@@ -74,7 +77,8 @@ export class AnswerTracker {
                 event: 'catch',
                 was_distractor: true,
                 time_ms: timeMs,
-                position
+                position,
+                rule_tag: tags && tags.length > 0 ? tags[0] : undefined
             }
         });
 
@@ -87,7 +91,8 @@ export class AnswerTracker {
     recordMissedWord(
         itemId: string,
         wordText: string,
-        position?: { x: number; y: number }
+        position?: { x: number; y: number },
+        tags?: string[]
     ): void {
         const timeMs = Date.now() - this.gameStartTime;
 
@@ -101,7 +106,8 @@ export class AnswerTracker {
                 event: 'miss',
                 was_distractor: false,
                 time_ms: timeMs,
-                position
+                position,
+                rule_tag: tags && tags.length > 0 ? tags[0] : undefined
             }
         });
 
@@ -146,6 +152,7 @@ export class AnswerTracker {
         isCorrect: boolean;
         moves: number;
         timeMs: number;
+        ruleTag?: string;
     }): void {
         this.answers.push({
             item_id: data.contentId,
@@ -163,7 +170,8 @@ export class AnswerTracker {
                 event: 'match_attempt',
                 pair_id: data.pairId,
                 moves: data.moves,
-                time_ms: data.timeMs
+                time_ms: data.timeMs,
+                rule_tag: data.ruleTag
             }
         });
 

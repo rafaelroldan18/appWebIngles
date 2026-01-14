@@ -1,6 +1,9 @@
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { WORD_CATCHER_CONFIG, resolveWordCatcherConfig } from './wordCatcher.config';
-import { preloadWordCatcherAssets } from './assets.config';
+import { preloadCommonAndGame } from './assets/assetLoader';
+import { ASSET_MANIFEST } from './assets/manifest';
+import { createHud, type HudRefs } from './ui/hudFactory';
+import { showFeedback, showBurst, showGlow } from './UIKit';
 import { buildGameDataset, type PreparedGameItem, type GameDataset } from './gameLoader.utils';
 import { AnswerTracker } from './answerTracker';
 import type { GameContent, MissionConfig } from '@/types/game.types';
@@ -33,9 +36,8 @@ export class WordCatcherScene extends Phaser.Scene {
     private missionConfig: MissionConfig | null = null;
     private resolvedConfig: any = null;
 
-    // UI Elements
-    private scoreText!: Phaser.GameObjects.Text;
-    private timerText!: Phaser.GameObjects.Text;
+    // UI Elements (ahora usa hudFactory)
+    private hud!: HudRefs;
     private correctText!: Phaser.GameObjects.Text;
     private pauseOverlay!: Phaser.GameObjects.Container;
 
@@ -47,6 +49,9 @@ export class WordCatcherScene extends Phaser.Scene {
         super({ key: 'WordCatcherScene' });
     }
 
+    // Data for restart
+    private initData: any = null;
+
     init(data: {
         words: GameContent[];
         sessionManager: GameSessionManager;
@@ -54,6 +59,7 @@ export class WordCatcherScene extends Phaser.Scene {
         missionInstructions?: string;
         missionConfig?: MissionConfig;
     }) {
+        this.initData = data;
         this.sessionManager = data.sessionManager || null;
         this.missionTitle = data.missionTitle || '';
         this.missionInstructions = data.missionInstructions || '';
@@ -84,8 +90,8 @@ export class WordCatcherScene extends Phaser.Scene {
     }
 
     preload() {
-        const assetPack = this.resolvedConfig.asset_pack || 'kenney-ui-1';
-        preloadWordCatcherAssets(this, assetPack);
+        // Cargar atlas común (UI) + atlas específico de Word Catcher
+        preloadCommonAndGame(this, 'word-catcher', ASSET_MANIFEST);
     }
 
     create() {
@@ -117,51 +123,33 @@ export class WordCatcherScene extends Phaser.Scene {
     }
 
     private createStandardHUD() {
-        const { width } = this.cameras.main;
-        const hudDepth = 1000;
-        const padding = 20;
+        // Crear HUD usando el nuevo hudFactory
+        this.hud = createHud(this, {
+            showTimer: true,
+            showLives: false,
+            showProgress: false,
+            showHelp: this.resolvedConfig.hud_help_enabled
+        });
 
-        // Banner Superior LIMPID (Más profesional)
-        const bannerBg = this.add.rectangle(width / 2, 45, width * 0.98, 80, 0x000000, 0.6)
-            .setDepth(hudDepth)
-            .setStrokeStyle(3, 0x3b82f6, 0.8);
+        // Configurar callbacks
+        this.hud.onPause = () => this.togglePause();
+        this.hud.onHelp = () => this.showHelpPanel();
 
-        // IZQUIERDA: Score
-        this.scoreText = this.add.text(padding + 20, 30, `SCORE: ${this.score}`, {
-            fontSize: '24px', fontFamily: 'Arial Black', color: '#60a5fa', stroke: '#000000', strokeThickness: 4
-        }).setDepth(hudDepth + 1);
-
-        this.correctText = this.add.text(padding + 20, 60, 'CAUGHT: 0', {
-            fontSize: '18px', fontFamily: 'Arial Black', color: '#34d399', stroke: '#000000', strokeThickness: 3
-        }).setDepth(hudDepth + 1);
-
-        // CENTRO: Timer y Misión
-        const timerLabel = this.add.text(width / 2, 35, `${this.timeRemaining}`, {
-            fontSize: '48px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
-        }).setOrigin(0.5).setDepth(hudDepth + 1);
-        this.timerText = timerLabel;
-
-        const missionText = this.add.text(width / 2, 70, this.missionTitle.toUpperCase(), {
-            fontSize: '14px', fontFamily: 'Arial Black', color: '#ffffff', backgroundColor: '#3b82f6', padding: { x: 10, y: 3 }
-        }).setOrigin(0.5).setDepth(hudDepth + 1);
-
-        // DERECHA: Botones (Pausa y Ayuda)
-        let btnX = width - padding - 25;
-
-        const pauseBtn = this.add.image(btnX, 45, 'ui-icon-pause')
-            .setDisplaySize(45, 45)
-            .setDepth(hudDepth + 1)
-            .setInteractive({ useHandCursor: true });
-        pauseBtn.on('pointerdown', () => this.togglePause());
-
-        if (this.resolvedConfig.hud_help_enabled) {
-            btnX -= 55;
-            const helpBtn = this.add.image(btnX, 45, 'ui-icon-help')
-                .setDisplaySize(45, 45)
-                .setDepth(hudDepth + 1)
-                .setInteractive({ useHandCursor: true });
-            helpBtn.on('pointerdown', () => this.showHelpPanel());
+        // Inicializar valores
+        this.hud.scoreText.setText(`Score: ${this.score}`);
+        if (this.hud.timeText) {
+            this.hud.timeText.setText(`Time: ${this.timeRemaining}`);
         }
+
+        // Texto adicional para "CAUGHT" (específico de Word Catcher)
+        const { width } = this.cameras.main;
+        this.correctText = this.add.text(80, 65, 'CAUGHT: 0', {
+            fontSize: '16px',
+            fontFamily: 'Fredoka',
+            color: '#34d399',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setDepth(1001).setScrollFactor(0);
     }
 
     private createPauseOverlay() {
@@ -270,7 +258,9 @@ export class WordCatcherScene extends Phaser.Scene {
     private updateTimer() {
         if (this.isPaused) return;
         this.timeRemaining--;
-        this.timerText.setText(`${this.timeRemaining}`);
+        if (this.hud.timeText) {
+            this.hud.timeText.setText(`Time: ${this.timeRemaining}`);
+        }
         if (this.timeRemaining <= 0) this.endGame();
     }
 
@@ -328,9 +318,25 @@ export class WordCatcherScene extends Phaser.Scene {
     private handleCorrectCatch(sprite: WordSprite) {
         const points = WORD_CATCHER_CONFIG.scoring.correctCatch;
         this.score += points;
-        this.answerTracker.recordCorrectCatch(sprite.wordData.content_id, sprite.wordData.content_text);
+        this.answerTracker.recordCorrectCatch(sprite.wordData.content_id, sprite.wordData.content_text, { x: sprite.x, y: sprite.y }, sprite.wordData.metadata?.rule_tag ? [sprite.wordData.metadata.rule_tag] : []);
         this.sessionManager?.updateScore(points, true);
-        this.createParticles(sprite.parentContainer.x, sprite.parentContainer.y, 0x10b981);
+
+        // Efectos visuales profesionales
+        const x = sprite.parentContainer.x;
+        const y = sprite.parentContainer.y;
+
+        // Feedback de éxito
+        showFeedback(this, x, y, true);
+
+        // Glow verde brillante
+        showGlow(this, x, y, 0x10B981, 600);
+
+        // Burst dorado
+        showBurst(this, x, y, 0xFFD700, 500);
+
+        // Partículas originales (mantener)
+        this.createParticles(x, y, 0x10b981);
+
         sprite.parentContainer.destroy();
         this.updateUI_Stats();
     }
@@ -338,10 +344,25 @@ export class WordCatcherScene extends Phaser.Scene {
     private handleWrongCatch(sprite: WordSprite) {
         const points = WORD_CATCHER_CONFIG.scoring.wrongCatch;
         this.score += points;
-        this.answerTracker.recordDistractorCatch(sprite.wordData.content_id, sprite.wordData.content_text);
+        this.answerTracker.recordDistractorCatch(sprite.wordData.content_id, sprite.wordData.content_text, { x: sprite.x, y: sprite.y }, sprite.wordData.metadata?.rule_tag ? [sprite.wordData.metadata.rule_tag] : []);
         this.sessionManager?.updateScore(points, false);
+
+        // Efectos visuales profesionales
+        const x = sprite.parentContainer.x;
+        const y = sprite.parentContainer.y;
+
+        // Feedback de error
+        showFeedback(this, x, y, false);
+
+        // Burst rojo
+        showBurst(this, x, y, 0xEF4444, 500);
+
+        // Shake de cámara
         this.cameras.main.shake(150, 0.01);
-        this.createParticles(sprite.parentContainer.x, sprite.parentContainer.y, 0xef4444);
+
+        // Partículas originales (mantener)
+        this.createParticles(x, y, 0xef4444);
+
         sprite.parentContainer.destroy();
         this.updateUI_Stats();
     }
@@ -353,7 +374,7 @@ export class WordCatcherScene extends Phaser.Scene {
                 this.score += WORD_CATCHER_CONFIG.scoring.missedWord;
                 this.sessionManager?.updateScore(WORD_CATCHER_CONFIG.scoring.missedWord, false);
             }
-            this.answerTracker.recordMissedWord(sprite.wordData.content_id, sprite.wordData.content_text);
+            this.answerTracker.recordMissedWord(sprite.wordData.content_id, sprite.wordData.content_text, { x: sprite.x, y: sprite.y }, sprite.wordData.metadata?.rule_tag ? [sprite.wordData.metadata.rule_tag] : []);
         } else {
             this.answerTracker.recordAvoidedDistractor(sprite.wordData.content_id, sprite.wordData.content_text);
         }
@@ -368,7 +389,7 @@ export class WordCatcherScene extends Phaser.Scene {
     }
 
     private updateUI_Stats() {
-        this.scoreText.setText(`SCORE: ${this.score}`);
+        this.hud.scoreText.setText(`Score: ${this.score}`);
         const stats = this.answerTracker.getStats();
         this.correctText.setText(`CAUGHT: ${stats.caught}`);
     }
@@ -379,13 +400,136 @@ export class WordCatcherScene extends Phaser.Scene {
         this.isPaused = true;
         this.spawnTimer?.remove();
         this.gameTimer?.remove();
+
         const stats = this.answerTracker.getStats();
-        this.events.emit('gameOver', {
-            scoreRaw: this.score,
-            correctCount: stats.correct,
+        const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+
+        // Calculate Accuracy
+        const totalInteractions = stats.caught + stats.missed + stats.wrong;
+        const accuracy = totalInteractions > 0
+            ? Math.round((stats.caught / totalInteractions) * 100)
+            : 0;
+
+        // Perfect Catch Bonus
+        const perfectCatch = stats.wrong === 0 && stats.caught >= 5;
+
+        // Event Payload
+        const gameOverPayload = {
+            scoreRaw: this.score + (perfectCatch ? 500 : 0),
+            correctCount: stats.caught,
             wrongCount: stats.wrong,
-            durationSeconds: Math.floor((Date.now() - this.gameStartTime) / 1000),
-            answers: this.answerTracker.getAnswers()
+            durationSeconds: duration,
+            accuracy: accuracy,
+            answers: this.answerTracker.getAnswers().map(ans => ({
+                ...ans,
+                is_correct: ans.is_correct || (ans as any).result === 'correct'
+            }))
+        };
+
+        // Show Modal
+        this.createMissionCompleteModal({
+            caught: stats.caught,
+            totalInteractions: totalInteractions,
+            accuracy: accuracy,
+            perfectCatch: perfectCatch,
+            eventData: gameOverPayload
         });
+    }
+
+    private createMissionCompleteModal(stats: any) {
+        const { width, height } = this.cameras.main;
+        const container = this.add.container(width / 2, height / 2).setDepth(2000);
+
+        // 1. DIMMER
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+            .setDepth(1999).setInteractive();
+
+        // 2. MODAL BACKGROUND
+        const bgWidth = 600;
+        const bgHeight = 500;
+        const bg = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x1e293b)
+            .setStrokeStyle(4, 0xfbbf24);
+
+        // 3. TITLE
+        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
+            fontSize: '48px',
+            fontFamily: 'Arial Black',
+            color: '#fbbf24',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+
+        // Separator
+        const separator = this.add.rectangle(0, -bgHeight / 2 + 100, 300, 2, 0xfbbf24, 0.5);
+
+        // 4. STATS
+        const statsStartY = -50;
+        const lineHeight = 50;
+
+        // Caught
+        const caughtText = this.add.text(0, statsStartY, `WORDS CAUGHT: ${stats.caught}`, {
+            fontSize: '28px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(caughtText);
+
+        // Perfect Catch
+        const bonusStatus = stats.perfectCatch ? 'ACTIVE' : 'INACTIVE';
+        const bonusColor = stats.perfectCatch ? '#10b981' : '#94a3b8';
+        const bonusText = this.add.text(0, statsStartY + lineHeight, `PERFECT CATCH BONUS: ${bonusStatus}`, {
+            fontSize: '22px', fontFamily: 'Arial', color: bonusColor, fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(bonusText);
+
+        // Rank
+        let rank = 'NOVICE';
+        let icon = '🌱';
+        if (stats.accuracy >= 90) { rank = 'MASTER'; icon = '👑'; }
+        else if (stats.accuracy >= 70) { rank = 'EXPERT'; icon = '🎓'; }
+        else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
+
+        const rankText = this.add.text(0, statsStartY + lineHeight * 2, `RANK: ${icon} ${rank}`, {
+            fontSize: '32px', fontFamily: 'Arial', color: '#fbbf24', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(rankText);
+
+        // 5. BUTTONS
+        const btnY = bgHeight / 2 - 80;
+
+        const summaryBtn = this.createModalButton(-140, btnY, 'SUMMARY', 0x3b82f6, () => {
+            this.tweens.add({
+                targets: container, scale: 0, duration: 300,
+                onComplete: () => this.events.emit('gameOver', stats.eventData)
+            });
+        });
+
+        const repeatBtn = this.createModalButton(140, btnY, 'REPEAT', 0x10b981, () => {
+            this.tweens.add({
+                targets: container, scale: 0, duration: 300,
+                onComplete: () => {
+                    if (this.initData) this.scene.restart(this.initData);
+                    else this.scene.restart();
+                }
+            });
+        });
+
+        container.add([bg, title, separator, ...summaryBtn, ...repeatBtn]);
+        container.setScale(0);
+        this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
+    }
+
+    private createModalButton(x: number, y: number, text: string, color: number, callback: () => void) {
+        const width = 180, height = 60;
+        const bg = this.add.rectangle(x, y, width, height, color).setInteractive({ useHandCursor: true }).setStrokeStyle(3, 0xffffff);
+        const shadow = this.add.rectangle(x + 5, y + 5, width, height, 0x000000, 0.3);
+        const label = this.add.text(x, y, text, { fontSize: '24px', fontFamily: 'Arial', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+
+        bg.on('pointerdown', () => {
+            this.tweens.add({ targets: [bg, label, shadow], scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true, onComplete: callback });
+        });
+        bg.on('pointerover', () => bg.setFillStyle(color, 0.8));
+        bg.on('pointerout', () => bg.setFillStyle(color, 1));
+
+        return [shadow, bg, label];
     }
 }

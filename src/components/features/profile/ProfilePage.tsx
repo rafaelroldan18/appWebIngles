@@ -84,8 +84,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
             <div className="space-y-4">
               <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.primary.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.primary.border}`}>
-                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
-                  <Mail className={`w-6 h-6 ${colors.primary.main}`} />
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800`}>
+                  <Mail className={`w-6 h-6 text-[#2B6BEE] dark:text-[#6FA0FF]`} />
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.email}</p>
@@ -94,8 +94,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               </div>
 
               <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.secondary.gradient} bg-opacity-10 rounded-xl border-l-4 ${colors.secondary.border}`}>
-                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
-                  <IdCard className={`w-6 h-6 ${colors.secondary.main}`} />
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800`}>
+                  <IdCard className={`w-6 h-6 text-[#7C80FF] dark:text-[#C8C9FF]`} />
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.idCard}</p>
@@ -104,8 +104,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               </div>
 
               <div className={`flex items-center gap-4 p-4 bg-gradient-to-r ${colors.status.neutral.bg} rounded-xl border-l-4 ${colors.status.neutral.border}`}>
-                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm`}>
-                  <Shield className={`w-6 h-6 ${colors.text.secondary}`} />
+                <div className={`w-12 h-12 ${colors.background.base} rounded-lg flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800`}>
+                  <Shield className={`w-6 h-6 text-slate-500 dark:text-slate-300`} />
                 </div>
                 <div className="flex-1">
                   <p className={`text-xs ${colors.text.secondary} font-semibold tracking-wide`}>{t.profile.accountStatus}</p>

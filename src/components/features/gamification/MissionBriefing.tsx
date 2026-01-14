@@ -26,6 +26,7 @@ interface MissionBriefingProps {
     onViewTheory?: () => void;
     showTheoryButton?: boolean;
     topicTitle?: string;
+    onViewLastResult?: () => void;
 }
 
 export default function MissionBriefing({
@@ -39,7 +40,8 @@ export default function MissionBriefing({
     onStart,
     onViewTheory,
     showTheoryButton = true,
-    topicTitle
+    topicTitle,
+    onViewLastResult
 }: MissionBriefingProps) {
     const { t } = useLanguage();
     const formattedDate = availableUntil
@@ -104,17 +106,65 @@ export default function MissionBriefing({
                                     </p>
                                 </div>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3 border border-slate-100 dark:border-slate-700">
-                                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center shrink-0">
-                                    <Target className="text-purple-600 dark:text-purple-400" size={20} />
+
+                            {/* Show Lives for GrammarRun */}
+                            {config.lives !== undefined && config.lives > 0 ? (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3 border border-slate-100 dark:border-slate-700">
+                                    <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                        <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Vidas</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {config.lives} {config.lives === 1 ? 'vida disponible' : 'vidas disponibles'}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">{t.student.briefing.objective}</h4>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                        {t.student.briefing.hitItems.replace('{items}', config.content_constraints.items.toString())}
-                                    </p>
+                            ) : (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3 border border-slate-100 dark:border-slate-700">
+                                    <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                        <Target className="text-purple-600 dark:text-purple-400" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">{t.student.briefing.objective}</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {t.student.briefing.hitItems.replace('{items}', config.content_constraints?.items?.toString() || '12')}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Show Items Limit for GrammarRun */}
+                            {config.grammar_run?.items_limit !== undefined && (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3 border border-slate-100 dark:border-slate-700">
+                                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                        <Target className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Preguntas</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {config.grammar_run.items_limit} preguntas a responder
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Show Mode for GrammarRun */}
+                            {config.grammar_run?.mode && (
+                                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl flex items-start gap-3 border border-slate-100 dark:border-slate-700">
+                                    <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center shrink-0">
+                                        <AlertCircle className="text-amber-600 dark:text-amber-400" size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Modo</h4>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                            {config.grammar_run.mode === 'choose_correct' ? 'Elige la respuesta correcta' : 'Evita las incorrectas'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -176,6 +226,16 @@ export default function MissionBriefing({
                                 {t.student.briefing.startMission}
                                 <ChevronRight size={20} />
                             </button>
+
+                            {onViewLastResult && (
+                                <button
+                                    onClick={onViewLastResult}
+                                    className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs transition-all hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-2 mt-2"
+                                >
+                                    <Trophy size={14} />
+                                    Ver último resultado
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

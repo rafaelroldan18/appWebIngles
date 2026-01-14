@@ -5,8 +5,8 @@
 
 export const SENTENCE_BUILDER_CONFIG = {
     // Game dimensions
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
 
     // Scoring
     scoring: {

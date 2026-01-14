@@ -5,13 +5,21 @@ import { GameService } from '@/services/game.service';
 import { ParallelService } from '@/services/parallel.service';
 import {
     PlusCircle, Gamepad2, Calendar, Settings,
-    BookOpen, Layers, LayoutDashboard, Database, X, Save, Trash2, Eraser
+    BookOpen, Layers, LayoutDashboard, Database, X, Save, Trash2, Eraser, MapPin
 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses } from '@/config/colors';
 import type { GameType, GameAvailability, Topic, MissionConfig } from '@/types';
 import type { Parallel } from '@/types/parallel.types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+    validateGameContent,
+    validateGrammarRunContent,
+    validateSentenceBuilderContent,
+    loadGrammarRunContent,
+    loadSentenceBuilderContent,
+    loadCityExplorerContent
+} from '@/lib/games/gameLoader.utils';
 
 // New Sub-components
 import TopicManager from './TopicManager';
@@ -35,6 +43,14 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
     const [editingMissionId, setEditingMissionId] = useState<string | null>(null);
     const [topics, setTopics] = useState<Topic[]>([]);
 
+    // Multi-selection states
+    const [selectedMissions, setSelectedMissions] = useState<string[]>([]);
+    const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+    const [selectedContent, setSelectedContent] = useState<string[]>([]);
+
+    // Filter states
+    const [topicFilter, setTopicFilter] = useState<string>(''); // For filtering missions by topic
+
     // Form state for new mission
     const [missionForm, setMissionForm] = useState<{
         game_type_id: string;
@@ -50,7 +66,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
     }>({
         game_type_id: '',
         topic_id: '',
-        available_from: new Date().toISOString().split('T')[0],
+        available_from: new Date().toLocaleDateString('en-CA'),
         available_until: '',
         max_attempts: 3,
         show_theory: true,
@@ -65,7 +81,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                 distractors_percent: 30
             },
             asset_pack: 'kenney-ui-1',
-            hud_help_enabled: true
+            hud_help_enabled: true,
+            sentence_builder: { items_limit: 8, randomize_items: true, allow_reorder: true, hint_cost: 5, auto_check: false },
+            city_explorer: { checkpoints_to_complete: 6, attempts_per_challenge: 2, challenge_time_seconds: 45, hint_cost: 5 }
         }
     });
 
@@ -134,7 +152,12 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
             time_limit_seconds: 60,
             content_constraints: { items: 12, distractors_percent: 30 },
             asset_pack: 'kenney-ui-1',
-            hud_help_enabled: true
+            hud_help_enabled: true,
+            scoring: { points_correct: 10, points_wrong: -5, streak_bonus: true },
+            pacing: { speed_base: 1.0, speed_increment: 0.08, spawn_rate: 1.2 },
+            ui: { show_timer: true, show_lives: true, show_streak: true, show_progress: true, show_hint_button: true },
+            sentence_builder: { items_limit: 8, randomize_items: true, allow_reorder: true, hint_cost: 5, auto_check: false },
+            city_explorer: { checkpoints_to_complete: 6, attempts_per_challenge: 2, challenge_time_seconds: 45, hint_cost: 5 }
         };
 
         // Mezcla profunda para asegurar que existan los sub-objetos
@@ -145,15 +168,21 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                 ...defaultConfig.content_constraints,
                 ...(mission.mission_config.content_constraints || {})
             },
-            // Preservar word_catcher si existe
-            word_catcher: mission.mission_config.word_catcher || undefined
+            // Asegurar que se mantengan los objetos específicos de cada juego
+            scoring: mission.mission_config.scoring || defaultConfig.scoring,
+            pacing: mission.mission_config.pacing || defaultConfig.pacing,
+            ui: mission.mission_config.ui || defaultConfig.ui,
+            grammar_run: mission.mission_config.grammar_run,
+            word_catcher: mission.mission_config.word_catcher,
+            image_match: mission.mission_config.image_match,
+            sentence_builder: mission.mission_config.sentence_builder
         } : defaultConfig;
 
         setMissionForm({
             game_type_id: mission.game_type_id,
             topic_id: mission.topic_id,
-            available_from: new Date(mission.available_from).toISOString().split('T')[0],
-            available_until: mission.available_until ? new Date(mission.available_until).toISOString().split('T')[0] : '',
+            available_from: new Date(mission.available_from).toLocaleDateString('en-CA'),
+            available_until: mission.available_until ? new Date(mission.available_until).toLocaleDateString('en-CA') : '',
             max_attempts: mission.max_attempts,
             show_theory: mission.show_theory !== false,
             is_active: mission.is_active !== false,
@@ -166,8 +195,8 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleDeleteMission = async (availabilityId: string) => {
-        if (!confirm('¿Estás seguro de que deseas eliminar esta misión?')) return;
+    const handleDeleteMission = async (availabilityId: string, skipConfirm: boolean = false) => {
+        if (!skipConfirm && !confirm('¿Estás seguro de que deseas eliminar esta misión?')) return;
 
         try {
             const response = await fetch(`/api/games/availability/${availabilityId}`, {
@@ -181,7 +210,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                     setIsAssigning(false);
                     setEditingMissionId(null);
                 }
-                success('Misión eliminada correctamente');
+                if (!skipConfirm) success('Misión eliminada correctamente');
             } else {
                 const errorData = await response.json();
                 console.error('[GameManager] Delete failed:', errorData);
@@ -202,31 +231,65 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
         // Validate content availability
         try {
-            const content = await GameService.getGameContent(missionForm.topic_id);
+            const contentData = await GameService.getGameContent(missionForm.topic_id);
             const requiredItems = missionForm.mission_config?.content_constraints?.items || 10;
+            const gameTypeRecord = gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id);
+            const gameTypeName = gameTypeRecord?.name;
 
-            if (content.length === 0) {
-                toastError(
-                    'Este tema no tiene contenido (preguntas/palabras). Agrega contenido primero en la pestaña "Contenido".',
-                    'Sin Contenido'
-                );
+            let availableCount = 0;
+            let validationResult: { valid: boolean; error?: string } = { valid: true };
+
+            if (gameTypeName === 'Sentence Builder') {
+                const items = loadSentenceBuilderContent(contentData);
+                availableCount = items.length;
+                validationResult = validateSentenceBuilderContent(contentData);
+            } else if (gameTypeName === 'Grammar Run') {
+                const items = loadGrammarRunContent(contentData);
+                availableCount = items.length;
+                validationResult = validateGrammarRunContent(contentData);
+            } else if (gameTypeName === 'City Explorer') {
+                const items = loadCityExplorerContent(contentData);
+                availableCount = items.length;
+                if (availableCount === 0) {
+                    validationResult = { valid: false, error: 'No hay localizaciones (locations) para este tema.' };
+                }
+            } else if (gameTypeName === 'Image Match') {
+                // Image Match requires correct items, preferably with images
+                const valid = contentData.filter(c => c.is_correct && c.image_url);
+                availableCount = valid.length;
+                if (availableCount === 0) {
+                    validationResult = { valid: false, error: 'Image Match requiere ítems con imagen.' };
+                }
+            } else {
+                availableCount = contentData.length;
+                validationResult = validateGameContent(contentData, missionForm.mission_config);
+            }
+
+            if (!validationResult.valid) {
+                toastError(validationResult.error || 'Contenido inválido para este juego.', 'Error de Validación');
                 return;
             }
 
-            if (content.length < requiredItems) {
+            if (availableCount < requiredItems && gameTypeName !== 'Word Catcher') {
+                // Word Catcher can repeat items if needed, but others usually shouldn't or have specific limits
                 toastError(
-                    `El tema solo tiene ${content.length} ítems. Reduce la cantidad en la configuración o agrega más contenido.`,
+                    `El tema solo tiene ${availableCount} ítems válidos para ${gameTypeName}. La misión requiere ${requiredItems}. Reduce la cantidad o agrega más contenido.`,
                     'Contenido Insuficiente'
                 );
                 return;
             }
         } catch (error) {
             console.error('Error validating content:', error);
-            // Optional: decide if we block on error or warn. 
-            // Safer to warn and maybe let pass or block? 
-            // If checking fails, we might block to be safe or let it fail later.
-            // Let's block to avoid broken games.
             toastError('No se pudo verificar el contenido del tema.', 'Error de Validación');
+            return;
+        }
+
+        // Validate dates (client-side check to prevent DB constraint errors)
+        if (missionForm.available_until && missionForm.available_until < missionForm.available_from) {
+            toastError(
+                `La fecha de finalización (${missionForm.available_until}) no puede ser anterior a la de inicio (${missionForm.available_from}).`,
+                'Error de Fechas'
+            );
             return;
         }
 
@@ -237,11 +300,46 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
             const method = editingMissionId ? 'PUT' : 'POST';
 
+            // Sync common items count to game-specific fields
+            const gameType = gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name;
+            const commonItems = missionForm.mission_config.content_constraints.items || 10;
+
+            const finalConfig = { ...missionForm.mission_config };
+            if (gameType === 'Sentence Builder') {
+                finalConfig.sentence_builder = {
+                    randomize_items: true,
+                    allow_reorder: true,
+                    hint_cost: 5,
+                    auto_check: false,
+                    ...finalConfig.sentence_builder,
+                    items_limit: commonItems
+                };
+            } else if (gameType === 'Grammar Run') {
+                finalConfig.grammar_run = {
+                    ...finalConfig.grammar_run,
+                    items_limit: commonItems
+                };
+            } else if (gameType === 'City Explorer') {
+                finalConfig.city_explorer = {
+                    attempts_per_challenge: 2,
+                    challenge_time_seconds: 45,
+                    hint_cost: 5,
+                    ...finalConfig.city_explorer,
+                    checkpoints_to_complete: commonItems
+                };
+            } else if (gameType === 'Image Match') {
+                finalConfig.image_match = {
+                    ...finalConfig.image_match,
+                    pairs_count: commonItems
+                };
+            }
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ...missionForm,
+                    mission_config: finalConfig,
                     parallel_id: selectedParallel,
                     available_until: missionForm.available_until || null
                 }),
@@ -254,7 +352,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                 setMissionForm({
                     game_type_id: gameTypes[0]?.game_type_id || '',
                     topic_id: '',
-                    available_from: new Date().toISOString().split('T')[0],
+                    available_from: new Date().toLocaleDateString('en-CA'),
                     available_until: '',
                     max_attempts: 3,
                     show_theory: true,
@@ -266,7 +364,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                         time_limit_seconds: 60,
                         content_constraints: { items: 12, distractors_percent: 30 },
                         asset_pack: 'kenney-ui-1',
-                        hud_help_enabled: true
+                        hud_help_enabled: true,
+                        sentence_builder: { items_limit: 8, randomize_items: true, allow_reorder: true, hint_cost: 5, auto_check: false },
+                        city_explorer: { checkpoints_to_complete: 6, attempts_per_challenge: 2, challenge_time_seconds: 45, hint_cost: 5 }
                     }
                 });
                 success(editingMissionId ? 'Misión actualizada correctamente' : 'Misión creada correctamente');
@@ -327,14 +427,14 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
                 {activeTab === 'misiones' && (
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <label className="text-xs font-black text-slate-400 px-2 border-r border-slate-100">Paralelo</label>
+                        <label className="text-xs font-black text-slate-400 px-2 border-r border-slate-100 dark:border-slate-700">Paralelo</label>
                         <select
                             value={selectedParallel}
                             onChange={(e) => setSelectedParallel(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-gray-200 min-w-[120px]"
+                            className="bg-white dark:bg-slate-800 border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-gray-200 min-w-[120px] rounded-lg cursor-pointer"
                         >
                             {parallels.map(p => (
-                                <option key={p.parallel_id} value={p.parallel_id}>{p.name}</option>
+                                <option key={p.parallel_id} value={p.parallel_id} className="bg-white dark:bg-slate-800">{p.name}</option>
                             ))}
                         </select>
                     </div>
@@ -358,7 +458,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                         setMissionForm(prev => ({ ...prev, game_type_id: gameTypes[0].game_type_id }));
                                     }
                                 }}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-lg active:scale-95 ${isAssigning
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 ${isAssigning
                                     ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
                                     }`}
@@ -370,7 +470,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
                         {/* Assign Mission Form */}
                         {isAssigning && (
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-800 p-6 animate-in slide-in-from-top-4 duration-300">
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-800 p-6 animate-in slide-in-from-top-4 duration-300">
                                 <div className="flex items-center gap-2 mb-5 pb-4 border-b border-slate-100 dark:border-gray-800">
                                     <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
                                         <PlusCircle className="w-4 h-4 text-indigo-600" />
@@ -443,9 +543,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                             <input
                                                 type="number"
                                                 min="1"
-                                                max="10"
+                                                max="1000"
                                                 value={missionForm.max_attempts}
-                                                onChange={(e) => setMissionForm({ ...missionForm, max_attempts: parseInt(e.target.value) })}
+                                                onChange={(e) => setMissionForm({ ...missionForm, max_attempts: parseInt(e.target.value) || 1 })}
                                                 className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
                                                 required
                                             />
@@ -481,7 +581,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.gamification.mission.form.difficulty}</label>
                                                 <select
@@ -504,7 +604,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                     value={missionForm.mission_config?.time_limit_seconds ?? 60}
                                                     onChange={(e) => setMissionForm({
                                                         ...missionForm,
-                                                        mission_config: { ...missionForm.mission_config, time_limit_seconds: parseInt(e.target.value) }
+                                                        mission_config: { ...missionForm.mission_config, time_limit_seconds: parseInt(e.target.value) || 60 }
                                                     })}
                                                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-sm"
                                                 />
@@ -513,125 +613,72 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.gamification.mission.form.items}</label>
                                                 <input
                                                     type="number"
-                                                    value={missionForm.mission_config?.content_constraints?.items ?? 12}
+                                                    min="1"
+                                                    max="50"
+                                                    value={missionForm.mission_config?.content_constraints?.items ?? 10}
                                                     onChange={(e) => setMissionForm({
                                                         ...missionForm,
                                                         mission_config: {
                                                             ...missionForm.mission_config,
                                                             content_constraints: {
-                                                                ...(missionForm.mission_config?.content_constraints || { items: 12, distractors_percent: 30 }),
-                                                                items: parseInt(e.target.value)
+                                                                ...(missionForm.mission_config?.content_constraints || { items: 10, distractors_percent: 30 }),
+                                                                items: parseInt(e.target.value) || 1
                                                             }
                                                         }
                                                     })}
                                                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-sm"
                                                 />
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.gamification.mission.form.assetPack}</label>
-                                                <select
-                                                    value={missionForm.mission_config?.asset_pack ?? 'kenney-ui-1'}
-                                                    onChange={(e) => setMissionForm({
-                                                        ...missionForm,
-                                                        mission_config: { ...missionForm.mission_config, asset_pack: e.target.value }
-                                                    })}
-                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-sm"
-                                                >
-                                                    <option value="kenney-ui-1">Kenney Blue</option>
-                                                    <option value="kenney-red">Kenney Red</option>
-                                                    <option value="modern-neon">Modern Neon</option>
-                                                    <option value="retro-pixel">Retro Pixel</option>
-                                                </select>
-                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* WordCatcher Specific Configuration */}
-                                    {gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name === 'Word Catcher' && (
-                                        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-2xl space-y-4 border border-purple-200 dark:border-purple-800">
-                                            <h4 className="text-sm font-black text-purple-800 dark:text-purple-200 flex items-center gap-2">
-                                                <Gamepad2 className="w-4 h-4 text-purple-500" />
-                                                Word Catcher - Configuración Específica
-                                            </h4>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
-                                                        Velocidad de Caída (px/s)
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        min="50"
-                                                        max="500"
-                                                        step="10"
-                                                        value={missionForm.mission_config?.word_catcher?.fall_speed ?? 220}
-                                                        onChange={(e) => setMissionForm({
-                                                            ...missionForm,
-                                                            mission_config: {
-                                                                ...missionForm.mission_config,
-                                                                word_catcher: {
-                                                                    ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
-                                                                    fall_speed: parseInt(e.target.value)
-                                                                }
-                                                            }
-                                                        })}
-                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg text-sm"
-                                                        placeholder="220"
-                                                    />
-                                                    <p className="text-[10px] text-slate-500 mt-1">Más alto = más rápido</p>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
-                                                        Intervalo de Spawn (ms)
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        min="300"
-                                                        max="3000"
-                                                        step="100"
-                                                        value={missionForm.mission_config?.word_catcher?.spawn_rate_ms ?? 900}
-                                                        onChange={(e) => setMissionForm({
-                                                            ...missionForm,
-                                                            mission_config: {
-                                                                ...missionForm.mission_config,
-                                                                word_catcher: {
-                                                                    ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
-                                                                    spawn_rate_ms: parseInt(e.target.value)
-                                                                }
-                                                            }
-                                                        })}
-                                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg text-sm"
-                                                        placeholder="900"
-                                                    />
-                                                    <p className="text-[10px] text-slate-500 mt-1">Más bajo = más frecuente</p>
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">
-                                                        Penalización por Fallos
-                                                    </label>
-                                                    <label className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 border border-purple-200 dark:border-purple-700 rounded-lg cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">
+                                    {/* Game Specific Minimal Options */}
+                                    {['Sentence Builder', 'City Explorer'].includes(gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name || '') && (
+                                        <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
+                                            <h5 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Ajustes de Juego</h5>
+                                            <div className="flex flex-wrap gap-6">
+                                                <div className="flex-1 min-w-[150px]">
+                                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">Costo de Ayuda (Puntos)</label>
+                                                    <div className="flex items-center gap-2">
                                                         <input
-                                                            type="checkbox"
-                                                            checked={missionForm.mission_config?.word_catcher?.miss_penalty_enabled ?? true}
-                                                            onChange={(e) => setMissionForm({
-                                                                ...missionForm,
-                                                                mission_config: {
-                                                                    ...missionForm.mission_config,
-                                                                    word_catcher: {
-                                                                        ...(missionForm.mission_config?.word_catcher || { fall_speed: 220, spawn_rate_ms: 900, miss_penalty_enabled: true }),
-                                                                        miss_penalty_enabled: e.target.checked
-                                                                    }
+                                                            type="range"
+                                                            min="0"
+                                                            max="50"
+                                                            step="5"
+                                                            value={missionForm.game_type_id && gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name === 'Sentence Builder'
+                                                                ? (missionForm.mission_config?.sentence_builder?.hint_cost ?? 10)
+                                                                : (missionForm.mission_config?.city_explorer?.hint_cost ?? 10)
+                                                            }
+                                                            onChange={(e) => {
+                                                                const val = parseInt(e.target.value);
+                                                                const gName = gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name;
+                                                                if (gName === 'Sentence Builder') {
+                                                                    setMissionForm({
+                                                                        ...missionForm,
+                                                                        mission_config: {
+                                                                            ...missionForm.mission_config,
+                                                                            sentence_builder: { ...(missionForm.mission_config?.sentence_builder || {}), hint_cost: val } as any
+                                                                        }
+                                                                    });
+                                                                } else {
+                                                                    setMissionForm({
+                                                                        ...missionForm,
+                                                                        mission_config: {
+                                                                            ...missionForm.mission_config,
+                                                                            city_explorer: { ...(missionForm.mission_config?.city_explorer || {}), hint_cost: val } as any
+                                                                        }
+                                                                    });
                                                                 }
-                                                            })}
-                                                            className="w-4 h-4 text-purple-600 bg-white border-purple-300 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                                                            }}
+                                                            className="flex-1 h-1.5 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                                                         />
-                                                        <span className="text-xs font-medium text-slate-700 dark:text-white">
-                                                            Penalizar palabras perdidas
+                                                        <span className="text-xs font-black text-indigo-600 w-8">
+                                                            {gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name === 'Sentence Builder'
+                                                                ? (missionForm.mission_config?.sentence_builder?.hint_cost ?? 10)
+                                                                : (missionForm.mission_config?.city_explorer?.hint_cost ?? 10)
+                                                            }
                                                         </span>
-                                                    </label>
-                                                    <p className="text-[10px] text-slate-500 mt-1">Si está activo, se resta puntos</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -673,7 +720,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                         <div className="flex gap-2 justify-center">
                                             <button
                                                 type="submit"
-                                                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
+                                                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
                                             >
                                                 <Save className="w-4 h-4" />
                                                 {editingMissionId ? t.gamification.mission.save : t.gamification.mission.create}
@@ -707,7 +754,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                             time_limit_seconds: 60,
                                                             content_constraints: { items: 12, distractors_percent: 30 },
                                                             asset_pack: 'kenney-ui-1',
-                                                            hud_help_enabled: true
+                                                            hud_help_enabled: true,
+                                                            sentence_builder: { items_limit: 8, randomize_items: true, allow_reorder: true, hint_cost: 5, auto_check: false },
+                                                            city_explorer: { checkpoints_to_complete: 6, attempts_per_challenge: 2, challenge_time_seconds: 45, hint_cost: 5 }
                                                         }
                                                     });
                                                     success('Formulario limpiado');
@@ -728,6 +777,42 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                             </div>
                         )}
 
+                        {/* Filter and Bulk Actions */}
+                        {!isAssigning && availability.length > 0 && (
+                            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center gap-3">
+                                    <label className="text-sm font-bold text-slate-700 dark:text-gray-300">Filtrar por tema:</label>
+                                    <select
+                                        value={topicFilter}
+                                        onChange={(e) => setTopicFilter(e.target.value)}
+                                        className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-gray-700 rounded-lg text-sm font-medium text-slate-700 dark:text-gray-200"
+                                    >
+                                        <option value="" className="bg-white dark:bg-slate-900">Todos los temas</option>
+                                        {topics.map(topic => (
+                                            <option key={topic.topic_id} value={topic.topic_id} className="bg-white dark:bg-slate-900">{topic.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {selectedMissions.length > 0 && (
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm(`¿Eliminar ${selectedMissions.length} misión(es)?`)) {
+                                                for (const id of selectedMissions) {
+                                                    await handleDeleteMission(id, true); // Skip individual confirmations
+                                                }
+                                                setSelectedMissions([]);
+                                                success(`${selectedMissions.length} misión(es) eliminada(s) correctamente`);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                        Eliminar {selectedMissions.length} seleccionada(s)
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         {availability.length === 0 ? (
                             <div className="bg-slate-50 dark:bg-gray-800/50 rounded-[2rem] p-16 text-center border-2 border-dashed border-slate-200 dark:border-gray-700">
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
@@ -738,99 +823,116 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {availability.map((item) => (
-                                    <div key={item.availability_id} className="group relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-gray-800 shadow-xl shadow-slate-100/50 hover:shadow-indigo-50 transition-all border-l-8 border-l-indigo-500">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-[10px] font-black text-indigo-500 tracking-widest leading-none">{(item as any).game_types?.name}</span>
-                                                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider ${item.is_active
-                                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                                        : 'bg-gray-100 text-gray-500 border border-gray-200'
-                                                        }`}>
-                                                        {item.is_active ? `● ${t.gamification.mission.cards.active}` : `○ ${t.gamification.mission.cards.inactive}`}
-                                                    </span>
-                                                </div>
-                                                <h4 className="font-black text-lg text-slate-800 dark:text-white leading-tight">
-                                                    {item.mission_title || (item as any).topics?.title}
-                                                    {item.mission_title && (item as any).topics?.title && (
-                                                        <span className="text-slate-400 font-medium text-sm ml-2">
-                                                            ({(item as any).topics?.title})
+                                {availability
+                                    .filter(item => !topicFilter || item.topic_id === topicFilter)
+                                    .map((item) => (
+                                        <div key={item.availability_id} className="group relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-gray-800 shadow-sm transition-all border-l-8 border-l-indigo-500">
+                                            {/* Checkbox for selection */}
+                                            <div className="absolute top-4 left-4 z-10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedMissions.includes(item.availability_id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedMissions([...selectedMissions, item.availability_id]);
+                                                        } else {
+                                                            setSelectedMissions(selectedMissions.filter(id => id !== item.availability_id));
+                                                        }
+                                                    }}
+                                                    className="w-5 h-5 text-indigo-600 bg-white border-2 border-slate-300 rounded cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                                                />
+                                            </div>
+                                            <div className="flex justify-between items-start mb-4 ml-8">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-[10px] font-black text-indigo-500 tracking-widest leading-none">{(item as any).game_types?.name}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider ${item.is_active
+                                                            ? 'bg-green-100 text-green-700 border border-green-200'
+                                                            : 'bg-gray-100 text-gray-500 border border-gray-200'
+                                                            }`}>
+                                                            {item.is_active ? `● ${t.gamification.mission.cards.active}` : `○ ${t.gamification.mission.cards.inactive}`}
                                                         </span>
-                                                    )}
-                                                </h4>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => handleEditClick(item)}
-                                                    className="p-2 bg-slate-50 dark:bg-gray-800 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
-                                                    title="Editar misión"
-                                                >
-                                                    <Settings className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteMission(item.availability_id)}
-                                                    className="p-2 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-400 hover:text-rose-600 transition-colors"
-                                                    title="Eliminar misión"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3 mt-4">
-                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                                <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-blue-600 font-bold">
-                                                    <Calendar className="w-4 h-4" />
+                                                    </div>
+                                                    <h4 className="font-black text-lg text-slate-800 dark:text-white leading-tight">
+                                                        {item.mission_title || (item as any).topics?.title}
+                                                        {item.mission_title && (item as any).topics?.title && (
+                                                            <span className="text-slate-400 font-medium text-sm ml-2">
+                                                                ({(item as any).topics?.title})
+                                                            </span>
+                                                        )}
+                                                    </h4>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] opacity-60">{t.gamification.mission.cards.validity}</span>
-                                                    <span>{new Date(item.available_from).toLocaleDateString()} - {item.available_until ? new Date(item.available_until).toLocaleDateString() : t.gamification.mission.cards.indefinite}</span>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleEditClick(item)}
+                                                        className="p-2 bg-slate-50 dark:bg-gray-800 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
+                                                        title="Editar misión"
+                                                    >
+                                                        <Settings className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteMission(item.availability_id)}
+                                                        className="p-2 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-400 hover:text-rose-600 transition-colors"
+                                                        title="Eliminar misión"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                                <div className="w-7 h-7 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center text-orange-600 font-bold">
-                                                    <Layers className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] opacity-60">{t.gamification.mission.cards.maxAttempts}</span>
-                                                    <span>{item.max_attempts} {t.gamification.mission.cards.perStudent}</span>
-                                                </div>
-                                            </div>
-
-                                            {(item.activated_at || (item.is_active && item.created_at)) && (
+                                            <div className="space-y-3 mt-4">
                                                 <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                                    <div className="w-7 h-7 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-green-600 font-bold">
-                                                        <Gamepad2 className="w-4 h-4" />
+                                                    <div className="w-7 h-7 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-center justify-center text-blue-600 font-bold">
+                                                        <Calendar className="w-4 h-4" />
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] opacity-60">{t.gamification.mission.cards.activated}</span>
-                                                        <span>
-                                                            {item.activated_at
-                                                                ? new Date(item.activated_at).toLocaleString('es-ES', {
-                                                                    day: '2-digit',
-                                                                    month: '2-digit',
-                                                                    year: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })
-                                                                : new Date(item.created_at).toLocaleString('es-ES', {
-                                                                    day: '2-digit',
-                                                                    month: '2-digit',
-                                                                    year: 'numeric',
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit'
-                                                                })
-                                                            }
-                                                        </span>
+                                                        <span className="text-[10px] opacity-60">{t.gamification.mission.cards.validity}</span>
+                                                        <span>{new Date(item.available_from).toLocaleDateString()} - {item.available_until ? new Date(item.available_until).toLocaleDateString() : t.gamification.mission.cards.indefinite}</span>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </div>
 
-                                    </div>
-                                ))}
+                                                <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
+                                                    <div className="w-7 h-7 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex items-center justify-center text-orange-600 font-bold">
+                                                        <Layers className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] opacity-60">{t.gamification.mission.cards.maxAttempts}</span>
+                                                        <span>{item.max_attempts} {t.gamification.mission.cards.perStudent}</span>
+                                                    </div>
+                                                </div>
+
+                                                {(item.activated_at || (item.is_active && item.created_at)) && (
+                                                    <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
+                                                        <div className="w-7 h-7 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-center text-green-600 font-bold">
+                                                            <Gamepad2 className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] opacity-60">{t.gamification.mission.cards.activated}</span>
+                                                            <span>
+                                                                {item.activated_at
+                                                                    ? new Date(item.activated_at).toLocaleString('es-ES', {
+                                                                        day: '2-digit',
+                                                                        month: '2-digit',
+                                                                        year: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })
+                                                                    : new Date(item.created_at).toLocaleString('es-ES', {
+                                                                        day: '2-digit',
+                                                                        month: '2-digit',
+                                                                        year: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                        </div>
+                                    ))}
                             </div>
                         )}
                     </div>
@@ -844,6 +946,6 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                     <GameContentManager teacherId={teacherId} />
                 )}
             </div>
-        </div >
+        </div>
     );
 }

@@ -12,6 +12,7 @@ export interface SessionItem {
     user_input?: string;
     correct_answer?: string;
     time_ms: number;
+    meta?: any; // Rich breakdown data (prompt, expected, tags, feedback, etc.)
 }
 
 export interface SessionData {
@@ -132,7 +133,7 @@ export class GameSessionManager {
                 student_answer: item.user_input || '',
                 correct_answer: item.correct_answer || '',
                 is_correct: item.result === 'correct',
-                meta: { time_ms: item.time_ms }
+                meta: item.meta || { time_ms: item.time_ms } // Preserve rich meta or fallback to time only
             }));
 
             const details = MissionEvaluator.generateStandardizedDetails(

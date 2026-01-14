@@ -94,7 +94,8 @@ export class MissionValidator {
             const attemptsUsed = await this.countAttempts(
                 studentId,
                 availability.topic_id,
-                availability.game_type_id
+                availability.game_type_id,
+                availability.created_at
             );
 
             const attemptsRemaining = Math.max(0, availability.max_attempts - attemptsUsed);
@@ -169,12 +170,15 @@ export class MissionValidator {
     private static async countAttempts(
         studentId: string,
         topicId: string,
-        gameTypeId: string
+        gameTypeId: string,
+        since?: string
     ): Promise<number> {
         try {
-            const response = await fetch(
-                `/api/games/sessions/count?studentId=${studentId}&topicId=${topicId}&gameTypeId=${gameTypeId}`
-            );
+            let url = `/api/games/sessions/count?studentId=${studentId}&topicId=${topicId}&gameTypeId=${gameTypeId}`;
+            if (since) {
+                url += `&since=${encodeURIComponent(since)}`;
+            }
+            const response = await fetch(url);
 
             if (!response.ok) {
                 console.warn('[MissionValidator] Could not fetch attempts count, assuming 0');

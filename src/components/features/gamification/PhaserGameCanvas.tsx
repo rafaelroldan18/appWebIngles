@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { WordCatcherScene } from '@/lib/games/WordCatcherScene';
 import { GameLoader } from '@/lib/games/GameLoader';
 import { GameSessionManager } from '@/lib/games/GameSessionManager';

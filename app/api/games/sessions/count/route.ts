@@ -21,14 +21,21 @@ export async function GET(request: NextRequest) {
         }
 
         const supabase = await createSupabaseClient(request);
+        const since = searchParams.get('since');
 
         // Contar sesiones completadas
-        const { count, error } = await supabase
+        let query = supabase
             .from('game_sessions')
             .select('*', { count: 'exact', head: true })
             .eq('student_id', studentId)
             .eq('topic_id', topicId)
             .eq('game_type_id', gameTypeId);
+
+        if (since) {
+            query = query.gte('played_at', since);
+        }
+
+        const { count, error } = await query;
 
         if (error) {
             console.error('Error counting sessions:', error);

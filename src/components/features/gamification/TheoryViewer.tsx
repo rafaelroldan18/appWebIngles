@@ -65,7 +65,7 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-4xl h-full max-h-[85vh] rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full max-h-[85vh] rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
 
                 {/* Modal Header - Compact */}
                 <div className="bg-slate-900 text-white px-5 py-3 flex justify-between items-center border-b border-white/5">
@@ -93,10 +93,10 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                 {/* Modal Content Area - Responsive & Scalable */}
                 <div
                     ref={containerRef}
-                    className="flex-1 bg-slate-50 overflow-y-auto p-4 flex flex-col items-center custom-scrollbar scroll-smooth"
+                    className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-y-auto p-4 flex flex-col items-center custom-scrollbar scroll-smooth"
                 >
                     <div
-                        className="bg-white shadow-2xl relative transition-transform duration-300 origin-top mb-8"
+                        className="bg-white dark:bg-white shadow-2xl relative transition-transform duration-300 origin-top mb-8"
                         style={{
                             width: '850px',
                             minHeight: '1000px',
@@ -113,7 +113,12 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                                 min-height: 1000px;
                                 margin: 0;
                                 background-color: white;
+                                color: #1e293b;
                                 overflow: hidden;
+                            }
+                            .dark .gjs-rendered-html {
+                                background-color: #1e293b;
+                                color: #f8fafc;
                             }
                             .gjs-rendered-html * { 
                                 box-sizing: border-box; 
@@ -131,21 +136,21 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                 </div>
 
                 {/* Modal Footer - Minimal */}
-                <div className="bg-white px-5 py-3 border-t border-slate-100 flex justify-between items-center">
+                <div className="bg-white dark:bg-slate-950 px-5 py-3 border-t border-slate-100 dark:border-gray-800 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         {scale < 1 ? (
-                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                                 {t.student.theory.adaptedView.replace('{percentage}', Math.round(scale * 100).toString())}
                             </span>
                         ) : (
-                            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                            <span className="text-[10px] font-bold text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">
                                 {t.student.theory.originalView}
                             </span>
                         )}
                     </div>
                     <button
                         onClick={onClose}
-                        className="px-6 py-2.5 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-indigo-600 transition-all active:scale-95 shadow-sm"
+                        className="px-6 py-2.5 bg-slate-900 dark:bg-indigo-600 text-white rounded-lg font-bold text-xs hover:bg-indigo-600 dark:hover:bg-indigo-700 transition-all active:scale-95 shadow-sm"
                     >
                         {t.student.theory.closeReview}
                     </button>

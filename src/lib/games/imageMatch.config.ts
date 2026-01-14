@@ -67,8 +67,8 @@ export const IMAGE_MATCH_CONFIG = {
 
     // Validation limits (clamps para evitar configs imposibles)
     limits: {
-        pairs_count: { min: 2, max: 18 }, // 2x2 a 6x6 (máximo 18 pares = 36 tarjetas)
-        time_limit_seconds: { min: 30, max: 600 },
+        pairs_count: { min: 1, max: 18 }, // 1 par = 2 tarjetas, a 18 pares = 36 tarjetas
+        time_limit_seconds: { min: 5, max: 600 },
         flip_back_delay_ms: { min: 200, max: 1500 }, // 200–1500
         match_delay_ms: { min: 0, max: 600 }, // Legacy, usar reveal_delay_ms
         reveal_delay_ms: { min: 0, max: 600 }, // 0–600

@@ -97,8 +97,11 @@ export default function StudentGames({ studentId, parallelId }: StudentGamesProp
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {availableGames.map((game) => {
                             // Calcular intentos restantes para esta misión
+                            // Solo contamos sesiones jugadas después de la creación de esta misión específica
                             const missionSessions = sessions.filter(
-                                s => s.topic_id === game.topic_id && s.game_type_id === game.game_type_id
+                                s => s.topic_id === game.topic_id &&
+                                    s.game_type_id === game.game_type_id &&
+                                    new Date(s.played_at) >= new Date(game.created_at)
                             );
                             const attemptsUsed = missionSessions.length;
                             const remainingAttempts = Math.max(0, game.max_attempts - attemptsUsed);

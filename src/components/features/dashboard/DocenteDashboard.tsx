@@ -253,10 +253,10 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
       ) : currentView === 'gamification' ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold">{t.gestionGamificacion}</h2>
+            <h2 className={`text-2xl font-bold ${colors.text.title}`}>{t.gestionGamificacion}</h2>
             <button
               onClick={() => setCurrentView('dashboard')}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-sm transition-all border border-slate-200 shadow-sm hover:shadow-md"
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-gray-300 rounded-xl font-bold text-sm transition-all border border-slate-200 dark:border-gray-700 shadow-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{t.volverPanel}</span>
@@ -275,7 +275,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
           {showTeacherNotification && (
             <div className={`fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 transition-all duration-300 ${notificationFading ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'
               }`}>
-              <div className={`${colors.background.card} px-4 py-2 rounded-lg shadow-lg border ${colors.border.light}`}>
+              <div className={`${colors.background.card} px-4 py-2 rounded-lg shadow-sm border ${colors.border.light}`}>
                 <p className={`text-sm font-semibold ${colors.text.secondary}`}>{t.modoDocente}</p>
               </div>
             </div>
@@ -332,7 +332,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             <div className="flex flex-wrap items-center gap-3 mb-8">
               <button
                 onClick={() => setCurrentView('gamification')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95"
               >
                 <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{t.gamificacion}</span>
@@ -348,7 +348,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
               <button
                 onClick={() => setShowInviteStudent(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95"
               >
                 <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{t.invitarEstudiante}</span>
@@ -356,7 +356,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
               <button
                 onClick={() => setShowInvitations(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95"
               >
                 <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{t.misInvitaciones}</span>
@@ -364,7 +364,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
 
               <button
                 onClick={() => setCurrentView('reports')}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all active:scale-95"
               >
                 <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>{t.nav.reports}</span>
@@ -398,7 +398,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
                           setCurrentView('gamification');
                           window.scrollTo({ top: 0, behavior: 'smooth' });
                         }}
-                        className={`min-w-[280px] sm:min-w-[320px] snap-center bg-white dark:bg-[#1E293B] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden group/card`}
+                        className={`min-w-[280px] sm:min-w-[320px] snap-center bg-white dark:bg-[#1E293B] rounded-2xl p-5 border border-slate-100 dark:border-gray-800 shadow-sm hover:scale-[1.02] transition-all cursor-pointer relative overflow-hidden group/card`}
                       >
                         {/* Decorative background accent */}
                         <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${actividad.nivel_dificultad === 'alto' ? 'from-red-100 to-transparent' : actividad.nivel_dificultad === 'medio' ? 'from-blue-100 to-transparent' : 'from-green-100 to-transparent'} rounded-bl-full opacity-50 transition-opacity group-hover/card:opacity-100`} />

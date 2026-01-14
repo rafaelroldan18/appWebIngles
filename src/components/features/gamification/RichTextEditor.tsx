@@ -20,6 +20,19 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
     const { t } = useLanguage();
     const editorRef = useRef<HTMLDivElement>(null);
     const [editor, setEditor] = useState<any>(null);
+    const [isDark, setIsDark] = useState(() =>
+        typeof window !== 'undefined' ? document.documentElement.classList.contains('dark') : false
+    );
+
+    useEffect(() => {
+        const checkDark = () => setIsDark(document.documentElement.classList.contains('dark'));
+        checkDark();
+
+        const observer = new MutationObserver(checkDark);
+
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => observer.disconnect();
+    }, []);
 
     // Use a ref for onChange to always have the latest version without re-triggering useEffect
     const onChangeRef = useRef(onChange);
@@ -30,10 +43,53 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
     // Use a ref for the debounce timer
     const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Reactively update the canvas background when theme changes
+    useEffect(() => {
+        if (!editor) return;
+        const sheetBg = isDark ? '#0f172a' : '#ffffff';
+        const sheetText = isDark ? '#f8fafc' : '#1e293b';
+
+        // Update the iframe head with a style tag for robustness
+        try {
+            const doc = editor.Canvas.getDocument();
+            if (!doc || !doc.head) return;
+            const head = doc.head;
+
+            let styleTag = head.querySelector('#gjs-dark-mode-style');
+            if (!styleTag) {
+                styleTag = doc.createElement('style');
+                styleTag.id = 'gjs-dark-mode-style';
+                head.appendChild(styleTag);
+            }
+            styleTag.innerHTML = `
+                body { background-color: ${sheetBg} !important; color: ${sheetText} !important; }
+                html { background-color: ${sheetBg} !important; }
+            `;
+
+            // Update the iframe body directly for immediate feedback
+            const body = editor.Canvas.getBody();
+            if (body) {
+                body.style.backgroundColor = sheetBg;
+                body.style.color = sheetText;
+            }
+
+            // Update the wrapper component
+            const wrapper = editor.Components.getWrapper();
+            if (wrapper) {
+                wrapper.addStyle({ 'background-color': sheetBg, color: sheetText });
+            }
+        } catch (err) {
+            console.error('Error updating GJS canvas styles:', err);
+        }
+    }, [editor, isDark]);
+
     useEffect(() => {
         if (!editorRef.current) return;
 
         // Initialize GrapesJS
+        const sheetBg = isDark ? '#0f172a' : '#ffffff';
+        const sheetText = isDark ? '#f8fafc' : '#1e293b';
+
         const gjsEditor = grapesjs.init({
             container: editorRef.current,
             fromElement: true,
@@ -96,8 +152,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
             dragMode: 'absolute',
             canvas: {
                 styles: [
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap',
-                    'body { background-color: white; position: relative; min-height: 1000px; width: 100%; margin: 0; }'
+                    'https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap'
                 ]
             },
             panels: { defaults: [] }, // Reset panels to avoid the 'ownerDocument' error with custom elements
@@ -110,7 +165,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                         content: {
                             type: 'text',
                             content: 'ESCRIBE TU TÍTULO AQUÍ',
-                            style: { position: 'absolute', width: '100%', 'font-family': 'Inter, sans-serif', 'font-size': '42px', 'font-weight': '900', color: '#1e293b', 'text-transform': 'uppercase' },
+                            style: { position: 'absolute', width: '100%', 'font-family': 'Inter, sans-serif', 'font-size': '42px', 'font-weight': '900', color: '#6366f1', 'text-transform': 'uppercase' },
                             editable: true
                         }
                     },
@@ -120,7 +175,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                         content: {
                             type: 'text',
                             content: 'Haz doble clic para escribir un párrafo largo con tus explicaciones pedagógicas...',
-                            style: { position: 'absolute', width: '400px', 'font-family': 'Inter, sans-serif', 'font-size': '16px', 'line-height': '1.6', color: '#4b5563' },
+                            style: { position: 'absolute', width: '400px', 'font-family': 'Inter, sans-serif', 'font-size': '16px', 'line-height': '1.6', color: isDark ? '#cbd5e1' : '#4b5563' },
                             editable: true
                         }
                     },
@@ -128,10 +183,10 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                         id: 'card-grammar',
                         label: '<b>Regla</b>',
                         content: {
-                            style: { position: 'absolute', width: '350px', background: '#f8fafc', border: '1px solid #e2e8f0', 'border-left': '6px solid #6366f1', padding: '20px', 'border-radius': '4px' },
+                            style: { position: 'absolute', width: '350px', background: isDark ? '#1e293b' : '#f8fafc', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, 'border-left': '6px solid #6366f1', padding: '20px', 'border-radius': '4px', color: isDark ? '#f1f5f9' : '#1e293b' },
                             components: [
                                 { type: 'text', content: 'REGLA GRAMATICAL', style: { color: '#6366f1', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '5px' } },
-                                { type: 'text', content: 'Sujeto + Verbo + Complemento', style: { color: '#1e293b', 'font-weight': '700', 'font-size': '16px' } }
+                                { type: 'text', content: 'Sujeto + Verbo + Complemento', style: { color: isDark ? '#f1f5f9' : '#1e293b', 'font-weight': '700', 'font-size': '16px' } }
                             ]
                         }
                     },
@@ -417,16 +472,16 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
     }, []);
 
     return (
-        <div className="flex flex-col bg-white border border-slate-300 shadow-2xl overflow-hidden min-h-[850px]">
+        <div className="flex flex-col bg-white dark:bg-slate-900 border border-slate-300 dark:border-gray-800 shadow-2xl overflow-hidden min-h-[850px]">
             {/* Super Toolbar (Simplified) */}
-            <div className="bg-white px-8 py-4 border-b border-slate-200 flex items-center justify-between z-50">
+            <div className="bg-white dark:bg-slate-900 px-8 py-4 border-b border-slate-200 dark:border-gray-800 flex items-center justify-between z-50">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg">
                         <Sparkles className="w-6 h-6" />
                     </div>
                     <div>
-                        <h4 className="text-sm font-black text-slate-900">{t.gamification.editor.title}</h4>
-                        <p className="text-[11px] text-slate-400 font-bold tracking-tight">{t.gamification.editor.autosave}</p>
+                        <h4 className="text-sm font-black text-slate-900 dark:text-white">{t.gamification.editor.title}</h4>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold tracking-tight">{t.gamification.editor.autosave}</p>
                     </div>
                 </div>
 
@@ -439,7 +494,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                                 editor.Css.clear();
                             }
                         }}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-md font-black text-xs hover:bg-red-50 hover:text-red-600 transition-all border border-slate-100"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-md font-black text-xs hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all border border-slate-100 dark:border-gray-700"
                     >
                         <Trash2 className="w-4 h-4" />
                         {t.gamification.editor.clear}
@@ -449,16 +504,16 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
 
             <div className="flex flex-1 overflow-hidden relative" style={{ height: '750px' }}>
                 {/* Visual Blocks Drawer */}
-                <div className="w-72 bg-white border-r border-slate-200 flex flex-col overflow-hidden shadow-xl z-40">
+                <div className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-gray-800 flex flex-col overflow-hidden shadow-xl z-40">
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="p-4 bg-slate-50/50">
-                            <h5 className="text-[11px] font-black text-slate-500 tracking-widest text-center">{t.gamification.editor.dragComponents}</h5>
+                        <div className="p-4 bg-slate-50/50 dark:bg-slate-800/50">
+                            <h5 className="text-[11px] font-black text-slate-500 dark:text-slate-400 tracking-widest text-center">{t.gamification.editor.dragComponents}</h5>
                         </div>
                         <div id="blocks" className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-1">
                             {/* GrapesJS blocks inject here */}
                         </div>
-                        <div className="p-4 bg-indigo-50 border-t border-indigo-100">
-                            <p className="text-[11px] text-indigo-700 font-bold leading-tight text-center">
+                        <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border-t border-indigo-100 dark:border-indigo-800">
+                            <p className="text-[11px] text-indigo-700 dark:text-indigo-400 font-bold leading-tight text-center">
                                 {t.gamification.editor.doubleClickTip}
                             </p>
                         </div>
@@ -466,21 +521,25 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                 </div>
 
                 {/* The Canvas (The Magic Paper) */}
-                <div className="flex-1 bg-slate-200/50 p-8 overflow-y-auto custom-scrollbar flex justify-center">
-                    <div className="w-full max-w-[850px] min-h-[1200px] bg-white shadow-[0_0_80px_rgba(0,0,0,0.15)] relative scale-[0.98] origin-top">
+                <div className="flex-1 bg-slate-200/50 dark:bg-slate-950/50 p-8 overflow-y-auto custom-scrollbar flex justify-center">
+                    <div className="w-full max-w-[850px] min-h-[1200px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-[0_0_80px_rgba(0,0,0,0.15)] relative scale-[0.98] origin-top">
                         {/* This is the GrapesJS target */}
                         <div ref={editorRef} />
 
                         <style dangerouslySetInnerHTML={{
                             __html: `
-                            .gjs-cv-canvas { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; }
-                            .gjs-cv-canvas .gjs-highlighter { outline: 2px solid #6366f1 !important; }
+                            .gjs-cv-canvas { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; background-color: ${isDark ? '#0f172a' : '#ffffff'} !important; }
+                            .gjs-cv-canvas iframe { background-color: ${isDark ? '#0f172a' : '#ffffff'} !important; }
                             /* Style Manager UI Fixes */
                             .gjs-sm-sector { border-bottom: 1px solid #e2e8f0 !important; }
+                            .dark .gjs-sm-sector { border-bottom: 1px solid #334155 !important; }
                             .gjs-sm-title { font-weight: 800 !important; font-size: 11px !important; color: #475569 !important; }
+                            .dark .gjs-sm-title { color: #cbd5e1 !important; }
                             .gjs-sm-property { padding: 10px 0 !important; }
                             .gjs-sm-label { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
+                            .dark .gjs-sm-label { color: #94a3b8 !important; }
                             .gjs-sm-field { background-color: #f8fafc !important; border-radius: 6px !important; border: 1px solid #e2e8f0 !important; }
+                            .dark .gjs-sm-field { background-color: #0f172a !important; border: 1px solid #334155 !important; color: white !important; }
                             
                             /* Toolbar RTE adjustment */
                             .gjs-rte-toolbar {
@@ -496,6 +555,11 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                             }
                             .gjs-rte-action:hover {
                                 background-color: rgba(255,255,255,0.1) !important;
+                            }
+                            
+                            /* Hide the default dotted grid in dark mode if needed or adjust it */
+                            .dark .gjs-cv-canvas {
+                                background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0) !important;
                             }
                         ` }} />
                     </div>
@@ -520,10 +584,20 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     cursor: grab !important;
                     transition: all 0.2s ease !important;
                 }
+                .dark .gjs-block {
+                    background-color: #1e293b !important;
+                    border-color: #334155 !important;
+                    color: #f8fafc !important;
+                }
                 .gjs-block:hover {
                     background-color: #f1f5f9 !important;
                     color: #6366f1 !important;
                     border-color: #cbd5e1 !important;
+                }
+                .dark .gjs-block:hover {
+                    background-color: #334155 !important;
+                    color: #818cf8 !important;
+                    border-color: #475569 !important;
                 }
                 .gjs-block:active {
                     cursor: grabbing !important;
@@ -534,9 +608,18 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     color: #1e293b !important;
                     font-weight: 700 !important;
                 }
+                .dark .gjs-block-label, .dark .gjs-block b {
+                    color: #f8fafc !important;
+                }
 
                 .gjs-editor {
-                    background-color: #ffffff !important;
+                    background-color: transparent !important;
+                }
+                .gjs-cv-canvas {
+                    background-color: ${isDark ? '#0f172a' : '#ffffff'} !important;
+                }
+                .dark .gjs-editor {
+                    background-color: #0f172a !important;
                 }
 
                 /* Layout adjustments to prevent expansion */

@@ -129,7 +129,11 @@ export async function GET(request: NextRequest) {
 
         // D. Missions Status
         const missionStatus = (missions || []).map(m => {
-            const missionSessions = sessionsData.filter(s => s.topic_id === m.topic_id && s.game_type_id === m.game_type_id);
+            const missionSessions = sessionsData.filter(s =>
+                s.topic_id === m.topic_id &&
+                s.game_type_id === m.game_type_id &&
+                new Date(s.played_at) >= new Date(m.created_at)
+            );
             const isCompleted = missionSessions.some(s => s.completed);
             const attemptsUsed = missionSessions.length;
             const remainingAttempts = Math.max(0, (m.max_attempts || 0) - attemptsUsed);

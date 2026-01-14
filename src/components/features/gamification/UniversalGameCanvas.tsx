@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import Phaser from 'phaser';
+import * as Phaser from 'phaser';
 import { WordCatcherScene } from '@/lib/games/WordCatcherScene';
 import { GrammarRunScene } from '@/lib/games/GrammarRunScene';
 import { SentenceBuilderScene } from '@/lib/games/SentenceBuilderScene';
@@ -14,7 +14,8 @@ import { ImageMatchScene } from '@/lib/games/ImageMatchScene';
 import { CityExplorerScene } from '@/lib/games/CityExplorerScene';
 import { GameLoader } from '@/lib/games/GameLoader';
 import { GameSessionManager } from '@/lib/games/GameSessionManager';
-import { buildImageMatchCards } from '@/lib/games/gameLoader.utils';
+import { Sparkles, AlertCircle, RefreshCw, Clock, Heart, Target, Play, Flag } from 'lucide-react';
+import { buildImageMatchCards, prepareCityExplorerLevel } from '@/lib/games/gameLoader.utils';
 import { resolveImageMatchConfig } from '@/lib/games/imageMatch.config';
 import { WORD_CATCHER_CONFIG } from '@/lib/games/wordCatcher.config';
 import { GRAMMAR_RUN_CONFIG } from '@/lib/games/grammarRun.config';
@@ -42,6 +43,7 @@ interface GameResult {
     duration: number;
     accuracy: number;
     sessionId?: string;
+    answers?: any[];
 }
 
 const GAME_CONFIGS = {
@@ -86,304 +88,299 @@ export default function UniversalGameCanvas({
     const gameContainerRef = useRef<HTMLDivElement>(null);
     const gameInstanceRef = useRef<Phaser.Game | null>(null);
     const sessionManagerRef = useRef<GameSessionManager | null>(null);
+    const gameContentRef = useRef<any>(null);
 
-    const [isLoading, setIsLoading] = useState(true);
+    const [status, setStatus] = useState<'initializing' | 'briefing' | 'playing' | 'completed'>('initializing');
     const [isSaving, setIsSaving] = useState(false);
-    const [loadingMessage, setLoadingMessage] = useState('Initializing game...');
+    const [loadingMessage, setLoadingMessage] = useState('Cargando contenido...');
     const [error, setError] = useState<string | null>(null);
 
+    // 1. Initial Data Load
     useEffect(() => {
         let isMounted = true;
-
-        const initializeGame = async () => {
+        const load = async () => {
             try {
-                setLoadingMessage('Loading game content...');
-
-                // CRÍTICO: Usar el UUID directamente (proviene de la misión asignada)
-                // para asegurar que cargamos el contenido exacto vinculado al juego
-                console.log(`[UniversalGameCanvas] Loading content for game: ${gameType} (ID: ${gameTypeId})`);
-
-                // Load game content - Usamos el UUID directo del prop
-                const gameContent = await GameLoader.loadGameContent(topicId, gameTypeId);
+                console.log(`[UniversalGameCanvas] Loading content for game: ${gameType}`);
+                const content = await GameLoader.loadGameContent(topicId, gameTypeId);
 
                 if (!isMounted) return;
 
-                // Validate content
-                if (!GameLoader.validateGameData(gameContent)) {
-                    throw new Error('Invalid game data');
+                if (!GameLoader.validateGameData(content)) {
+                    throw new Error('Datos del juego inválidos o vacíos');
                 }
 
-                // Shuffle words for randomness
-                const shuffledWords = GameLoader.shuffleArray(gameContent);
-
-                setLoadingMessage('Starting game session...');
-
-                // Initialize session manager
-                const sessionManager = new GameSessionManager(studentId, topicId, gameTypeId);
-                await sessionManager.startSession();
-                sessionManagerRef.current = sessionManager;
-
-                if (!isMounted) return;
-
-                setLoadingMessage('Loading game engine...');
-
-                // Get game configuration
-                const gameConfig = GAME_CONFIGS[gameType];
-                if (!gameConfig) {
-                    throw new Error(`Unknown game type: ${gameType}`);
-                }
-
-                // Create Phaser game instance
-                if (gameContainerRef.current) {
-                    const config: Phaser.Types.Core.GameConfig = {
-                        type: Phaser.AUTO,
-                        parent: gameContainerRef.current,
-                        width: gameConfig.config.width,
-                        height: gameConfig.config.height,
-                        backgroundColor: gameConfig.config.visual.backgroundColor,
-                        // No pasar la escena aquí para manejarla manualmente
-                        physics: {
-                            default: 'arcade',
-                            arcade: {
-                                gravity: { x: 0, y: 0 },
-                                debug: false,
-                            },
-                        },
-                        scale: {
-                            mode: Phaser.Scale.FIT,
-                            autoCenter: Phaser.Scale.CENTER_BOTH,
-                        },
-                    };
-
-                    const game = new Phaser.Game(config);
-                    gameInstanceRef.current = game;
-
-                    // Support function to start the scene with data
-                    const startScene = () => {
-                        if (!isMounted) return;
-
-                        const sceneKey = gameType === 'word-catcher' ? 'WordCatcherScene' :
-                            gameType === 'grammar-run' ? 'GrammarRunScene' :
-                                gameType === 'sentence-builder' ? 'SentenceBuilderScene' :
-                                    gameType === 'image-match' ? 'ImageMatchScene' :
-                                        gameType === 'city-explorer' ? 'CityExplorerScene' :
-                                            'WordCatcherScene';
-
-                        console.log(`[UniversalGameCanvas] 🚀 Game Engine Ready. Starting scene: ${sceneKey}`);
-
-                        try {
-                            // 1. Registrar escena si no existe
-                            if (!game.scene.getScene(sceneKey)) {
-                                console.log(`[UniversalGameCanvas] Registering scene instance: ${sceneKey}`);
-                                game.scene.add(sceneKey, gameConfig.scene);
-                            }
-
-                            // 2. Preparar datos según el tipo de juego
-                            let sceneData: any = {
-                                sessionManager: sessionManager,
-                                missionTitle: missionTitle,
-                                missionInstructions: missionInstructions,
-                                missionConfig: missionConfig,
-                            };
-
-                            if (gameType === 'image-match') {
-                                // Para ImageMatch, construir pares de cartas
-                                const resolvedConfig = resolveImageMatchConfig(missionConfig);
-                                const cards = buildImageMatchCards(
-                                    gameContent,
-                                    resolvedConfig.grid,
-                                    resolvedConfig.shuffle
-                                );
-                                sceneData.cards = cards;
-                                sceneData.words = gameContent; // Mantener words para compatibilidad
-                            } else {
-                                // Para otros juegos, usar words normal
-                                sceneData.words = shuffledWords;
-                            }
-
-                            // 3. Iniciar escena pasándole los datos
-                            console.log(`[UniversalGameCanvas] Calling game.scene.start(${sceneKey})`);
-                            game.scene.start(sceneKey, sceneData);
-
-                            // 3. Forzar el ocultamiento del cargador poco después del inicio
-                            // Esto evita que el usuario se quede atrapado si el evento 'create' falla.
-                            setTimeout(() => {
-                                if (isMounted) {
-                                    console.log(`[UniversalGameCanvas] Force hiding loader... Game should be visible.`);
-                                    setIsLoading(false);
-                                }
-                            }, 1000);
-
-                            // 4. Configurar el listener de Game Over
-                            const sceneInstance = game.scene.getScene(sceneKey);
-                            if (sceneInstance) {
-                                sceneInstance.events.on('gameOver', (data: any) => {
-                                    handleGameOver(data);
-                                });
-
-                                // También escuchar si la escena misma reporta errores
-                                sceneInstance.events.on('error', (err: any) => {
-                                    console.error(`[UniversalGameCanvas] Scene Error (${sceneKey}):`, err);
-                                    setError(`Error en el motor del juego: ${err}`);
-                                    setIsLoading(false);
-                                });
-                            }
-                        } catch (sceneError) {
-                            console.error(`[UniversalGameCanvas] ❌ Failed to initialize ${sceneKey}:`, sceneError);
-                            setError(`Error al iniciar el juego: ${sceneKey}`);
-                            setIsLoading(false);
-                        }
-                    };
-
-                    // Ejecutar cuando el motor esté listo
-                    if (game.isBooted) {
-                        startScene();
-                    } else {
-                        game.events.once('ready', () => {
-                            console.log('[UniversalGameCanvas] Phaser is ready.');
-                            startScene();
-                        });
-                    }
-
-                    // Fallback definitivo de seguridad
-                    setTimeout(() => {
-                        if (isMounted && isLoading) {
-                            console.warn('[UniversalGameCanvas] Safety timeout triggered. Forcing loader hide.');
-                            setIsLoading(false);
-                        }
-                    }, 5000);
-                }
+                gameContentRef.current = content;
+                setStatus('briefing');
             } catch (err) {
-                console.error('Error initializing game:', err);
-                const errorMessage = err instanceof Error ? err.message : 'Failed to initialize game';
-                setError(errorMessage);
-                setIsLoading(false);
-
-                if (onError) {
-                    onError(err instanceof Error ? err : new Error(errorMessage));
-                }
+                console.error(err);
+                if (isMounted) setError(err instanceof Error ? err.message : 'Error al cargar el juego');
             }
         };
+        load();
+        return () => { isMounted = false; };
+    }, [topicId, gameTypeId, gameType]);
 
-        const handleGameOver = async (data: any) => {
-            if (sessionManagerRef.current) {
-                setIsSaving(true);
-
-                try {
-                    // 1. Finalizar la sesión en el servidor
-                    await sessionManagerRef.current.endSession();
-                    console.log('[UniversalGameCanvas] Session saved successfully');
-                } catch (saveError) {
-                    console.error('[UniversalGameCanvas] Error saving session:', saveError);
-                }
-
-                setIsSaving(false);
-
-                if (onGameEnd) {
-                    const sessionData = sessionManagerRef.current.getSessionData();
-                    const duration = sessionManagerRef.current.getDuration();
-
-                    const result: GameResult = {
-                        score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
-                        correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
-                        wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
-                        duration: data.durationSeconds !== undefined ? data.durationSeconds : duration,
-                        accuracy: (data.correctCount !== undefined && data.wrongCount !== undefined)
-                            ? (data.correctCount + data.wrongCount > 0 ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100) : 0)
-                            : (sessionData.correctCount + sessionData.wrongCount > 0
-                                ? Math.round((sessionData.correctCount / (sessionData.correctCount + sessionData.wrongCount)) * 100)
-                                : 0),
-                        sessionId: sessionManagerRef.current.getSessionId(),
-                    };
-
-                    onGameEnd(result);
-                }
-            }
-        };
-
-        initializeGame();
-
-        // Cleanup function
+    // 2. Cleanup on Unmount
+    useEffect(() => {
         return () => {
-            isMounted = false;
-
             if (gameInstanceRef.current) {
                 gameInstanceRef.current.destroy(true);
                 gameInstanceRef.current = null;
             }
-
             if (sessionManagerRef.current && sessionManagerRef.current.isActive()) {
-                // End session if still active
                 sessionManagerRef.current.endSession({ interrupted: true }).catch(console.error);
             }
         };
-    }, [topicId, gameTypeId, studentId, gameType, onGameEnd, onError]);
+    }, []);
+
+    // 3. Game Over Handler
+    const handleGameOver = async (data: any) => {
+        console.log('[UniversalGameCanvas] Game Over:', data);
+
+        // Force Destroy Game Immediately
+        if (gameInstanceRef.current) {
+            gameInstanceRef.current.destroy(true);
+            gameInstanceRef.current = null;
+        }
+
+        setStatus('completed');
+
+        if (sessionManagerRef.current) {
+            setIsSaving(true);
+            try {
+                await sessionManagerRef.current.endSession();
+            } catch (e) {
+                console.error('Error saving session:', e);
+            } finally {
+                setIsSaving(false);
+            }
+
+            if (onGameEnd) {
+                const sessionData = sessionManagerRef.current.getSessionData();
+                const duration = sessionManagerRef.current.getDuration();
+                onGameEnd({
+                    score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
+                    correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
+                    wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
+                    duration: data.durationSeconds !== undefined ? data.durationSeconds : duration,
+                    accuracy: 0, // Calculate if needed
+                    sessionId: sessionManagerRef.current.getSessionId(),
+                    answers: data.answers || sessionData.items
+                });
+            }
+        }
+    };
+
+    // 4. Start Game Logic
+    const handleStartGame = async () => {
+        if (!gameContentRef.current) return;
+        setStatus('playing');
+        setLoadingMessage('Iniciando motor de juego...');
+
+        try {
+            // Session
+            const session = new GameSessionManager(studentId, topicId, gameTypeId);
+            await session.startSession();
+            sessionManagerRef.current = session;
+
+            // Phaser Config
+            const gameConfig = GAME_CONFIGS[gameType];
+            if (!gameConfig) throw new Error(`Unknown game type: ${gameType}`);
+
+            if (gameContainerRef.current) {
+                const config: Phaser.Types.Core.GameConfig = {
+                    type: Phaser.AUTO,
+                    parent: gameContainerRef.current,
+                    width: gameConfig.config.width,
+                    height: gameConfig.config.height,
+                    backgroundColor: gameConfig.config.visual.backgroundColor,
+                    physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
+                    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+                };
+
+                const game = new Phaser.Game(config);
+                gameInstanceRef.current = game;
+
+                const startScene = () => {
+                    const sceneKeyMap: Record<string, string> = {
+                        'word-catcher': 'WordCatcherScene',
+                        'grammar-run': 'GrammarRunScene',
+                        'sentence-builder': 'SentenceBuilderScene',
+                        'image-match': 'ImageMatchScene',
+                        'city-explorer': 'CityExplorerScene'
+                    };
+                    const key = sceneKeyMap[gameType];
+
+                    if (!game.scene.getScene(key)) game.scene.add(key, gameConfig.scene);
+
+                    // Prepare Payload
+                    let sceneData: any = {
+                        sessionManager: session,
+                        missionTitle,
+                        missionInstructions,
+                        missionConfig
+                    };
+
+                    const content = gameContentRef.current;
+                    if (gameType === 'city-explorer') {
+                        sceneData.map = prepareCityExplorerLevel(content, missionConfig);
+                        sceneData.words = content;
+                    } else if (gameType === 'image-match') {
+                        const resolvedConfig = resolveImageMatchConfig(missionConfig);
+                        sceneData.cards = buildImageMatchCards(content, resolvedConfig.grid, resolvedConfig.shuffle);
+                        sceneData.words = content;
+                    } else {
+                        sceneData.words = GameLoader.shuffleArray(content);
+                    }
+
+                    game.scene.start(key, sceneData);
+
+                    // Listeners on GLOBAL game events for reliability
+                    game.events.off('GAME_OVER');
+                    game.events.off('GAME_EXIT');
+
+                    game.events.on('GAME_OVER', handleGameOver);
+                    game.events.on('GAME_EXIT', (data: any) => handleGameOver(data || {}));
+
+                    // Error handling remains on scene if possible, or we can use game events too if we emit them
+                    const scene = game.scene.getScene(key);
+                    if (scene) {
+                        scene.events.on('error', (err: any) => setError(String(err)));
+                    }
+                };
+
+                if (game.isBooted) startScene();
+                else game.events.once('ready', startScene);
+            }
+        } catch (e) {
+            console.error(e);
+            setError('Error al iniciar el juego');
+        }
+    };
+
+    // Auto-start mechanism to bypass briefing screen as per user request
+    useEffect(() => {
+        if (status === 'briefing') {
+            handleStartGame();
+        }
+    }, [status]);
 
     if (error) {
         return (
-            <div className="flex items-center justify-center w-full h-full min-h-[600px] bg-slate-900 rounded-xl">
-                <div className="text-center p-8">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </div>
-                    <h3 className="text-xl font-bold text-white mb-2">Error Loading Game</h3>
-                    <p className="text-slate-400 mb-4">{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors"
-                    >
-                        Retry
-                    </button>
-                </div>
+            <div className="flex flex-col items-center justify-center min-h-[400px] bg-slate-900 rounded-xl p-8 text-center">
+                <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+                <h3 className="text-white font-bold text-xl mb-2">Error</h3>
+                <p className="text-slate-400">{error}</p>
+                <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-blue-600 rounded text-white font-bold">Reintentar</button>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center justify-center w-full relative">
-            {/* Indicador de guardado */}
-            {isSaving && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm rounded-xl">
-                    <div className="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 text-center animate-in zoom-in duration-300">
-                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-green-500 mb-4"></div>
-                        <p className="text-white font-bold">Guardando misión...</p>
-                        <p className="text-slate-400 text-xs mt-1">Espera un momento</p>
-                    </div>
-                </div>
-            )}
-            {/* Game Canvas Container - ALWAYS rendered so the ref is available */}
+        <div className="relative flex flex-col items-center justify-center w-full">
+            {/* CANVAS */}
             <div
                 ref={gameContainerRef}
-                className={`rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700 transition-opacity duration-500 ${isLoading ? 'opacity-0 h-0 invisible' : 'opacity-100 min-h-[600px] visible'}`}
-                style={{ maxWidth: '100%', width: GAME_CONFIGS[gameType]?.config.width || 800 }}
+                className={`rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${status === 'playing' ? 'opacity-100 visible h-auto' : 'opacity-0 invisible h-0'}`}
+                style={{ width: GAME_CONFIGS[gameType]?.config.width || 800 }}
             />
 
-            {/* Loading Overlay */}
-            {isLoading && (
-                <div className="flex items-center justify-center w-full min-h-[600px] bg-slate-900 rounded-xl">
-                    <div className="text-center">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                        <p className="text-white font-bold text-lg">{loadingMessage}</p>
-                        <p className="text-slate-400 text-sm mt-2">
-                            {GAME_CONFIGS[gameType]?.name || 'Juego'}
-                        </p>
+            {/* COMPLETED SCREEN */}
+            {status === 'completed' && (
+                <div className="min-h-[400px] flex flex-col items-center justify-center bg-slate-900 rounded-xl p-8 text-center text-white">
+                    <Sparkles className="w-16 h-16 text-yellow-400 mb-4" />
+                    <h2 className="text-3xl font-bold mb-2">¡Misión Completada!</h2>
+                    <p className="text-slate-400">Guardando progreso...</p>
+                </div>
+            )}
+
+            {/* INITIALIZING SPINNER */}
+            {status === 'initializing' && (
+                <div className="min-h-[400px] flex flex-col items-center justify-center">
+                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-slate-400">{loadingMessage}</p>
+                </div>
+            )}
+
+            {/* BRIEFING SCREEN */}
+            {status === 'briefing' && (
+                <div className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                        <h2 className="text-2xl font-black mb-1">{missionTitle || GAME_CONFIGS[gameType]?.name}</h2>
+                        <div className="flex items-center gap-2 text-blue-100 text-sm">
+                            <Target className="w-4 h-4" />
+                            <span>{GAME_CONFIGS[gameType]?.name} Mission</span>
+                        </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="p-6 space-y-6">
+                        {/* Instructions */}
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Instrucciones</h3>
+                            <p className="text-slate-700 dark:text-slate-300 text-lg leading-relaxed">
+                                {missionInstructions || 'Completa los objetivos para ganar.'}
+                            </p>
+                        </div>
+
+                        {/* Rules Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            {missionConfig?.time_limit_seconds && (
+                                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                        <Clock className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 font-bold">Tiempo Total</p>
+                                        <p className="font-bold text-slate-800 dark:text-white">{missionConfig.time_limit_seconds}s</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {gameType === 'city-explorer' && (
+                                <>
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                            <Flag className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-500 font-bold">Checkpoints</p>
+                                            <p className="font-bold text-slate-800 dark:text-white">{missionConfig?.city_explorer?.checkpoints_to_complete || 6}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                                        <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                                            <Heart className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-500 font-bold">Vidas</p>
+                                            <p className="font-bold text-slate-800 dark:text-white">{missionConfig?.city_explorer?.attempts_per_challenge || 2}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Action */}
+                        <button
+                            onClick={handleStartGame}
+                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-black text-lg shadow-lg shadow-blue-600/20 transform transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            <Play className="w-6 h-6 fill-current" />
+                            INICIAR MISIÓN
+                        </button>
                     </div>
                 </div>
             )}
 
-            {/* Game Info - Only show when not loading */}
-            {!isLoading && (
-                <div className="mt-4 text-center text-sm text-slate-400 animate-in fade-in duration-700">
-                    <p className="font-bold text-lg text-white mb-1">{GAME_CONFIGS[gameType]?.name}</p>
-                    <p>
-                        {gameType === 'word-catcher' && '¡Haz clic en las palabras correctas mientras caen!'}
-                        {gameType === 'grammar-run' && '¡Usa las flechas ← → para elegir la opción correcta!'}
-                        {gameType === 'sentence-builder' && '¡Arrastra las palabras para formar la oración correcta!'}
-                        {gameType === 'image-match' && '¡Empareja las imágenes con sus palabras!'}
-                        {gameType === 'city-explorer' && '¡Explora la ciudad y aprende las ubicaciones!'}
-                    </p>
+            {/* SAVING OVERLAY */}
+            {isSaving && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-xl">
+                    <div className="bg-white p-4 rounded-xl shadow-2xl flex flex-col items-center">
+                        <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                        <p className="font-bold">Guardando...</p>
+                    </div>
                 </div>
             )}
         </div>

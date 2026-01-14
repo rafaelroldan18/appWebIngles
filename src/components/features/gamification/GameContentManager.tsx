@@ -54,6 +54,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [selectedContent, setSelectedContent] = useState<string[]>([]);
 
     // Form state dinámico basado en el juego activo - Soporta múltiples filas
     const [formRows, setFormRows] = useState<Record<string, any>[]>([{}]);
@@ -213,6 +214,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                 payload.content_text = row.content_text;
                 payload.is_correct = true;
                 payload.metadata = {
+                    item_kind: 'grammar_question',
                     correct_option: row.correct_option,
                     wrong_options: [row.wrong_option_1, row.wrong_option_2]
                 };
@@ -308,8 +310,8 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
         setIsAdding(true);
     };
 
-    const handleDelete = async (contentId: string) => {
-        if (!confirm('¿Estás seguro de eliminar este contenido?')) return;
+    const handleDelete = async (contentId: string, skipConfirm: boolean = false) => {
+        if (!skipConfirm && !confirm('¿Estás seguro de eliminar este contenido?')) return;
 
         try {
             const response = await fetch(`/api/games/content/${contentId}`, {
@@ -318,7 +320,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
             if (response.ok) {
                 await loadContent();
-                success('Contenido eliminado correctamente');
+                if (!skipConfirm) success('Contenido eliminado correctamente');
             } else {
                 toastError('Error al eliminar el contenido');
             }
@@ -438,17 +440,17 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-gray-700 shadow-sm">
-                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 px-2 border-r border-slate-100">
+                        <label className="text-sm font-bold text-slate-600 dark:text-slate-400 px-2 border-r border-slate-100 dark:border-slate-700">
                             {t.gamification.content.topic}
                         </label>
                         <select
                             value={selectedTopic}
                             onChange={(e) => setSelectedTopic(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-gray-200 min-w-[180px]"
+                            className="bg-white dark:bg-slate-800 border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-gray-200 min-w-[180px] rounded-lg cursor-pointer"
                         >
-                            <option value="">{t.gamification.content.selectTopic}</option>
+                            <option value="" className="bg-white dark:bg-slate-800">{t.gamification.content.selectTopic}</option>
                             {topics.map((topic) => (
-                                <option key={topic.topic_id} value={topic.topic_id}>
+                                <option key={topic.topic_id} value={topic.topic_id} className="bg-white dark:bg-slate-800">
                                     {topic.title}
                                 </option>
                             ))}
@@ -459,7 +461,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
             {/* Game Tabs */}
             {selectedTopic && (
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-gray-800 p-6">
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-gray-800 p-6">
                     <div className="flex items-center gap-2 mb-6">
                         <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
                             <Database className="w-5 h-5 text-indigo-600" />
@@ -484,7 +486,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                         resetForm();
                                     }}
                                     className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all border-2 ${isActive
-                                        ? `${colors.bg} ${colors.text} ${colors.border} shadow-lg scale-105`
+                                        ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-105`
                                         : 'bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-transparent hover:border-slate-200 dark:hover:border-gray-700'
                                         }`}
                                 >
@@ -557,7 +559,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                         <button
                             onClick={() => setShowAIModal(true)}
                             disabled={isGeneratingAI}
-                            className="flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed border-b-4 border-indigo-800"
+                            className="flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-sm active:scale-95 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed border-b-4 border-indigo-800"
                             title="Generar contenido automáticamente con IA"
                         >
                             {isGeneratingAI ? (
@@ -583,7 +585,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                             setIsAdding(!isAdding);
                             if (editingId) setEditingId(null);
                         }}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${isAdding
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-sm active:scale-95 ${isAdding
                             ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 border-b-4 border-slate-300'
                             : `${gameColors.bg} ${gameColors.text} ${gameColors.hover} shadow-${activeContract.color}-100 border-b-4 border-black/10`
                             }`}
@@ -627,7 +629,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                     {/* Row Badge */}
                                     {!editingId && (
                                         <div className={`absolute -left-2.5 -top-2.5 w-8 h-8 ${hasRowErrors(validation, rowIndex) ? 'bg-red-500' : gameColors.bg
-                                            } ${gameColors.text} rounded-full flex items-center justify-center text-xs font-black shadow-lg border-2 border-white dark:border-slate-900`}>
+                                            } ${gameColors.text} rounded-full flex items-center justify-center text-xs font-black shadow-sm border-2 border-white dark:border-slate-900`}>
                                             {rowIndex + 1}
                                         </div>
                                     )}
@@ -637,7 +639,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                         <button
                                             type="button"
                                             onClick={() => removeFormRow(rowIndex)}
-                                            className="absolute -right-2.5 -top-2.5 w-8 h-8 bg-white dark:bg-slate-900 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-md border-2 border-slate-100 dark:border-gray-800"
+                                            className="absolute -right-2.5 -top-2.5 w-8 h-8 bg-white dark:bg-slate-900 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm border-2 border-slate-100 dark:border-gray-800"
                                             title="Eliminar esta fila"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -780,12 +782,12 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                                     <img
                                                                         src={row.image_url}
                                                                         alt="Preview"
-                                                                        className="w-16 h-16 object-cover rounded-xl mb-1 shadow-md"
+                                                                        className="w-16 h-16 object-cover rounded-xl mb-1 shadow-sm"
                                                                     />
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => updateFormRow(rowIndex, 'image_url', '')}
-                                                                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                                                                        className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-600 transition-colors"
                                                                     >
                                                                         <X className="w-4 h-4" />
                                                                     </button>
@@ -834,7 +836,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                 <button
                                     type="button"
                                     onClick={addFormRow}
-                                    className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black transition-all border-2 border-dashed ${gameColors.border} ${gameColors.text} hover:scale-105 active:scale-95 bg-white dark:bg-slate-900 shadow-lg`}
+                                    className={`flex items-center gap-2 px-8 py-3 rounded-2xl font-black transition-all border-2 border-dashed ${gameColors.border} ${gameColors.text} hover:scale-105 active:scale-95 bg-white dark:bg-slate-900 shadow-sm`}
                                 >
                                     <PlusCircle className="w-5 h-5" />
                                     {t.gamification.content.addManual?.replace('Manual', '') || 'Añadir'} {t.gamification.table?.content || 'fila'}
@@ -844,7 +846,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                     <button
                                         type="button"
                                         onClick={clearAllRows}
-                                        className="flex items-center gap-2 px-8 py-3 rounded-2xl font-black transition-all border-2 border-dashed border-red-200 text-red-500 hover:scale-105 active:scale-95 bg-white dark:bg-slate-900 shadow-lg"
+                                        className="flex items-center gap-2 px-8 py-3 rounded-2xl font-black transition-all border-2 border-dashed border-red-200 text-red-500 hover:scale-105 active:scale-95 bg-white dark:bg-slate-900 shadow-sm"
                                     >
                                         <Trash2 className="w-5 h-5" />
                                         {t.gamification.content.clean}
@@ -864,7 +866,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                             </button>
                             <button
                                 type="submit"
-                                className={`flex items-center gap-2 px-10 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${gameColors.bg} ${gameColors.text} ${gameColors.hover}`}
+                                className={`flex items-center gap-2 px-10 py-3 rounded-2xl font-black transition-all shadow-sm active:scale-95 ${gameColors.bg} ${gameColors.text} ${gameColors.hover}`}
                             >
                                 <Save className="w-5 h-5" />
                                 {editingId ? t.gamification.mission.save : t.gamification.mission.save}
@@ -906,11 +908,25 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                             </p>
                         </div>
                     ) : (
-                        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-xl border border-slate-100 dark:border-gray-800 overflow-hidden">
+                        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-gray-800 overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
                                         <tr className={`${gameColors.bg} border-b-2 ${gameColors.border}`}>
+                                            <th className="px-4 py-4 w-12">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedContent.length === content.length && content.length > 0}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedContent(content.map(c => c.content_id));
+                                                        } else {
+                                                            setSelectedContent([]);
+                                                        }
+                                                    }}
+                                                    className="w-4 h-4 text-indigo-600 bg-white border-2 border-slate-300 rounded cursor-pointer"
+                                                />
+                                            </th>
                                             <th className="px-6 py-4 text-left">
                                                 <span className={`text-xs font-black tracking-wider ${gameColors.text}`}>
                                                     {t.gamification.table.content}
@@ -944,6 +960,21 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                 key={item.content_id}
                                                 className="hover:bg-slate-50 dark:hover:bg-gray-800/50 transition-colors"
                                             >
+                                                {/* Checkbox */}
+                                                <td className="px-4 py-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedContent.includes(item.content_id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedContent([...selectedContent, item.content_id]);
+                                                            } else {
+                                                                setSelectedContent(selectedContent.filter(id => id !== item.content_id));
+                                                            }
+                                                        }}
+                                                        className="w-4 h-4 text-indigo-600 bg-white border-2 border-slate-300 rounded cursor-pointer"
+                                                    />
+                                                </td>
                                                 {/* Contenido */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
@@ -1051,6 +1082,23 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                     <p className={`text-sm font-bold ${gameColors.text}`}>
                                         Total: {content.length} {content.length === 1 ? 'item' : 'items'}
                                     </p>
+                                    {selectedContent.length > 0 && (
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm(`¿Eliminar ${selectedContent.length} contenido(s)?`)) {
+                                                    for (const id of selectedContent) {
+                                                        await handleDelete(id, true);
+                                                    }
+                                                    setSelectedContent([]);
+                                                    success(`${selectedContent.length} contenido(s) eliminado(s) correctamente`);
+                                                }
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Eliminar {selectedContent.length} seleccionado(s)
+                                        </button>
+                                    )}
                                     <div className="flex items-center gap-4 text-xs">
                                         <div className="flex items-center gap-1">
                                             <CheckCircle2 className="w-3 h-3 text-green-500" />

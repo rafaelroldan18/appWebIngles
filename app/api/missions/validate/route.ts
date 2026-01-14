@@ -82,12 +82,14 @@ export async function GET(request: NextRequest) {
         }
 
         // 3. Count student's attempts for this specific mission
+        // Only count sessions played AFTER this specific mission was created/activated
         const { data: sessions, error: sessionsError } = await supabase
             .from('game_sessions')
-            .select('session_id, completed')
+            .select('session_id, completed, played_at')
             .eq('student_id', studentId)
             .eq('topic_id', topicId)
-            .eq('game_type_id', gameTypeId);
+            .eq('game_type_id', gameTypeId)
+            .gte('played_at', availability.created_at);
 
         if (sessionsError) {
             console.error('Error fetching sessions:', sessionsError);

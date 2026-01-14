@@ -56,11 +56,11 @@ export const WORD_CATCHER_CONFIG = {
 
     // Validation limits - Evita configuraciones "locas"
     limits: {
-        items: { min: 5, max: 30 },
-        distractors_percent: { min: 0, max: 60 },
-        spawn_rate_ms: { min: 350, max: 2000 },
-        fall_speed: { min: 100, max: 500 },
-        time_limit_seconds: { min: 15, max: 300 },
+        items: { min: 1, max: 50 },
+        distractors_percent: { min: 0, max: 90 },
+        spawn_rate_ms: { min: 200, max: 3000 },
+        fall_speed: { min: 50, max: 800 },
+        time_limit_seconds: { min: 5, max: 600 },
     },
 
     // Defaults por dificultad

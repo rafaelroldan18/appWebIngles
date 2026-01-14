@@ -49,6 +49,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -182,8 +183,8 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
         setIsAdding(true);
     };
 
-    const handleDelete = async (topicId: string) => {
-        if (!confirm('¿Estás seguro de eliminar este tema? Esta acción no se puede deshacer.')) return;
+    const handleDelete = async (topicId: string, skipConfirm: boolean = false) => {
+        if (!skipConfirm && !confirm('¿Estás seguro de eliminar este tema? Se eliminarán también todas las misiones y el contenido asociado. Esta acción no se puede deshacer.')) return;
 
         try {
             const response = await fetch(`/api/topics/${topicId}`, {
@@ -192,15 +193,10 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
             if (response.ok) {
                 await loadTopics();
-                success('Tema eliminado correctamente');
+                if (!skipConfirm) success('Tema y contenido asociado eliminados correctamente');
             } else {
                 const errorData = await response.json();
-                // Check for specific error about existing content
-                if (errorData.error && errorData.error.includes('content')) {
-                    toastError('No se puede eliminar un tema que tiene contenido asociado. Elimina el contenido primero.', 'Error de dependencia');
-                } else {
-                    toastError(`Error: ${errorData.error}`, 'No se pudo eliminar');
-                }
+                toastError(`Error: ${errorData.error}`, 'No se pudo eliminar');
             }
         } catch (error) {
             console.error('Error deleting topic:', error);
@@ -233,7 +229,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                         if (isAdding) resetForm(); // Reset when closing
                         else setIsAdding(true);
                     }}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${isAdding
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black transition-all shadow-sm active:scale-95 ${isAdding
                         ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
                         }`}
@@ -245,7 +241,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
             {/* Add/Edit Form */}
             {isAdding && (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-gray-800 p-6">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-800 p-6">
                     <div className="flex items-center gap-2 mb-5 pb-4 border-b border-slate-100 dark:border-gray-800">
                         <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
                             <Plus className="w-4 h-4 text-indigo-600" />
@@ -284,11 +280,12 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm font-medium text-slate-700 dark:text-white"
                                     required
                                 >
-                                    <option value="">{t.gamification.topic.form.selectParallel}</option>
+                                    <option value="" className="bg-white dark:bg-gray-800">{t.gamification.topic.form.selectParallel}</option>
                                     {parallels.map((parallel) => (
                                         <option
                                             key={parallel.parallel_id}
                                             value={`${parallel.name} - ${parallel.academic_year}`}
+                                            className="bg-white dark:bg-gray-800"
                                         >
                                             {parallel.name} - {parallel.academic_year}
                                         </option>
@@ -322,7 +319,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                 <BookOpen className="w-4 h-4" />
                                 {t.gamification.topic.form.theory}
                             </label>
-                            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-md">
+                            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
                                 <RichTextEditor
                                     content={loadedContent}
                                     onChange={handleContentChange}
@@ -338,7 +335,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                             <div className="flex gap-2 justify-center">
                                 <button
                                     type="submit"
-                                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2 active:scale-[0.98]"
+                                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 active:scale-[0.98]"
                                 >
                                     <Save className="w-4 h-4" />
                                     {editingId ? t.gamification.mission.save : t.gamification.mission.create}
@@ -370,6 +367,23 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">{t.gamification.topic.list.availableUnits} ({topics.length})</h3>
+                    {selectedTopics.length > 0 && (
+                        <button
+                            onClick={async () => {
+                                if (confirm(`¿Eliminar ${selectedTopics.length} tema(s)?`)) {
+                                    for (const id of selectedTopics) {
+                                        await handleDelete(id, true);
+                                    }
+                                    setSelectedTopics([]);
+                                    success(`${selectedTopics.length} tema(s) eliminado(s) correctamente`);
+                                }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Eliminar {selectedTopics.length} seleccionado(s)
+                        </button>
+                    )}
                 </div>
 
                 {isLoading ? (
@@ -390,9 +404,24 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                         {topics.map((topic) => (
                             <div
                                 key={topic.topic_id}
-                                className="group relative bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-gray-800 shadow-xl shadow-slate-100/50 hover:shadow-indigo-50 transition-all"
+                                className="group relative bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-100 dark:border-gray-800 shadow-sm transition-all"
                             >
-                                <div className="flex justify-between items-start mb-4">
+                                {/* Checkbox for selection */}
+                                <div className="absolute top-4 left-4 z-10">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedTopics.includes(topic.topic_id)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setSelectedTopics([...selectedTopics, topic.topic_id]);
+                                            } else {
+                                                setSelectedTopics(selectedTopics.filter(id => id !== topic.topic_id));
+                                            }
+                                        }}
+                                        className="w-5 h-5 text-indigo-600 bg-white border-2 border-slate-300 rounded cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                </div>
+                                <div className="flex justify-between items-start mb-4 ml-8">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
                                             <BookOpen className="w-4 h-4 text-indigo-500" />

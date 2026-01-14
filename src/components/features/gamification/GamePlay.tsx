@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Target, Clock, TrendingUp, AlertCircle, Lock, Play, BookOpen, Sparkles, Star, Eye } from 'lucide-react';
+import { ArrowLeft, Trophy, Target, Clock, TrendingUp, AlertCircle, Lock, Play, BookOpen, Sparkles, Star, Eye, CheckCircle2, XCircle, Gamepad2 } from 'lucide-react';
 import { colors, getCardClasses } from '@/config/colors';
 import { MissionValidator, type MissionValidation } from '@/lib/gamification/MissionValidator';
 import { MissionEvaluator, type MissionResult } from '@/lib/gamification/MissionEvaluator';
@@ -34,6 +34,7 @@ interface GameResult {
     duration: number;
     accuracy: number;
     sessionId?: string;
+    answers?: any[];
 }
 
 export default function GamePlay({
@@ -54,11 +55,44 @@ export default function GamePlay({
     const [isValidating, setIsValidating] = useState(true);
     const [validation, setValidation] = useState<MissionValidation | null>(null);
     const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+    const [showReviewDetails, setShowReviewDetails] = useState(false);
+
+    const [lastSessionResult, setLastSessionResult] = useState<GameResult | null>(null);
 
     // Validate mission on component mount
     useEffect(() => {
         validateMission();
+        checkLastHistory();
     }, [studentId, topicId, gameTypeId, parallelId]);
+
+    const checkLastHistory = async () => {
+        try {
+            const res = await fetch(`/api/games/sessions?studentId=${studentId}&topicId=${topicId}&gameTypeId=${gameTypeId}&limit=1`);
+            if (res.ok) {
+                const sessions = await res.json();
+                if (sessions && sessions.length > 0) {
+                    const last = sessions[0];
+                    // Map generic session to GameResult
+                    const mapped: GameResult = {
+                        score: last.score,
+                        correctCount: last.correct_count,
+                        wrongCount: last.wrong_count,
+                        duration: last.duration_seconds || 0,
+                        accuracy: 0, // Recalculated by evaluator
+                        sessionId: last.session_id,
+                        answers: last.details?.answers || []
+                    };
+                    // Manually calculate accuracy if missing
+                    const total = mapped.correctCount + mapped.wrongCount;
+                    mapped.accuracy = total > 0 ? Math.round((mapped.correctCount / total) * 100) : 0;
+
+                    setLastSessionResult(mapped);
+                }
+            }
+        } catch (e) {
+            console.error('Error checking history:', e);
+        }
+    };
 
     const validateMission = async () => {
         setIsValidating(true);
@@ -90,19 +124,39 @@ export default function GamePlay({
             result.score,
             result.accuracy,
             result.correctCount,
-            result.wrongCount
+            result.wrongCount,
+            result.duration,
+            result.answers
         );
 
         setGameResult(result);
         setMissionResult(evaluation);
         if (result.sessionId) setLastSessionId(result.sessionId);
         setShowGame(false);
+        // Refresh history
+        checkLastHistory();
     };
 
     const handlePlayAgain = () => {
         setGameResult(null);
         setMissionResult(null);
         validateMission();
+    };
+
+    const handleViewLastResult = () => {
+        if (!lastSessionResult) return;
+        const evaluation = MissionEvaluator.evaluateMission(
+            lastSessionResult.score,
+            lastSessionResult.accuracy,
+            lastSessionResult.correctCount,
+            lastSessionResult.wrongCount,
+            lastSessionResult.duration,
+            lastSessionResult.answers
+        );
+        setGameResult(lastSessionResult);
+        setMissionResult(evaluation);
+        if (lastSessionResult.sessionId) setLastSessionId(lastSessionResult.sessionId);
+        setShowGame(false);
     };
 
     const getGameType = (typeName: string): 'word-catcher' | 'grammar-run' | 'sentence-builder' | 'image-match' | 'city-explorer' => {
@@ -160,6 +214,17 @@ export default function GamePlay({
                                 {t.student.gameplay.reviewTheory}
                             </button>
                         )}
+                        {/* Option to see result even if blocked? */}
+                        {lastSessionResult && (
+                            <button
+                                onClick={handleViewLastResult}
+                                className="px-6 py-3 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 tracking-wide"
+                            >
+                                <Trophy className="w-4 h-4" />
+                                Ver Resultado
+                            </button>
+                        )}
+
                         <button
                             onClick={onBack}
                             className="px-6 py-3 bg-slate-800 dark:bg-slate-700 text-white rounded-xl font-bold text-xs hover:bg-slate-700 dark:hover:bg-slate-600 transition-all flex items-center justify-center gap-2 tracking-wide shadow-md"
@@ -206,63 +271,136 @@ export default function GamePlay({
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
                         {[
-                            { icon: Star, label: t.student.gameplay.score, val: gameResult.score, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                            { icon: Target, label: t.student.gameplay.hits, val: gameResult.correctCount, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
-                            { icon: AlertCircle, label: t.student.gameplay.failures, val: gameResult.wrongCount, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' },
-                            { icon: TrendingUp, label: t.student.gameplay.precision, val: `${gameResult.accuracy}%`, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-900/20' }
+                            { icon: Star, label: t.student.gameplay.score, val: gameResult.score },
+                            { icon: Target, label: t.student.gameplay.hits, val: gameResult.correctCount },
+                            { icon: AlertCircle, label: t.student.gameplay.failures, val: gameResult.wrongCount },
+                            { icon: Clock, label: 'Tiempo', val: `${gameResult.duration}s` },
+                            { icon: TrendingUp, label: t.student.gameplay.precision, val: `${gameResult.accuracy}%` },
+                            { icon: Sparkles, label: 'Estado', val: missionResult.completed ? 'Completado' : 'Fallido' }
                         ].map((stat, i) => (
-                            <div key={i} className={`${stat.bg} rounded-2xl p-4 text-center border border-white/50 dark:border-white/5 backdrop-blur-sm shadow-sm hover:-translate-y-1 transition-transform`}>
-                                <stat.icon className={`w-5 h-5 ${stat.color} mx-auto mb-1.5`} />
-                                <p className="text-tiny font-bold text-slate-400 dark:text-slate-500 tracking-widest">{stat.label}</p>
-                                <p className={`text-2xl font-bold ${stat.color} leading-none mt-1`}>{stat.val}</p>
+                            <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 text-center border border-slate-200 dark:border-slate-700 shadow-sm hover:-translate-y-1 transition-transform">
+                                <stat.icon className="w-4 h-4 text-slate-400 mx-auto mb-1" />
+                                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">{stat.label}</p>
+                                <p className="text-xl font-black text-slate-700 dark:text-slate-200 leading-none mt-1">{stat.val}</p>
                             </div>
                         ))}
                     </div>
 
-                    <div className="bg-slate-800 dark:bg-black/50 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-xl">
+                    <div className="bg-slate-900 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 mb-8 shadow-xl">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center rotate-3 shadow-lg shadow-indigo-500/20">
-                                <Trophy className="w-7 h-7 text-white" />
+                            <div className="w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center shadow-lg border border-slate-700">
+                                <Trophy className="w-7 h-7 text-indigo-400" />
                             </div>
                             <div>
-                                <h4 className="text-lg font-bold tracking-tighter leading-none">{t.student.gameplay.missionReward}</h4>
-                                <p className="text-indigo-200 text-tiny font-bold tracking-wider mt-1.5">{t.student.gameplay.accumulatedPoints}</p>
+                                <h4 className="text-lg font-black tracking-tighter leading-none">{t.student.gameplay.missionReward}</h4>
+                                <p className="text-slate-400 text-tiny font-bold tracking-wider mt-1.5 uppercase">{t.student.gameplay.accumulatedPoints}</p>
                             </div>
                         </div>
                         <div className="text-center md:text-right">
-                            <span className="text-4xl font-bold text-white tracking-tighter">{missionResult.pointsEarned} <small className="text-lg text-indigo-300 font-medium">{t.student.gameplay.pts}</small></span>
+                            <span className="text-4xl font-black text-white tracking-tighter">{missionResult.pointsEarned} <small className="text-lg text-slate-500 font-medium">{t.student.gameplay.pts}</small></span>
                         </div>
                     </div>
+
+                    {/* Review Pedagógico Section */}
+                    {missionResult.review && (
+                        <div className="mb-8 space-y-4 animate-in slide-in-from-bottom-4 duration-1000">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-slate-400" />
+                                REPORTE PEDAGÓGICO
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Strengths */}
+                                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
+                                    <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                                        Fortalezas
+                                    </h4>
+                                    <ul className="space-y-2">
+                                        {missionResult.review.strengths.map((s, i) => (
+                                            <li key={i} className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2 capitalize">
+                                                <Target className="w-3.5 h-3.5 text-slate-400" /> {s}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Improvements */}
+                                <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
+                                    <h4 className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                        <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                                        Áreas de Mejora
+                                    </h4>
+                                    <ul className="space-y-2">
+                                        {missionResult.review.improvements.map((im, i) => (
+                                            <li key={i} className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2 capitalize">
+                                                <AlertCircle className="w-3.5 h-3.5 text-slate-400" /> {im}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* Recommended Practice */}
+                            <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 flex items-center gap-4">
+                                <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-800">
+                                    <BookOpen className="w-6 h-6 text-indigo-500" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Práctica Recomendada</p>
+                                    <p className="text-base font-black text-slate-700 dark:text-white capitalize">{missionResult.review.recommended_practice}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <button
                             onClick={handlePlayAgain}
-                            className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-100 dark:shadow-none flex items-center justify-center gap-2 tracking-wide"
+                            className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-2 tracking-wide"
                         >
+                            <Gamepad2 className="w-4 h-4" />
                             {t.student.gameplay.retryMission}
                         </button>
 
                         {lastSessionId && (
-                            <Link
-                                href={`/estudiante/results/${lastSessionId}`}
-                                className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-100 dark:shadow-none flex items-center justify-center gap-2 tracking-wide"
+                            <button
+                                onClick={() => setShowReviewDetails(true)}
+                                className="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-2 tracking-wide"
                             >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-4 h-4 text-slate-400" />
                                 {t.student.gameplay.viewReview}
-                            </Link>
+                            </button>
                         )}
 
                         <button
                             onClick={onBack}
-                            className="px-8 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl font-black text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 tracking-wide"
+                            className="px-8 py-3.5 bg-white dark:bg-slate-800/50 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-2 tracking-wide"
                         >
                             <ArrowLeft className="w-4 h-4" />
                             {t.student.gameplay.backToGames}
                         </button>
                     </div>
+
+                    <div className="flex justify-center mt-4">
+                        <button
+                            onClick={handlePlayAgain}
+                            className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors flex items-center gap-2"
+                        >
+                            <BookOpen className="w-3 h-3" />
+                            Volver a Instrucciones (Briefing)
+                        </button>
+                    </div>
                 </div>
+
+                {showReviewDetails && gameResult && (
+                    <ReviewDetailsModal
+                        answers={gameResult.answers || []}
+                        onClose={() => setShowReviewDetails(false)}
+                    />
+                )}
             </div>
         );
     }
@@ -289,6 +427,7 @@ export default function GamePlay({
                     onViewTheory={() => setShowTheoryModal(true)}
                     showTheoryButton={validation?.availabilityData?.show_theory !== false}
                     topicTitle={topicTitle}
+                    onViewLastResult={lastSessionResult ? handleViewLastResult : undefined}
                 />
 
                 {/* Theory Modal Container */}
@@ -321,12 +460,6 @@ export default function GamePlay({
                     </div>
                 </div>
 
-                <button
-                    onClick={onBack}
-                    className="px-5 py-3 bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-100 rounded-xl font-black text-tiny tracking-widest transition-all active:scale-95 shadow-sm"
-                >
-                    {t.student.gameplay.exitChallenge}
-                </button>
             </div>
 
             <div className="bg-slate-900 rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-8 border-slate-800 relative ring-1 ring-white/10">
@@ -346,12 +479,94 @@ export default function GamePlay({
                     }}
                 />
             </div>
+
+            {showReviewDetails && gameResult && (
+                <ReviewDetailsModal
+                    answers={gameResult.answers || []}
+                    onClose={() => setShowReviewDetails(false)}
+                />
+            )}
         </div>
     );
 }
 
-const Gamepad2 = ({ className }: { className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-        <line x1="6" y1="12" x2="10" y2="12" /><line x1="8" y1="10" x2="8" y2="14" /><rect x="15" y="13" width="3" height="3" rx=".5" /><rect x="12" y="10" width="3" height="3" rx=".5" /><path d="M21 7.28a9 9 0 0 0-18 0M3.28 7.28A2 2 0 0 1 2 9v7a2 2 0 0 1-2 2h0a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2h12a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2h0a2 2 0 0 1-2-2V9a2 2 0 0 1-1.28-1.72z" />
-    </svg>
-);
+function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () => void }) {
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={onClose} />
+            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden relative z-10 max-h-[85vh] flex flex-col ring-1 ring-slate-200 dark:ring-slate-800">
+                <div className="p-6 md:p-8 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+                    <div>
+                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Review de Misión</h3>
+                        <p className="text-slate-500 font-medium">Análisis detallado de tus respuestas</p>
+                    </div>
+                    <button onClick={onClose} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                        <ArrowLeft className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <div className="p-6 md:p-8 overflow-y-auto space-y-4 bg-slate-50 dark:bg-slate-900/50">
+                    {answers.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-center">
+                            <BookOpen className="w-16 h-16 mb-4 opacity-20" />
+                            <p className="text-lg font-bold">No hay detalles disponibles para esta sesión.</p>
+                        </div>
+                    ) : (
+                        answers.map((ans: any, i: number) => {
+                            const isCorrect = ans.is_correct === true || ans.result === 'correct';
+                            const prompt = ans.prompt || ans.text || ans.correct_answer || 'Pregunta';
+                            const studentAnswer = ans.student_answer || ans.user_input;
+                            const correctAnswer = ans.correct_answer;
+
+                            return (
+                                <div key={i} className={`bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-600 transition-all`}>
+                                    <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${isCorrect ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+
+                                    <div className="flex items-start gap-5 pl-2">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-sm ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
+                                            {isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <p className="text-lg font-bold text-slate-800 dark:text-white leading-snug pr-4">{prompt}</p>
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
+                                                    {isCorrect ? 'Correcto' : 'Incorrecto'}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-700/50">
+                                                    <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-slate-400 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Tu Respuesta
+                                                    </p>
+                                                    <p className={`text-base font-semibold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                                        {studentAnswer || <span className="italic opacity-50 text-slate-400">(Sin respuesta)</span>}
+                                                    </p>
+                                                </div>
+
+                                                {!isCorrect && (
+                                                    <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10">
+                                                        <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-indigo-400 flex items-center gap-1.5">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Solución Correcta
+                                                        </p>
+                                                        <p className="text-base font-semibold text-indigo-700 dark:text-indigo-300">{correctAnswer}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex justify-end">
+                    <button onClick={onClose} className="px-8 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-lg shadow-slate-200 dark:shadow-none">
+                        Cerrar Review
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
