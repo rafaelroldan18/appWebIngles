@@ -515,8 +515,60 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
                         answers.map((ans: any, i: number) => {
                             const isCorrect = ans.is_correct === true || ans.result === 'correct';
                             const prompt = ans.prompt || ans.text || ans.correct_answer || 'Pregunta';
-                            const studentAnswer = ans.student_answer || ans.user_input;
-                            const correctAnswer = ans.correct_answer;
+
+                            // Helper para formatear respuestas con imágenes (Image Match)
+                            const formatAnswer = (answer: any): { text: string; images: Array<{ url: string; label: string }> } => {
+                                if (!answer) return { text: '', images: [] };
+                                if (typeof answer === 'string') return { text: answer, images: [] };
+                                if (typeof answer === 'object') {
+                                    // Image Match format: {first: {kind, value, imageUrl?}, second: {kind, value, imageUrl?}}
+                                    if (answer.first && answer.second) {
+                                        const images: Array<{ url: string; label: string }> = [];
+                                        let textParts: string[] = [];
+
+                                        console.log('[ReviewModal] Processing answer:', answer);
+
+                                        // Process first
+                                        const first = answer.first;
+                                        if (first.kind === 'image') {
+                                            if (first.imageUrl) {
+                                                images.push({ url: first.imageUrl, label: first.value });
+                                                textParts.push(`🖼️ ${first.value}`);
+                                            } else {
+                                                textParts.push(`[Image: ${first.value}]`);
+                                            }
+                                        } else {
+                                            textParts.push(first.value || first);
+                                        }
+
+                                        // Process second
+                                        const second = answer.second;
+                                        if (second.kind === 'image') {
+                                            if (second.imageUrl) {
+                                                images.push({ url: second.imageUrl, label: second.value });
+                                                textParts.push(`🖼️ ${second.value}`);
+                                            } else {
+                                                textParts.push(`[Image: ${second.value}]`);
+                                            }
+                                        } else {
+                                            textParts.push(second.value || second);
+                                        }
+
+                                        console.log('[ReviewModal] Extracted images:', images);
+
+                                        return {
+                                            text: textParts.join(' ↔ '),
+                                            images
+                                        };
+                                    }
+                                    // Fallback para otros objetos
+                                    return { text: JSON.stringify(answer), images: [] };
+                                }
+                                return { text: String(answer), images: [] };
+                            };
+
+                            const studentAnswerData = formatAnswer(ans.student_answer || ans.user_input);
+                            const correctAnswerData = formatAnswer(ans.correct_answer);
 
                             return (
                                 <div key={i} className={`bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group hover:border-slate-300 dark:hover:border-slate-600 transition-all`}>
@@ -539,17 +591,41 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
                                                     <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-slate-400 flex items-center gap-1.5">
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Tu Respuesta
                                                     </p>
+                                                    {studentAnswerData.images.length > 0 && (
+                                                        <div className="flex gap-2 mb-3 flex-wrap">
+                                                            {studentAnswerData.images.map((img, idx) => (
+                                                                <img
+                                                                    key={idx}
+                                                                    src={img.url}
+                                                                    alt={img.label}
+                                                                    className="w-16 h-16 object-cover rounded-lg border-2 border-slate-200 dark:border-slate-600"
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     <p className={`text-base font-semibold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                                        {studentAnswer || <span className="italic opacity-50 text-slate-400">(Sin respuesta)</span>}
+                                                        {studentAnswerData.text || <span className="italic opacity-50 text-slate-400">(Sin respuesta)</span>}
                                                     </p>
                                                 </div>
 
-                                                {!isCorrect && (
+                                                {!isCorrect && correctAnswerData.text && (
                                                     <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10">
                                                         <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-indigo-400 flex items-center gap-1.5">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Solución Correcta
                                                         </p>
-                                                        <p className="text-base font-semibold text-indigo-700 dark:text-indigo-300">{correctAnswer}</p>
+                                                        {correctAnswerData.images.length > 0 && (
+                                                            <div className="flex gap-2 mb-3 flex-wrap">
+                                                                {correctAnswerData.images.map((img, idx) => (
+                                                                    <img
+                                                                        key={idx}
+                                                                        src={img.url}
+                                                                        alt={img.label}
+                                                                        className="w-16 h-16 object-cover rounded-lg border-2 border-indigo-200 dark:border-indigo-600"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <p className="text-base font-semibold text-indigo-700 dark:text-indigo-300">{correctAnswerData.text}</p>
                                                     </div>
                                                 )}
                                             </div>

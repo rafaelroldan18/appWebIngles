@@ -1,24 +1,27 @@
 /**
  * CityExplorerScene - Interactive map exploration game
- * Rediseñado con sistema de atlas profesional
+ * Rediseñado con sistema de atlas profesional (ce_atlas + ui_atlas)
  */
 
 import * as Phaser from 'phaser';
 import { CITY_EXPLORER_CONFIG } from './cityExplorer.config';
-import { loadGameAtlases } from './AtlasLoader';
+import { preloadCommonAndGame } from './assets/assetLoader';
+import { ASSET_MANIFEST } from './assets/manifest';
 import { GameHUD } from './GameHUD';
-import { showModal, showFeedback, showGlow, createButton } from './UIKit';
+import { showModal, showFeedback, showGlow, createButton, createPanel, createIconButton, showFullscreenRequest } from './UIKit';
 import type { GameSessionManager } from './GameSessionManager';
-import type { CityExplorerLocationItem } from './gameLoader.utils';
+import { type CityExplorerLocationItem } from './gameLoader.utils';
 import type { MissionConfig } from '@/types';
 
 interface Checkpoint {
-    sprite: Phaser.GameObjects.Image; // Ahora usa sprites del atlas
-    label: Phaser.GameObjects.Text;
+    sprite: Phaser.GameObjects.Image; // El target visual
+    glowSprite?: Phaser.GameObjects.Image; // Resplandor de proximidad
+    checkIcon?: Phaser.GameObjects.Image; // Icono de completado
     data: CityExplorerLocationItem;
     isTarget: boolean;
     isCompleted: boolean;
-    container: Phaser.GameObjects.Container; // Para agrupar sprite + label
+    label: Phaser.GameObjects.Text;
+    debugCircle?: Phaser.GameObjects.Arc;
 }
 
 export class CityExplorerScene extends Phaser.Scene {
@@ -26,11 +29,10 @@ export class CityExplorerScene extends Phaser.Scene {
     private mapData: { checkpoints: CityExplorerLocationItem[] } | null = null;
     private missionConfig: MissionConfig | undefined;
 
-    // Game objects (ahora usan sprites del atlas)
-    private player!: Phaser.GameObjects.Image; // Sprite del atlas
+    // Game objects
+    private player!: Phaser.GameObjects.Image;
     private checkpoints: Checkpoint[] = [];
     private currentTarget: Checkpoint | null = null;
-    private buildings: Phaser.GameObjects.Image[] = []; // Decoración del mapa
 
     // Game state
     private score: number = 0;
@@ -41,17 +43,16 @@ export class CityExplorerScene extends Phaser.Scene {
     private requiredCheckpoints: number = 0;
     private isAnswering: boolean = false;
     private isGameOver: boolean = false;
-    private hintsUsed: number = 0;
-    private maxHints: number = 3;
+    private gameStartTime: number = 0;
 
-    // Challenge UI State
+    // Challenge UI
     private challengeContainer: Phaser.GameObjects.Container | null = null;
-    private challengeTimerEvent: Phaser.Time.TimerEvent | null = null;
     private currentAttempts: number = 0;
 
-    // UI Elements (ahora usa GameHUD)
+    // UI Elements
     private gameHUD!: GameHUD;
     private objectiveText!: Phaser.GameObjects.Text;
+    private progressText!: Phaser.GameObjects.Text;
 
     // Controls
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -62,18 +63,20 @@ export class CityExplorerScene extends Phaser.Scene {
         super({ key: 'CityExplorerScene' });
     }
 
+    private initData: any = null;
+
     init(data: any) {
-        console.log('[CityExplorerScene] init:', data);
+        this.initData = data;
         this.sessionManager = data.sessionManager;
         this.mapData = data.map || { checkpoints: [] };
         this.missionConfig = data.missionConfig;
 
         // Config Defaults
         const ceConfig = this.missionConfig?.city_explorer;
-        this.totalCheckpoints = this.mapData.checkpoints.length;
+        this.totalCheckpoints = this.mapData?.checkpoints?.length || 0;
         this.requiredCheckpoints = Math.min(
             ceConfig?.checkpoints_to_complete || 6,
-            this.totalCheckpoints // Prevent requiring more than available
+            this.totalCheckpoints
         );
 
         this.score = 0;
@@ -84,91 +87,164 @@ export class CityExplorerScene extends Phaser.Scene {
         this.isAnswering = false;
         this.checkpoints = [];
         this.currentTarget = null;
+        this.gameStartTime = 0; // Se seteará en create o update
+    }
+
+    preload() {
+        preloadCommonAndGame(this, 'city-explorer', ASSET_MANIFEST);
     }
 
     create() {
-        // 1. Background
-        this.cameras.main.setBackgroundColor(CITY_EXPLORER_CONFIG.visual.backgroundColor);
-        this.createGround();
+        try {
+            const { width, height } = this.cameras.main;
 
-        // 2. Render Checkpoints from Map Data
-        this.createMapMarkers();
+            const worldWidth = 1600;
+            const worldHeight = 1200;
 
-        // 3. Create Player (Top-Down Square)
-        this.createPlayer();
+            // 0. Configurar Límites del Mundo
+            this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+            this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
-        // 4. UI
-        this.createHUD();
+            // 1. Background (Verde suave para mapa expandido)
+            this.add.rectangle(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 0xecfdf5);
+            // Rejilla sutil en todo el mundo
+            this.add.grid(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 64, 64, 0x000000, 0, 0x10b981, 0.05);
 
-        // 5. Controls
-        this.setupControls();
+            // 2. Decoración básica
+            this.createDecoration(worldWidth, worldHeight);
 
-        // 6. Start Logic
-        this.startGameplay();
+            // 3. Render Checkpoints
+            this.createMapMarkers();
 
-        // Notify readiness
-        this.events.emit('scene-ready');
+            // 4. Create Player
+            this.createPlayer();
+            this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+            // 5. HUD
+            this.createHud();
+
+            // 6. Controls
+            this.setupControls();
+
+            // 7. Start Logic
+            this.startGameplay();
+
+            // 8. Pantalla Completa (Petición Inicial)
+            this.isAnswering = true; // Bloquear movimiento inicialmente
+            showFullscreenRequest(this, () => {
+                this.isAnswering = false; // Desbloquear al cerrar
+            });
+
+            console.log('[CityExplorer] Scene Created. Player at:', this.player.x, this.player.y);
+            this.events.emit('scene-ready');
+        } catch (error) {
+            console.error('[CityExplorer] Error en Create:', error);
+        }
     }
 
-    private createGround() {
-        const { width, height } = this.cameras.main;
-        // Simple grid
-        this.add.grid(width / 2, height / 2, width, height, 50, 50, 0x000000, 0.1, 0xffffff, 0.1);
+    private createDecoration(worldWidth: number, worldHeight: number) {
+        // Lista de posiciones fijas más expandida para el mundo grande
+        const decorations = [
+            // Superior
+            { x: 150, y: 180, frame: 'city-explorer/buildings/building_house' },
+            { x: 300, y: 180, frame: 'city-explorer/buildings/building_shop' },
+            { x: 700, y: 180, frame: 'city-explorer/buildings/building_house' },
+            { x: 1100, y: 250, frame: 'city-explorer/buildings/building_house' },
+            { x: 1400, y: 150, frame: 'city-explorer/buildings/building_shop' },
+
+            // Inferior
+            { x: 150, y: worldHeight - 150, frame: 'city-explorer/buildings/building_shop' },
+            { x: 400, y: worldHeight - 250, frame: 'city-explorer/buildings/building_house' },
+            { x: 900, y: worldHeight - 180, frame: 'city-explorer/buildings/building_shop' },
+            { x: 1300, y: worldHeight - 200, frame: 'city-explorer/buildings/building_house' },
+
+            // Zona Central/Aleatoria
+            { x: 400, y: 600, frame: 'city-explorer/buildings/building_shop' },
+            { x: 1000, y: 550, frame: 'city-explorer/buildings/building_house' },
+            { x: 1200, y: 800, frame: 'city-explorer/buildings/building_shop' }
+        ];
+
+        decorations.forEach(config => {
+            const img = this.add.image(config.x, config.y, 'ce_atlas', config.frame);
+            img.setAlpha(0.5);
+            img.setScale(0.9);
+            img.setDepth(10);
+        });
     }
 
     private createMapMarkers() {
         if (!this.mapData || !this.mapData.checkpoints) return;
-
-        this.mapData.checkpoints.forEach(loc => {
-            this.createCheckpointMarker(loc);
-        });
+        this.mapData.checkpoints.forEach(loc => this.createCheckpointMarker(loc));
     }
 
     private createCheckpointMarker(loc: CityExplorerLocationItem) {
-        const size = 60;
+        // 1. Resplandor (ui_atlas) - Debajo del marker
+        const glow = this.add.image(loc.x, loc.y, 'ui_atlas', 'common-ui/fx/fx_glow')
+            .setScale(1.2)
+            .setAlpha(0)
+            .setDepth(18);
 
-        // Simple Square/Circle Marker
-        const marker = this.add.circle(loc.x, loc.y, size / 2, 0x3b82f6)
-            .setStrokeStyle(3, 0xffffff);
+        // 2. Marcador Visual (ce_atlas)
+        const marker = this.add.image(loc.x, loc.y, 'ce_atlas', 'city-explorer/markers/market_target')
+            .setScale(1.5)
+            .setTint(0x94a3b8) // Gris por defecto
+            .setDepth(20);
 
-        // Emoji
-        const emoji = this.add.text(loc.x, loc.y, loc.emoji || '📍', { fontSize: '32px' }).setOrigin(0.5);
+        // 3. Icono de Completado (ui_atlas) - Inicialmente invisible
+        const checkIcon = this.add.image(loc.x, loc.y - 15, 'ui_atlas', 'common-ui/fx/fx_check')
+            .setScale(0.8)
+            .setDepth(25)
+            .setAlpha(0);
 
-        // Label (Truncated for clean UI)
-        let displayName = loc.name;
-        if (displayName.length > 20) displayName = displayName.substring(0, 17) + '...';
-
-        const label = this.add.text(loc.x, loc.y + 40, displayName.toUpperCase(), {
-            fontSize: '12px',
+        // 4. Banderola de Texto (Label) - Estilo refinado en minúsculas
+        const label = this.add.text(loc.x, loc.y + 42, loc.name.toLowerCase(), {
+            fontSize: '14px',
+            fontFamily: 'Fredoka',
             color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#000000aa',
-            padding: { x: 4, y: 2 },
-            wordWrap: { width: 150 }
-        }).setOrigin(0.5);
+            backgroundColor: '#1e293b',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5, 0).setDepth(30);
+
+        // Añadir una pequeña flecha o estilo al label si fuera necesario (opcional)
+        label.setFontStyle('500');
+
+        // 5. Debug Circle (Sutil)
+        const debugCircle = this.add.circle(loc.x, loc.y, loc.radius || 70, 0x3b82f6, 0.03)
+            .setStrokeStyle(1, 0x3b82f6, 0.1)
+            .setDepth(15);
 
         this.checkpoints.push({
             sprite: marker,
-            emoji,
-            label,
+            glowSprite: glow,
+            checkIcon: checkIcon,
             data: loc,
             isTarget: false,
-            isCompleted: false
+            isCompleted: false,
+            label: label,
+            debugCircle: debugCircle
         });
     }
 
     private createPlayer() {
         const { width, height } = this.cameras.main;
+        const startX = width / 2;
+        const startY = height / 2;
 
-        // Player Square
-        this.player = this.add.rectangle(width / 2, height / 2, 30, 30, 0x10b981);
+        // 1. Crear jugador con física directa (más robusto)
+        this.player = this.add.image(startX, startY, 'ce_atlas', 'city-explorer/player/player_topdown');
+        this.player.setScale(0.85).setDepth(100);
         this.physics.add.existing(this.player);
 
+        // 2. Ajustar hitbox a los pies para sentir realismo Top-Down
         const body = this.player.body as Phaser.Physics.Arcade.Body;
-        body.setCollideWorldBounds(true);
-
-        // Emoji Overlay
-        this.playerEmoji = this.add.text(this.player.x, this.player.y, '🚶', { fontSize: '20px' }).setOrigin(0.5);
+        if (body) {
+            body.setCollideWorldBounds(true);
+            body.setSize(40, 25);
+            body.setOffset(10, 65);
+            console.log('[CityExplorer] Player physics body initialized');
+        } else {
+            console.error('[CityExplorer] Failed to initialize player physics body');
+        }
     }
 
     private setupControls() {
@@ -181,36 +257,92 @@ export class CityExplorerScene extends Phaser.Scene {
         };
     }
 
-    private createHUD() {
+    private createHud() {
         const { width } = this.cameras.main;
 
-        // Top Bar (Expanded height for Dialogue)
-        this.add.rectangle(width / 2, 60, width, 120, 0x1e293b).setOrigin(0.5);
+        // 1. Instanciar HUD común
+        this.gameHUD = new GameHUD(this, {
+            showTimer: true,
+            showScore: true,
+            showProgress: true, // Barra de progreso visual
+            showLives: true,    // Mostrar "intentos" o vidas
+            maxLives: 3,
+            totalItems: this.requiredCheckpoints,
+            showHelpButton: true,
+            showPauseButton: true
+        });
 
-        this.scoreText = this.add.text(20, 20, 'SCORE: 0', { fontSize: '20px', color: '#10b981', fontStyle: 'bold' });
-        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, { fontSize: '24px', color: '#fff' }).setOrigin(0.5, 0);
-        this.progressText = this.add.text(width - 20, 20, 'GOALS: 0/6', { fontSize: '20px', color: '#fbbf24', fontStyle: 'bold' }).setOrigin(1, 0);
-
-        this.objectiveText = this.add.text(width / 2, 80, 'FIND THE TARGET!', {
-            fontSize: '20px',
+        // 2. Texto de progreso X/Y (Crucial para el usuario)
+        this.progressText = this.add.text(width / 2, 45, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
+            fontSize: '18px',
+            fontFamily: 'Fredoka',
             color: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000',
-            strokeThickness: 2,
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
+
+        this.updateHud();
+
+        // 3. Panel de Misión (Burbuja de diálogo mejorada)
+        // Posicionado más abajo para no chocar con el HUD de checkpoints
+        const missionPanel = createPanel(this, 'common-ui/panels/panel_dark', width / 2, 115, 600, 50)
+            .setScrollFactor(0).setDepth(4999).setAlpha(0.9);
+
+        this.objectiveText = this.add.text(width / 2, 115, 'initializing...', {
+            fontSize: '17px',
+            fontFamily: 'Fredoka',
+            color: '#fbbf24',
             align: 'center',
-            wordWrap: { width: width - 100 }
-        }).setOrigin(0.5);
+            wordWrap: { width: 580 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5000);
+
+        this.updateHud();
+
+        // Configurar botones del HUD
+        this.gameHUD.onPause(() => {
+            if (this.isGameOver) return;
+
+            // Salir de pantalla completa al salir del juego
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+
+            const payload = this.buildGamePayload();
+            this.events.emit('exit', payload);
+            this.game.events.emit('exit', payload);
+        });
+
+        this.gameHUD.onHelp(() => {
+            console.log('[CityExplorer] Help button clicked');
+            showModal(this, {
+                title: 'HOW TO PLAY',
+                message: 'Explore the city using arrows or WASD. Go to the active checkpoint (RED) to solve the challenge. Complete all locations to win!',
+                buttons: [{ label: 'GOT IT!', onClick: () => { }, isPrimary: true }]
+            });
+        });
+    }
+
+    private updateHud() {
+        this.gameHUD.update({
+            score: this.score,
+            timeRemaining: this.timeRemaining,
+            progress: this.locationsFound,
+            lives: Math.max(0, 3 - (this.failures % 3)) // Simulación de vidas
+        });
+
+        if (this.progressText) {
+            this.progressText.setText(`CHECKPOINTS: ${this.locationsFound}/${this.requiredCheckpoints}`);
+        }
     }
 
     private startGameplay() {
-        // Start Timer
         this.gameTimer = this.time.addEvent({
             delay: 1000,
             callback: () => {
-                if (this.isGameOver) return;
+                if (this.isGameOver || this.isAnswering) return;
                 this.timeRemaining--;
-                this.timerText.setText(`TIME: ${this.timeRemaining}`);
-                if (this.timeRemaining <= 0) this.endGame(false, 'Time ran out!');
+                this.updateHud();
+                if (this.timeRemaining <= 0) this.endGame();
             },
             loop: true
         });
@@ -219,544 +351,346 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private selectNextTarget() {
-        if (!this.checkpoints.length) return;
-
-        // Clear old visual state
         if (this.currentTarget) {
-            this.currentTarget.sprite.setStrokeStyle(3, 0xffffff);
-            (this.currentTarget.sprite as Phaser.GameObjects.Arc).setFillStyle(0x3b82f6);
+            this.currentTarget.sprite.setTint(0x94a3b8);
             this.currentTarget.isTarget = false;
         }
 
-        // Filter out already completed checkpoints
-        const availableCheckpoints = this.checkpoints.filter(cp => !cp.isCompleted);
-
-        // If no available checkpoints but we still need to find more, something is wrong or we need to reuse.
-        // For now, if all are completed, end the game.
-        if (availableCheckpoints.length === 0) {
-            this.endGame(false, 'No more checkpoints to find!');
+        const available = this.checkpoints.filter(cp => !cp.isCompleted);
+        if (available.length === 0) {
+            this.endGame();
             return;
         }
 
-        // Randomly pick from available checkpoints
-        let next = availableCheckpoints[Phaser.Math.Between(0, availableCheckpoints.length - 1)];
-
-        // Ensure it's not the current target if there are other options
-        if (next === this.currentTarget && availableCheckpoints.length > 1) {
-            next = availableCheckpoints.find(c => c !== this.currentTarget) || next;
-        }
-
-        this.currentTarget = next;
+        this.currentTarget = Phaser.Utils.Array.GetRandom(available);
         this.currentTarget.isTarget = true;
 
-        // Highlight Visuals
-        this.currentTarget.sprite.setStrokeStyle(4, 0xef4444);
-        (this.currentTarget.sprite as Phaser.GameObjects.Arc).setFillStyle(0xef4444);
+        // YA NO usamos tintes rojos. Todos los marcadores son iguales para obligar a leer etiquetas.
+        this.currentTarget.sprite.setTint(0x3b82f6);
 
-        // Update Text (Dialogue/Clue)
-        // We show the challenge prompt (e.g. "Can I have a menu?") so player finds the place (e.g. "Restaurant")
-        const clue = this.currentTarget.data.challenge?.prompt || this.currentTarget.data.name;
+        // Animación sutil solo de escala para indicar actividad (muy leve)
+        this.tweens.add({
+            targets: this.currentTarget.sprite,
+            scale: 1.6,
+            duration: 800,
+            yoyo: true,
+            repeat: -1
+        });
 
-        // No truncation - rely on WordWrap
-        this.objectiveText.setText(clue);
+        const rawClue = this.currentTarget.data.challenge?.prompt || `Find the ${this.currentTarget.data.name}`;
+        // Formatear a minúsculas/sentence case
+        const formattedClue = rawClue.charAt(0).toUpperCase() + rawClue.slice(1).toLowerCase();
+        this.objectiveText.setText(formattedClue);
     }
 
     update(time: number, delta: number) {
-        // 1. Pause if answering or Game Over
+        // Log de estado periódico (cada 2 segundos aprox)
+        if (Math.floor(time / 1000) % 2 === 0 && Math.floor((time - delta) / 1000) % 2 !== 0) {
+            console.log(`[CityExplorer] State - isAnswering: ${this.isAnswering}, isGameOver: ${this.isGameOver}, inputEnabled: ${this.input.enabled}`);
+        }
+
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        if (!body) return;
+
         if (this.isGameOver || this.isAnswering) {
-            (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0);
+            body.setVelocity(0);
             return;
         }
 
-        // 2. Player Movement
-        const speed = 200;
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        const speed = 250;
         body.setVelocity(0);
 
-        if (this.cursors.left.isDown || this.wasd.A.isDown) body.setVelocityX(-speed);
-        else if (this.cursors.right.isDown || this.wasd.D.isDown) body.setVelocityX(speed);
+        let moveX = 0;
+        let moveY = 0;
 
-        if (this.cursors.up.isDown || this.wasd.W.isDown) body.setVelocityY(-speed);
-        else if (this.cursors.down.isDown || this.wasd.S.isDown) body.setVelocityY(speed);
+        // Controles teclado
+        if (this.cursors && this.wasd) {
+            const keys = {
+                left: this.cursors.left.isDown || this.wasd.A.isDown,
+                right: this.cursors.right.isDown || this.wasd.D.isDown,
+                up: this.cursors.up.isDown || this.wasd.W.isDown,
+                down: this.cursors.down.isDown || this.wasd.S.isDown
+            };
 
-        // 3. Update Emoji pos
-        this.playerEmoji.setPosition(this.player.x, this.player.y);
+            if (keys.left) moveX = -speed;
+            else if (keys.right) moveX = speed;
 
-        // 4. Collision Check (Distance to ANY checkpoint)
+            if (keys.up) moveY = -speed;
+            else if (keys.down) moveY = speed;
+
+            if (moveX !== 0 || moveY !== 0) {
+                // Solo loggear si realmente se está intentando mover
+                if (Math.random() < 0.01) console.log(`[CityExplorer] Key pressed! moveX: ${moveX}, moveY: ${moveY}`);
+            }
+        }
+
+        body.setVelocity(moveX, moveY);
+
+        // Orientación (Flip)
+        if (moveX > 0) this.player.setFlipX(false);
+        else if (moveX < 0) this.player.setFlipX(true);
+
+        this.checkProximityFeedback();
         this.checkCollisions();
     }
 
-    private checkCollisions() {
-        if (this.isAnswering) return;
+    private checkProximityFeedback() {
+        if (!this.currentTarget || this.isAnswering) return;
 
-        // Check against ALL checkpoints
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        if (!body) return;
+
+        const dist = Phaser.Math.Distance.Between(body.center.x, body.center.y, this.currentTarget.data.x, this.currentTarget.data.y);
+        const radius = this.currentTarget.data.radius || 70;
+
+        // Efecto si estamos cerca (1.5x el radio de colisión)
+        const isNear = dist < radius * 2;
+
+        if (isNear && this.currentTarget.glowSprite?.alpha === 0) {
+            // Entró al rango de proximidad
+            this.tweens.add({
+                targets: this.currentTarget.glowSprite,
+                alpha: 0.6,
+                duration: 300
+            });
+
+            // Pulse effect sugerido (1 -> 1.12 -> 1)
+            this.tweens.add({
+                targets: this.currentTarget.sprite,
+                scale: 2.2, // escala base era 1.5, 1.5 * 1.5 aprox
+                duration: 200,
+                yoyo: true,
+                ease: 'Quad.easeInOut'
+            });
+        } else if (!isNear && this.currentTarget.glowSprite?.alpha! > 0) {
+            // Salió del rango
+            this.tweens.add({
+                targets: this.currentTarget.glowSprite,
+                alpha: 0,
+                duration: 300
+            });
+        }
+    }
+
+    private checkCollisions() {
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        if (!body) return;
+
         for (const cp of this.checkpoints) {
-            // Skip if completed
             if (cp.isCompleted) continue;
 
-            const dist = Phaser.Math.Distance.Between(
-                this.player.x, this.player.y,
-                cp.data.x, cp.data.y
-            );
+            const dist = Phaser.Math.Distance.Between(body.center.x, body.center.y, cp.data.x, cp.data.y);
+            const radius = cp.data.radius || 70;
 
-            // Use radius from data (default 60)
-            const hitRadius = cp.data.radius || 60;
-
-            if (dist <= hitRadius) {
+            if (dist < radius) {
                 this.handleCheckpointEnter(cp);
-                break; // Trigger first hit only
+                break;
             }
         }
     }
 
     private handleCheckpointEnter(cp: Checkpoint) {
-        // CRITICAL: Only allow interaction with the TARGET checkpoint
-        if (!cp.isTarget) {
-            console.log('[CityExplorer] Wrong checkpoint! Looking for:', this.currentTarget?.data.name);
+        if (this.isAnswering) return;
 
-            // Visual feedback for wrong location
-            this.cameras.main.shake(150, 0.003);
+        // Bloqueo de seguridad spawn
+        if (this.time.now < 2000) return;
 
-            // Optional: Show floating text
-            this.showFloatingText(this.player.x, this.player.y - 30, 'Wrong Location!', 0xef4444);
+        console.log('[CityExplorer] Checking location:', cp.data.name);
 
-            return; // Don't open modal
-        }
-
-        console.log('[CityExplorer] Correct checkpoint reached:', cp.data.name);
-
-        // 1. Pause Movement and Input
-        this.isAnswering = true;
-        (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0);
-
-        // 2. Check if this is a simple "Collect" challenge (no real question)
-        const challengeData = cp.data.challenge;
-
-        if (!challengeData ||
-            (challengeData.options?.length === 1 && challengeData.options[0].text === 'Collect')) {
-            // Auto-complete without modal for simple collect challenges
-            const points = CITY_EXPLORER_CONFIG.scoring?.correctPreposition || 100;
-            this.showFloatingText(this.player.x, this.player.y, `+${points}`, 0x10b981);
-            this.time.delayedCall(500, () => this.handleChallengeComplete(cp, true, points));
-            return;
-        }
-
-        // 3. Open Challenge Modal (only for real questions)
-        this.showChallengeModal(cp);
-    }
-
-    private showChallengeModal(cp: Checkpoint) {
-        const { width, height } = this.cameras.main;
-        const config = this.missionConfig?.city_explorer;
-
-        // 1. Setup State
-        this.currentAttempts = config?.attempts_per_challenge || 2;
-        const challengeData = cp.data.challenge;
-
-        if (!challengeData) {
-            console.warn('No challenge data for checkpoint');
-            this.handleChallengeComplete(cp, true, 0);
-            return;
-        }
-
-        // 2. Create Container
-        this.challengeContainer = this.add.container(width / 2, height / 2).setDepth(2000);
-
-        // 3. Background / Dimmer
-        const dimmer = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setInteractive();
-        const panelBg = this.add.rectangle(0, 0, 600, 450, 0xffffff).setStrokeStyle(4, 0x3b82f6);
-        this.challengeContainer.add([dimmer, panelBg]);
-
-        // 4. Header (Prompt)
-        const title = this.add.text(0, -180, 'CHALLENGE', {
-            fontSize: '16px', color: '#64748b', fontStyle: 'bold', letterSpacing: 2
-        }).setOrigin(0.5);
-
-        const prompt = this.add.text(0, -120, challengeData.prompt || 'Answer the question:', {
-            fontSize: '24px', color: '#1e293b', fontStyle: 'bold', align: 'center',
-            wordWrap: { width: 550 }
-        }).setOrigin(0.5);
-
-        this.challengeContainer.add([title, prompt]);
-
-        // 5. Build Interaction (MCQ vs Input)
-        if (challengeData.options && challengeData.options.length > 0) {
-            this.renderMCQ(challengeData.options, (index) => {
-                this.submitAnswer(cp, challengeData, index, null);
-            });
+        // Si es el target actual: ÉXITO
+        if (cp === this.currentTarget) {
+            this.isAnswering = true; // Bloquear para un solo hit
+            const body = this.player.body as Phaser.Physics.Arcade.Body;
+            if (body) body.setVelocity(0);
+            this.submitAnswer(cp, true);
         } else {
-            // Fallback for non-MCQ (Input not fully implemented in Phaser-only mode easily)
-            this.renderMCQ(['Complete', 'Skip'], (index) => {
-                this.submitAnswer(cp, challengeData, index === 0 ? 0 : -1, null);
-            });
+            // Si es otro lugar: FALLO (No bloqueamos el juego, solo feedback)
+            this.submitAnswer(cp, false);
         }
-
-        // 6. Attempts Indicator
-        const attemptsText = this.add.text(-280, 200, `Lives: ${this.currentAttempts}`, {
-            fontSize: '18px', color: '#ef4444', fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-        this.challengeContainer.add(attemptsText);
-
-        // 7. Timer (if Configured)
-        const timeLimit = config?.challenge_time_seconds || 0;
-        if (timeLimit > 0) {
-            this.startChallengeTimer(timeLimit, cp);
-            const timerDisplay = this.add.text(280, 200, `⏱ ${timeLimit}`, {
-                fontSize: '18px', color: '#3b82f6', fontStyle: 'bold'
-            }).setOrigin(1, 0.5);
-            this.challengeContainer.add(timerDisplay);
-            this.challengeContainer.setData('timerText', timerDisplay);
-        }
-
-        // 8. Hint Button (Always show, with usage limit)
-        const hintBtn = this.add.text(0, 200, `💡 HINT (${this.maxHints - this.hintsUsed} left)`, {
-            fontSize: '16px',
-            color: this.hintsUsed >= this.maxHints ? '#94a3b8' : '#f59e0b',
-            backgroundColor: this.hintsUsed >= this.maxHints ? '#f1f5f9' : '#fff7ed',
-            padding: { x: 12, y: 6 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: this.hintsUsed < this.maxHints });
-
-        hintBtn.setStroke(this.hintsUsed >= this.maxHints ? '#cbd5e1' : '#f59e0b', 2);
-        hintBtn.on('pointerdown', () => {
-            if (this.hintsUsed >= this.maxHints) {
-                this.cameras.main.shake(100, 0.003);
-                return;
-            }
-
-            this.hintsUsed++;
-            hintBtn.setText(`💡 HINT (${this.maxHints - this.hintsUsed} left)`);
-
-            if (this.hintsUsed >= this.maxHints) {
-                hintBtn.setColor('#94a3b8');
-                hintBtn.setBackgroundColor('#f1f5f9');
-                hintBtn.setStroke('#cbd5e1', 2);
-            }
-
-            // Show hint text
-            const hintText = challengeData.explanation || 'Think about the context of the dialogue!';
-            const hintDisplay = this.add.text(0, 150, `💡 ${hintText}`, {
-                fontSize: '14px',
-                color: '#0369a1',
-                backgroundColor: '#e0f2fe',
-                padding: { x: 12, y: 8 },
-                wordWrap: { width: 500 },
-                align: 'center'
-            }).setOrigin(0.5);
-
-            this.challengeContainer.add(hintDisplay);
-
-            // Fade out after 3 seconds
-            this.tweens.add({
-                targets: hintDisplay,
-                alpha: 0,
-                delay: 3000,
-                duration: 500,
-                onComplete: () => hintDisplay.destroy()
-            });
-
-            // Small score penalty
-            const penalty = CITY_EXPLORER_CONFIG.scoring?.wrongAnswer || -10;
-            this.score += penalty;
-            this.updateHUD();
-        });
-        this.challengeContainer.add(hintBtn);
-
-        // Animation
-        this.challengeContainer.setScale(0.8);
-        this.tweens.add({ targets: this.challengeContainer, scale: 1, duration: 300, ease: 'Back.out' });
     }
 
-    private renderMCQ(options: (string | any)[], onSelect: (index: number) => void) {
-        if (!this.challengeContainer) return;
+    // Eliminamos showChallengeModal ya que no se usa en esta mecánica directa
+    private submitAnswer(cp: Checkpoint, isCorrect: boolean) {
+        // 1. Mostrar Feedback Visual (Check/Cross) con duración de 800ms
+        showFeedback(this, 0, 0, isCorrect, 800);
 
-        const startY = -40;
-        const gap = 60;
-
-        options.forEach((opt, index) => {
-            const text = typeof opt === 'string' ? opt : (opt.text || opt.label || 'Option');
-            const y = startY + (index * gap);
-            const btn = this.add.rectangle(0, y, 500, 50, 0xf1f5f9).setInteractive({ useHandCursor: true });
-            const label = this.add.text(0, y, text, {
-                fontSize: '20px', color: '#334155', fontStyle: 'bold'
-            }).setOrigin(0.5);
-
-            btn.on('pointerover', () => { btn.setFillStyle(0xe2e8f0); });
-            btn.on('pointerout', () => { btn.setFillStyle(0xf1f5f9); });
-            btn.on('pointerdown', () => {
-                this.tweens.add({ targets: [btn, label], scale: 0.95, duration: 50, yoyo: true, onComplete: () => onSelect(index) });
-            });
-
-            this.challengeContainer.add([btn, label]);
-        });
-    }
-
-    private startChallengeTimer(seconds: number, cp: Checkpoint) {
-        let remaining = seconds;
-        this.challengeTimerEvent = this.time.addEvent({
-            delay: 1000,
-            loop: true,
-            callback: () => {
-                remaining--;
-                const display = this.challengeContainer?.getData('timerText') as Phaser.GameObjects.Text;
-                if (display) display.setText(`⏱ ${remaining}`);
-
-                if (remaining <= 0) {
-                    this.challengeTimerEvent?.remove();
-                    this.handleChallengeFail(cp, 'Time Up!');
-                }
-            }
-        });
-    }
-
-    private submitAnswer(cp: Checkpoint, challengeData: any, index: number, textInput: string | null) {
-        // 1. Validation Logic
-        let isCorrect = false;
-        let userAnswerText = '';
-
-        // Get selected option
-        const selectedOption = challengeData.options?.[index];
-
-        if (typeof selectedOption === 'string') {
-            userAnswerText = selectedOption;
-        } else if (selectedOption?.text) {
-            userAnswerText = selectedOption.text;
-        } else {
-            userAnswerText = index.toString();
-        }
-
-        // Validate answer
-        // Check if option has isCorrect flag (preferred)
-        if (selectedOption?.isCorrect !== undefined) {
-            isCorrect = selectedOption.isCorrect === true;
-        }
-        // Check against correctOptionId
-        else if (challengeData.correctOptionId) {
-            isCorrect = selectedOption?.id === challengeData.correctOptionId;
-        }
-        // Fallback: check against correct_answer string
-        else if (challengeData.correct_answer) {
-            isCorrect = userAnswerText.toLowerCase().trim() === challengeData.correct_answer.toLowerCase().trim();
-        }
-        // Default to true for simple "Collect" challenges
-        else {
-            isCorrect = true;
-        }
-
-        console.log('[CityExplorer] Validation:', {
-            selectedOption,
-            userAnswerText,
-            isCorrect,
-            correctOptionId: challengeData.correctOptionId
-        });
-
-        // 2. Metrics & Logs
-        console.log(`[CityExplorer] Answer: ${userAnswerText} | Correct: ${isCorrect}`);
-
-        // Extract tags for feedback generation
-        const feedbackTags = challengeData.grammar_tag ? [challengeData.grammar_tag] : ['vocabulary', 'directions'];
-
-        this.sessionManager?.recordItem({
-            id: challengeData.id || cp.data.id,
-            text: challengeData.prompt || 'Question',
-            result: isCorrect ? 'correct' : 'wrong',
-            user_input: userAnswerText,
-            correct_answer: challengeData.correct_answer || 'unknown',
-            time_ms: 0, // Could verify time since modal open
-            meta: {
-                attemptsLeft: this.currentAttempts,
-                tags: feedbackTags,
-                rule_tag: feedbackTags[0], // for compatibility
-                question_type: 'city_explorer_challenge'
-            }
-        });
-
-        // 3. Game Loop Decision
         if (isCorrect) {
-            const points = CITY_EXPLORER_CONFIG.scoring?.correctPreposition || 100;
-            this.showFeedbackAndClose(true, 'Correct!');
-            this.time.delayedCall(1000, () => this.handleChallengeComplete(cp, true, points));
+            this.score += 200;
+            this.locationsFound++;
+            showGlow(this, 0, 0, 0x10b981, 600);
+
+            this.updateHud();
+
+            // Esperar al feedback antes de limpiar y pasar al siguiente
+            this.time.delayedCall(800, () => {
+                this.handleChallengeComplete(cp, true, 200);
+            });
         } else {
-            this.currentAttempts--;
-
-            // Update UI
-            const livesText = this.challengeContainer?.list.find(c => (c as any).text && (c as any).text.startsWith('Lives:')) as Phaser.GameObjects.Text;
-            if (livesText) livesText.setText(`Lives: ${this.currentAttempts}`);
+            // Feedback de error más ágil (no bloquea el juego)
+            this.score = Math.max(0, this.score - 50);
+            this.failures++;
             this.cameras.main.shake(200, 0.005);
+            this.updateHud();
 
-            if (this.currentAttempts <= 0) {
-                // Failed - apply penalty
-                const penalty = CITY_EXPLORER_CONFIG.scoring?.wrongAnswer || -10;
-                this.showFeedbackAndClose(false, 'Failed');
-                this.time.delayedCall(1000, () => this.handleChallengeComplete(cp, false, penalty));
-            } else {
-                // Retry
-                const toast = this.add.text(0, 0, 'Try Again', { fontSize: '32px', color: '#ff0000', stroke: '#fff', strokeThickness: 4 }).setOrigin(0.5);
-                this.challengeContainer?.add(toast);
-                this.tweens.add({ targets: toast, alpha: 0, scale: 2, duration: 800, onComplete: () => toast.destroy() });
-            }
+            // Pequeño delay de invulnerabilidad para no fallar 100 veces por frame
+            this.isAnswering = true;
+            this.time.delayedCall(1000, () => {
+                this.isAnswering = false;
+            });
         }
-    }
-
-    private showFeedbackAndClose(success: boolean, text: string) {
-        if (!this.challengeContainer) return;
-        this.challengeTimerEvent?.remove();
-
-        // Remove interactive elements
-        this.challengeContainer.each((child: any) => {
-            if (child.disableInteractive) child.disableInteractive();
-        });
-
-        const color = success ? 0x10b981 : 0xef4444;
-        const fbBg = this.add.rectangle(0, 0, 600, 450, color, 0.9);
-        const fbText = this.add.text(0, 0, text, { fontSize: '48px', color: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
-
-        this.challengeContainer.add([fbBg, fbText]);
-    }
-
-    private handleChallengeFail(cp: Checkpoint, reason: string) {
-        this.showFeedbackAndClose(false, reason);
-        this.time.delayedCall(1000, () => {
-            // Logic for failure? Reset checkpoint? Lose Game?
-            // Usually: Just close, maybe penalty, remain uncompleted.
-            // Or allow retry later.
-            this.challengeContainer?.destroy();
-            this.isAnswering = false;
-            // Cooldown?
-            this.updateHUD();
-        });
     }
 
     private handleChallengeComplete(cp: Checkpoint, success: boolean, points: number) {
-        if (this.challengeContainer) this.challengeContainer.destroy();
-        this.challengeTimerEvent?.remove();
-
         this.isAnswering = false;
-
-        // Mark Completed
         cp.isCompleted = true;
 
+        // 1. Detener animaciones previas
+        this.tweens.killTweensOf(cp.sprite);
+
+        // 2. Estado Final Visual
         if (success) {
-            (cp.sprite as Phaser.GameObjects.Arc).setFillStyle(0x10b981); // Green
-            cp.emoji.setText('✅');
-            this.showFloatingText(this.player.x, this.player.y, `+${points}`, 0x10b981);
-            this.locationsFound++;
+            cp.sprite.setTint(0x10b981).setScale(1.5).setAlpha(0.8);
+            if (cp.checkIcon) {
+                cp.checkIcon.setTexture('ui_atlas', 'common-ui/fx/fx_check').setAlpha(1).setScale(1);
+                this.tweens.add({ targets: cp.checkIcon, scale: 1.2, duration: 300, yoyo: true });
+            }
         } else {
-            (cp.sprite as Phaser.GameObjects.Arc).setFillStyle(0x94a3b8); // Gray
-            cp.emoji.setText('❌');
-            this.showFloatingText(this.player.x, this.player.y, `${points}`, 0xef4444);
-            this.failures++;
+            cp.sprite.setTint(0xef4444).setScale(1.5).setAlpha(0.8);
+            if (cp.checkIcon) {
+                cp.checkIcon.setTexture('ui_atlas', 'common-ui/fx/fx_cross').setAlpha(1);
+            }
         }
 
-        this.score += points;
-        this.updateHUD();
+        // Ocultar debug si existiera
+        if (cp.debugCircle) cp.debugCircle.setVisible(false);
 
-        // Progression Check
-        const remaining = this.totalCheckpoints - (this.locationsFound + this.failures);
-
-        if (this.locationsFound >= this.requiredCheckpoints) {
-            // WIN
-            this.time.delayedCall(1000, () => this.endGame(true, 'Mission Complete!'));
-        } else if (this.locationsFound + remaining < this.requiredCheckpoints) {
-            // IMPOSSIBLE TO WIN (LOSS)
-            this.time.delayedCall(1000, () => this.endGame(false, 'Not enough targets remaining!'));
+        if (this.locationsFound >= this.requiredCheckpoints || (this.locationsFound + (this.checkpoints.filter(c => !c.isCompleted).length)) < this.requiredCheckpoints) {
+            this.endGame();
         } else {
-            // CONTINUE (If targets remain)
             this.selectNextTarget();
         }
     }
 
-    private updateHUD() {
-        this.scoreText.setText(`SCORE: ${this.score}`);
-        // Option to hide progress if configured, but default shows it
-        this.progressText.setText(`GOALS: ${this.locationsFound}/${this.requiredCheckpoints}`);
+    private buildGamePayload() {
+        const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+        const accuracy = (this.locationsFound + this.failures) > 0
+            ? Math.round((this.locationsFound / (this.locationsFound + this.failures)) * 100)
+            : 0;
+
+        return {
+            scoreRaw: Math.max(0, this.score),
+            correctCount: this.locationsFound,
+            wrongCount: this.failures,
+            durationSeconds: duration,
+            accuracy: accuracy,
+            answers: [] // Detalle simplificado
+        };
     }
 
-    private showFloatingText(x: number, y: number, text: string, color: number) {
-        const t = this.add.text(x, y - 40, text, { fontSize: '24px', fontStyle: 'bold', color: '#fff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5);
-        this.tweens.add({ targets: t, y: y - 80, alpha: 0, duration: 1000, onComplete: () => t.destroy() });
-    }
-
-    private endGame(isWin: boolean = false, reason: string = '') {
+    private async endGame() {
         if (this.isGameOver) return;
         this.isGameOver = true;
+        this.isAnswering = true;
         if (this.gameTimer) this.gameTimer.remove();
 
-        console.log(`Game Over. Win: ${isWin} | Score: ${this.score} | Reason: ${reason}`);
-
-        // Show Game Over Screen
-        this.showGameOverScreen(isWin, reason);
-
-        // Emit event after short delay to allow visual feedback
-        this.time.delayedCall(2000, () => {
-            this.events.emit('gameOver', {
-                score: this.score,
-                correctCount: this.locationsFound,
-                wrongCount: this.failures,
-                durationSeconds: (this.missionConfig?.time_limit_seconds || 300) - this.timeRemaining,
-                isWin,
-                reason
-            });
-        });
-    }
-
-    private showGameOverScreen(isWin: boolean, reason: string) {
-        const { width, height } = this.cameras.main;
-
-        // Dimmer
-        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85)
-            .setDepth(3000);
-
-        // Panel
-        const panel = this.add.rectangle(width / 2, height / 2, 600, 400, 0x1e293b)
-            .setStrokeStyle(4, isWin ? 0x10b981 : 0xef4444)
-            .setDepth(3001);
-
-        // Title
-        const title = this.add.text(width / 2, height / 2 - 120, isWin ? '🎉 MISSION COMPLETE!' : '⏰ TIME UP!', {
-            fontSize: '32px',
-            color: isWin ? '#10b981' : '#ef4444',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(3002);
-
-        // Stats
-        const statsY = height / 2 - 40;
-        const stats = [
-            `Score: ${this.score}`,
-            `Locations Found: ${this.locationsFound}/${this.requiredCheckpoints}`,
-            `Failed: ${this.failures}`,
-            `Time: ${(this.missionConfig?.time_limit_seconds || 300) - this.timeRemaining}s`
-        ];
-
-        stats.forEach((stat, i) => {
-            this.add.text(width / 2, statsY + i * 35, stat, {
-                fontSize: '20px',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(3002);
-        });
-
-        // Reason
-        if (reason) {
-            this.add.text(width / 2, height / 2 + 120, reason, {
-                fontSize: '16px',
-                color: '#94a3b8',
-                fontStyle: 'italic'
-            }).setOrigin(0.5).setDepth(3002);
+        if (this.sessionManager) {
+            await this.sessionManager.endSession().catch(e => console.error(e));
         }
 
-        // Loading indicator
-        const loadingText = this.add.text(width / 2, height / 2 + 160, 'Loading results...', {
-            fontSize: '14px',
-            color: '#64748b'
-        }).setOrigin(0.5).setDepth(3002);
+        const payload = this.buildGamePayload();
+        this.createMissionCompleteModal(payload);
+    }
 
-        // Pulse animation
+    private createMissionCompleteModal(payload: any) {
+        const { width, height } = this.cameras.main;
+
+        // Contenedor principal fijo en pantalla (scrollFactor 0)
+        const container = this.add.container(width / 2, height / 2).setDepth(8000).setScrollFactor(0);
+
+        // 1. Fondo Atenuado
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.85).setInteractive();
+
+        // 2. Panel Principal (ui_atlas)
+        const panel = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, 650, 550);
+
+        // 3. Icono de Recompensa (Trophy)
+        const trophy = this.add.image(0, -90, 'ui_atlas', 'common-ui/rewards/trophy')
+            .setScale(1.8)
+            .setDepth(8001);
+
+        // Efecto de brillo detrás del trofeo
+        const glow = this.add.image(0, -90, 'ui_atlas', 'common-ui/fx/fx_glow')
+            .setScale(2.5)
+            .setAlpha(0.6)
+            .setTint(0xffcc00);
+
+        // 4. Título
+        const title = this.add.text(0, -210, 'CITY EXPLORED!', {
+            fontSize: '52px',
+            fontFamily: 'Fredoka',
+            color: '#fbbf24',
+            stroke: '#000000',
+            strokeThickness: 10
+        }).setOrigin(0.5);
+
+        // 5. Estadísticas
+        const statsContainer = this.add.container(0, 50);
+        const stats = [
+            { label: 'CHECKPOINTS', value: `${payload.correctCount}/${this.requiredCheckpoints}` },
+            { label: 'ACCURACY', value: `${payload.accuracy}%` },
+            { label: 'TOTAL SCORE', value: payload.scoreRaw }
+        ];
+
+        stats.forEach((item, idx) => {
+            const y = idx * 45;
+            const labelText = this.add.text(-120, y, item.label, {
+                fontSize: '22px', fontFamily: 'Fredoka', color: '#94a3b8'
+            }).setOrigin(0, 0.5);
+
+            const valueText = this.add.text(120, y, item.value.toString(), {
+                fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(1, 0.5);
+
+            statsContainer.add([labelText, valueText]);
+        });
+
+        // 6. Botones (Consistentes)
+        const resultsBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, 190, 'RESULTS', () => {
+            // Salir de pantalla completa al volver a la web
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+
+            this.events.emit('gameOver', payload);
+            this.events.emit('game-over', payload);
+            this.game.events.emit('gameOver', payload);
+            this.game.events.emit('game-over', payload);
+            this.game.events.emit('GAME_OVER', payload);
+        }, { width: 240, height: 75 });
+
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, 190, 'REPEAT', () => {
+            this.scene.restart(this.initData);
+        }, { width: 240, height: 75 });
+
+        container.add([dim, panel, glow, trophy, title, statsContainer, resultsBtn, replayBtn]);
+
+        // Animación de entrada
+        container.setScale(0);
         this.tweens.add({
-            targets: loadingText,
-            alpha: 0.3,
-            duration: 800,
+            targets: container,
+            scale: 1,
+            duration: 600,
+            ease: 'Back.out'
+        });
+
+        // Animación sutil del trofeo
+        this.tweens.add({
+            targets: trophy,
+            y: -100,
+            duration: 1500,
             yoyo: true,
-            repeat: -1
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
     }
 }

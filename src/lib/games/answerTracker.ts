@@ -147,8 +147,8 @@ export class AnswerTracker {
     recordMatchAttempt(data: {
         pairId: string;
         contentId: string;
-        first: { kind: string; value: string };
-        second: { kind: string; value: string };
+        first: { kind: string; value: string; imageUrl?: string | null };
+        second: { kind: string; value: string; imageUrl?: string | null };
         isCorrect: boolean;
         moves: number;
         timeMs: number;
@@ -156,15 +156,15 @@ export class AnswerTracker {
     }): void {
         this.answers.push({
             item_id: data.contentId,
-            prompt: 'PAIR_MATCH',
+            prompt: `Match: ${data.first.value} ↔ ${data.second.value}`,
             student_answer: {
                 first: data.first,
                 second: data.second
             },
-            correct_answer: {
-                pair_id: data.pairId,
-                rule: 'image+word same pair'
-            },
+            correct_answer: data.isCorrect ? {
+                first: data.first,
+                second: data.second
+            } : null,  // Si es incorrecto, no guardamos correct_answer (se puede mejorar después)
             is_correct: data.isCorrect,
             meta: {
                 event: 'match_attempt',
@@ -178,7 +178,9 @@ export class AnswerTracker {
         console.log('[AnswerTracker] Match attempt:', {
             pair: data.pairId,
             isCorrect: data.isCorrect,
-            moves: data.moves
+            moves: data.moves,
+            first: data.first,
+            second: data.second
         });
     }
 

@@ -149,7 +149,7 @@ export class GameSessionManager {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    score: details.summary.score_final, // Enviar puntaje final (con multiplicador)
+                    score: Math.max(0, details.summary.score_final), // Validar que no sea negativo para evitar error de constraint
                     completed: true,
                     duration_seconds: duration,
                     correct_count: this.sessionData.correctCount,

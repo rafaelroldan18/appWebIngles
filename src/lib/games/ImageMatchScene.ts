@@ -1,9 +1,8 @@
 import * as Phaser from 'phaser';
 import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
-import { preloadCommonAndGame } from './assets/assetLoader';
-import { ASSET_MANIFEST } from './assets/manifest';
-import { createHud } from './ui/hudFactory';
-import { showFeedback, showGlow, showBurst } from './UIKit';
+import { loadGameAtlases } from './AtlasLoader';
+import { GameHUD } from './GameHUD';
+import { showFeedback, showGlow, showBurst, createButton, createPanel, showFullscreenRequest } from './UIKit';
 import { AnswerTracker } from './answerTracker';
 import type { ImageMatchCard } from './gameLoader.utils';
 import type { GameContent, MissionConfig } from '@/types/game.types';
@@ -11,10 +10,12 @@ import type { GameSessionManager } from './GameSessionManager';
 
 interface CardObject {
     container: Phaser.GameObjects.Container;
+    shadowSprite?: Phaser.GameObjects.Image;
     backSprite: Phaser.GameObjects.Image;
     frontImage?: Phaser.GameObjects.Image;
     frontText?: Phaser.GameObjects.Text;
-    frame?: Phaser.GameObjects.Image;
+    frameSprite: Phaser.GameObjects.Image;
+    glowSprite: Phaser.GameObjects.Image;
     cardData: ImageMatchCard;
     pairId: string;
     isFlipped: boolean;
@@ -49,7 +50,7 @@ export class ImageMatchScene extends Phaser.Scene {
     private missionConfig: MissionConfig | null = null;
     private resolvedConfig: any = null;
 
-    // UI Elements (ahora usa GameHUD)
+    // UI Elements
     private gameHUD!: GameHUD;
     private pairsText!: Phaser.GameObjects.Text;
     private movesText!: Phaser.GameObjects.Text;
@@ -112,7 +113,8 @@ export class ImageMatchScene extends Phaser.Scene {
 
     preload() {
         // Cargar atlas común (UI) + atlas específico de Image Match
-        loadGameAtlases(this, 'im');
+        this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
+        this.load.atlas('im_atlas', '/assets/atlases/image-match/texture.png', '/assets/atlases/image-match/texture.json');
 
         // Preload content images
         this.cardsData.forEach(card => {
@@ -128,12 +130,21 @@ export class ImageMatchScene extends Phaser.Scene {
     create() {
         const { width, height } = this.cameras.main;
 
+        // Petición de pantalla completa ANTES de iniciar los sistemas de juego
+        this.isProcessing = true; // Evitar clics antes del OK
+        this.isPaused = true;
+        showFullscreenRequest(this, () => {
+            this.isProcessing = false;
+            this.isPaused = false;
+            this.startCountdown();
+        });
+
         // 1. Background
-        const bg = this.add.image(width / 2, height / 2, 'im-bg');
-        if (bg.texture.key !== '__MISSING') {
-            const scale = Math.max(width / bg.width, height / bg.height);
-            bg.setScale(scale).setScrollFactor(0);
-        }
+        const bg = this.add.image(width / 2, height / 2, 'im_atlas', 'image-match/background/im_bg_table');
+        const scaleX = width / bg.width;
+        const scaleY = height / bg.height;
+        const scale = Math.max(scaleX, scaleY);
+        bg.setScale(scale).setScrollFactor(0);
 
         // 2. HUD
         this.createStandardHUD();
@@ -179,31 +190,55 @@ export class ImageMatchScene extends Phaser.Scene {
         // Textos adicionales específicos de Image Match
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
 
-        this.pairsText = this.add.text(width - 200, 25, `PAIRS: 0/${totalPairs}`, {
-            fontSize: '18px',
-            fontFamily: 'Arial Black',
-            color: '#34d399',
+        this.pairsText = this.add.text(width - 40, 65, `PAIRS: 0/${totalPairs}`, {
+            fontSize: '20px',
+            fontFamily: 'Fredoka',
+            color: '#ffffff', // Blanco para máximo contraste
             stroke: '#000000',
-            strokeThickness: 3
-        }).setDepth(1001).setScrollFactor(0);
+            strokeThickness: 4
+        }).setDepth(1001).setScrollFactor(0).setOrigin(1, 0);
 
-        this.movesText = this.add.text(80, 65, 'MOVES: 0', {
-            fontSize: '16px',
-            fontFamily: 'Arial Black',
-            color: '#fbbf24',
+        this.movesText = this.add.text(40, 65, 'MOVES: 0', {
+            fontSize: '20px',
+            fontFamily: 'Fredoka',
+            color: '#fbbf24', // Mantener amarillo dorado
             stroke: '#000000',
-            strokeThickness: 3
-        }).setDepth(1001).setScrollFactor(0);
+            strokeThickness: 4
+        }).setDepth(1001).setScrollFactor(0).setOrigin(0, 0);
     }
 
     private createBoard() {
         const { width, height } = this.cameras.main;
-        const { rows, cols, cardWidth, cardHeight, cardSpacing } = this.resolvedConfig.grid;
+        let { rows, cols, cardWidth, cardHeight, cardSpacing } = this.resolvedConfig.grid;
 
-        const gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
-        const gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
+        // Calcular espacio disponible (dejando margen seguro para HUD + Textos)
+        const availableWidth = width - 60; // 30px margen cada lado
+        const availableHeight = height - 200; // 100px arriba (HUD+Textos) + 100px abajo
+
+        // Calcular tamaño total del grid
+        let gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
+        let gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
+
+        // Si no cabe, reducir escala de las cartas
+        let scale = 1;
+        if (gridWidth > availableWidth || gridHeight > availableHeight) {
+            const scaleX = availableWidth / gridWidth;
+            const scaleY = availableHeight / gridHeight;
+            scale = Math.min(scaleX, scaleY, 1); // Nunca agrandar, solo reducir
+
+            // Aplicar escala a dimensiones
+            cardWidth *= scale;
+            cardHeight *= scale;
+            cardSpacing *= scale;
+
+            // Recalcular grid con nuevas dimensiones
+            gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
+            gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
+        }
+
+        // Centrar perfectamente en pantalla pero desplazado hacia abajo para respetar HUD
         const startX = (width - gridWidth) / 2 + cardWidth / 2;
-        const startY = (height - gridHeight) / 2 + cardHeight / 2 + 40;
+        const startY = (height - gridHeight) / 2 + cardHeight / 2 + 40; // +40 para alejar de textos MOVES/PAIRS
 
         this.cardsData.forEach((cardData, index) => {
             const row = Math.floor(index / cols);
@@ -218,33 +253,63 @@ export class ImageMatchScene extends Phaser.Scene {
     private createCard(x: number, y: number, cardData: ImageMatchCard, cardWidth: number, cardHeight: number) {
         const container = this.add.container(x, y).setSize(cardWidth, cardHeight);
 
-        const back = this.add.image(0, 0, 'im-card-back').setDisplaySize(cardWidth, cardHeight);
-        const frame = this.add.image(0, 0, 'im-card-front-frame').setDisplaySize(cardWidth, cardHeight).setVisible(false);
+        // LAYER 1: Shadow (bottom, slightly offset)
+        const shadow = this.add.image(3, 3, 'im_atlas', 'image-match/cards/card_shadow')
+            .setDisplaySize(cardWidth, cardHeight)
+            .setAlpha(0.4);
 
+        // LAYER 2: Back sprite (visible initially)
+        const back = this.add.image(0, 0, 'im_atlas', 'image-match/cards/card_back')
+            .setDisplaySize(cardWidth, cardHeight);
+
+        // LAYER 3: Front content (hidden initially)
         let frontContent: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
         if (cardData.kind === 'image') {
             const key = `img_${cardData.pairId}`;
             if (this.textures.exists(key)) {
-                frontContent = this.add.image(0, 0, key).setDisplaySize(cardWidth * 0.8, cardHeight * 0.8).setVisible(false);
+                frontContent = this.add.image(0, 0, key)
+                    .setDisplaySize(cardWidth * 0.7, cardHeight * 0.7)
+                    .setVisible(false);
             } else {
                 const emoji = this.emojiMap[cardData.prompt.toLowerCase()] || '🖼️';
-                frontContent = this.add.text(0, 0, emoji, { fontSize: '64px' }).setOrigin(0.5).setVisible(false);
+                frontContent = this.add.text(0, 0, emoji, {
+                    fontSize: '64px'
+                }).setOrigin(0.5).setVisible(false);
             }
         } else {
             frontContent = this.add.text(0, 0, cardData.prompt.toUpperCase(), {
-                fontSize: '18px', fontFamily: 'Arial Black', color: '#1e293b', align: 'center', wordWrap: { width: cardWidth - 10 }
+                fontSize: '20px',
+                fontFamily: 'Fredoka',
+                color: '#ffffff',  // Blanco para mejor contraste
+                align: 'center',
+                wordWrap: { width: cardWidth - 20 },
+                stroke: '#000000',  // Stroke negro fuerte
+                strokeThickness: 4  // Más grueso para mejor visibilidad
             }).setOrigin(0.5).setVisible(false);
         }
 
-        container.add([back, frame, frontContent]);
+        // LAYER 4: Frame (border, goes before content so content is visible)
+        const frame = this.add.image(0, 0, 'im_atlas', 'image-match/cards/card_frame')
+            .setDisplaySize(cardWidth, cardHeight);
+
+        // LAYER 5: Glow effect (for matches, alpha 0 initially)
+        const glow = this.add.image(0, 0, 'im_atlas', 'image-match/fx/fx_glow')
+            .setDisplaySize(cardWidth * 1.2, cardHeight * 1.2)
+            .setAlpha(0);
+
+        // Add all layers to container in correct order
+        // Order: shadow (bottom) → back → frame → frontContent (top, visible when flipped) → glow (effects)
+        container.add([shadow, back, frame, frontContent, glow]);
         container.setInteractive({ useHandCursor: true });
 
         const cardObj: CardObject = {
             container,
+            shadowSprite: shadow,
             backSprite: back,
             frontImage: cardData.kind === 'image' && frontContent instanceof Phaser.GameObjects.Image ? frontContent : undefined,
             frontText: cardData.kind === 'word' && frontContent instanceof Phaser.GameObjects.Text ? frontContent : undefined,
-            frame,
+            frameSprite: frame,
+            glowSprite: glow,
             cardData,
             pairId: cardData.pairId,
             isFlipped: false,
@@ -298,7 +363,7 @@ export class ImageMatchScene extends Phaser.Scene {
                 card.backSprite.setVisible(!faceUp);
                 if (card.frontImage) card.frontImage.setVisible(faceUp);
                 if (card.frontText) card.frontText.setVisible(faceUp);
-                if (card.frame) card.frame.setVisible(faceUp);
+                // Frame is always visible, no need to toggle
 
                 this.tweens.add({
                     targets: card.container,
@@ -317,11 +382,20 @@ export class ImageMatchScene extends Phaser.Scene {
         const isMatch = p1.pairId === p2.pairId && p1.cardData.kind !== p2.cardData.kind;
 
         const timeMs = Date.now() - this.gameStartTime;
+
         this.answerTracker.recordMatchAttempt({
             pairId: p1.pairId,
             contentId: p1.cardData.contentId,
-            first: { kind: p1.cardData.kind, value: p1.cardData.kind === 'image' ? `img_${p1.pairId}` : p1.cardData.prompt },
-            second: { kind: p2.cardData.kind, value: p2.cardData.kind === 'image' ? `img_${p2.pairId}` : p2.cardData.prompt },
+            first: {
+                kind: p1.cardData.kind,
+                value: p1.cardData.prompt,
+                imageUrl: p1.cardData.imageUrl || null
+            },
+            second: {
+                kind: p2.cardData.kind,
+                value: p2.cardData.prompt,
+                imageUrl: p2.cardData.imageUrl || null
+            },
             isCorrect: isMatch,
             moves: this.moves,
             timeMs: timeMs,
@@ -344,55 +418,78 @@ export class ImageMatchScene extends Phaser.Scene {
 
         const points = IMAGE_MATCH_CONFIG.scoring.matchFound;
         this.score += points;
+        if (this.score < 0) this.score = 0;
         this.sessionManager?.updateScore(points, true);
 
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
-        this.gameHUD.update({ score: this.score });
+        this.gameHUD.update({ score: Math.max(0, this.score) });
         this.pairsText.setText(`PAIRS: ${this.matches}/${totalPairs}`);
 
-        // Efectos visuales profesionales usando UIKit
         const x1 = p1.container.x;
         const y1 = p1.container.y;
         const x2 = p2.container.x;
         const y2 = p2.container.y;
 
-        // Feedback de éxito
-        showFeedback(this, x1, y1, true);
-        showFeedback(this, x2, y2, true);
+        // 1. Activar glow de las cartas (alpha 0→1→0)
+        this.tweens.add({
+            targets: [p1.glowSprite, p2.glowSprite],
+            alpha: 1,
+            duration: 1000,  // Aumentado a 1000ms para que dure más
+            yoyo: true,
+            ease: 'Sine.easeInOut'
+        });
 
-        // Glow dorado
-        showGlow(this, x1, y1, 0xFFD700, 800);
-        showGlow(this, x2, y2, 0xFFD700, 800);
+        // 2. Mostrar íconos de check clarísimos
+        const check1 = this.add.image(x1, y1, 'ui_atlas', 'common-ui/fx/fx_check')
+            .setScale(0)
+            .setDepth(7000);
 
-        // Burst verde
-        showBurst(this, x1, y1, 0x10B981, 600);
-        showBurst(this, x2, y2, 0x10B981, 600);
-
-        // Glow effect del atlas (mantener el original)
-        const glow1 = this.add.image(x1, y1, 'im_atlas', 'image-match/cards/card_glow').setDisplaySize(p1.container.width * 1.2, p1.container.height * 1.2).setAlpha(0);
-        const glow2 = this.add.image(x2, y2, 'im_atlas', 'image-match/cards/card_glow').setDisplaySize(p2.container.width * 1.2, p2.container.height * 1.2).setAlpha(0);
+        const check2 = this.add.image(x2, y2, 'ui_atlas', 'common-ui/fx/fx_check')
+            .setScale(0)
+            .setDepth(7000);
 
         this.tweens.add({
-            targets: [glow1, glow2],
-            alpha: 1,
-            duration: 200,
-            yoyo: true,
+            targets: [check1, check2],
+            scale: 3,
+            alpha: { from: 1, to: 0 },
+            duration: 1500,  // Aumentado a 1500ms para que se vea más tiempo
+            ease: 'Back.easeOut',
             onComplete: () => {
-                glow1.destroy();
-                glow2.destroy();
-                this.createParticles(x1, y1, 0x10b981);
-                this.createParticles(x2, y2, 0x10b981);
-                p1.container.setAlpha(0.6);
-                p2.container.setAlpha(0.6);
+                check1.destroy();
+                check2.destroy();
+            }
+        });
 
-                this.firstPick = null;
-                this.secondPick = null;
-                this.isProcessing = false;
+        // 3. Flash verde de celebración
+        this.cameras.main.flash(200, 16, 185, 129);
 
-                const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
-                if (this.matches === totalPairs) {
-                    this.time.delayedCall(800, () => this.endGame());
-                }
+        // 4. Partículas de celebración
+        this.time.delayedCall(200, () => {
+            this.createParticles(x1, y1, 0x10b981);
+            this.createParticles(x2, y2, 0x10b981);
+        });
+
+        // 5. Marcar las cartas emparejadas con tinte verde suave (en lugar de oscurecerlas)
+        this.tweens.add({
+            targets: [p1.container, p2.container],
+            alpha: 0.85,  // Solo un poco transparente
+            duration: 400,
+            delay: 300
+        });
+
+        // Añadir tinte verde a los frames para indicar que están emparejadas
+        p1.frameSprite.setTint(0x10b981);  // Verde éxito
+        p2.frameSprite.setTint(0x10b981);
+
+        // 6. Limpiar estado
+        this.time.delayedCall(600, () => {
+            this.firstPick = null;
+            this.secondPick = null;
+            this.isProcessing = false;
+
+            // Check si completó el juego
+            if (this.matches === totalPairs) {
+                this.time.delayedCall(500, () => this.endGame());
             }
         });
     }
@@ -401,12 +498,58 @@ export class ImageMatchScene extends Phaser.Scene {
         this.streak = 0;
         const penalty = IMAGE_MATCH_CONFIG.scoring.wrongMatch;
         this.score += penalty;
+        if (this.score < 0) this.score = 0;
         this.sessionManager?.updateScore(penalty, false);
-        this.gameHUD.update({ score: this.score });
+        this.gameHUD.update({ score: Math.max(0, this.score) });
 
-        this.cameras.main.shake(150, 0.01);
+        const x1 = p1.container.x;
+        const y1 = p1.container.y;
+        const x2 = p2.container.x;
+        const y2 = p2.container.y;
 
-        this.time.delayedCall(this.resolvedConfig.flip_back_delay_ms || 600, () => {
+        // 1. Mostrar íconos de cruz (error)
+        const cross1 = this.add.image(x1, y1, 'ui_atlas', 'common-ui/fx/fx_cross')
+            .setScale(0)
+            .setDepth(7000);
+
+        const cross2 = this.add.image(x2, y2, 'ui_atlas', 'common-ui/fx/fx_cross')
+            .setScale(0)
+            .setDepth(7000);
+        this.tweens.add({
+            targets: [cross1, cross2],
+            scale: 2.5,
+            alpha: { from: 1, to: 0 },
+            duration: 1200,  // Aumentado a 1200ms para que se vea más tiempo
+            ease: 'Back.easeOut',
+            onComplete: () => {
+                cross1.destroy();
+                cross2.destroy();
+            }
+        });
+
+        // 2. Shake suave de las cartas (vibración educativa)
+        const p1OriginalX = p1.container.x;
+        const p2OriginalX = p2.container.x;
+
+        this.tweens.add({
+            targets: [p1.container, p2.container],
+            x: '+=5',
+            duration: 50,
+            yoyo: true,
+            repeat: 3,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                // Restaurar posiciones originales explícitamente
+                p1.container.x = p1OriginalX;
+                p2.container.x = p2OriginalX;
+            }
+        });
+
+        // 3. Shake de cámara sutil
+        this.cameras.main.shake(150, 0.005);
+
+        // 4. Flip back después del delay (aumentado para dar más tiempo)
+        this.time.delayedCall(1000, () => {  // Aumentado de 600ms a 1000ms
             this.flipCard(p1, false);
             this.flipCard(p2, false);
             this.firstPick = null;
@@ -424,19 +567,54 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private createPauseOverlay() {
         const { width, height } = this.cameras.main;
-        this.pauseOverlay = this.add.container(0, 0).setDepth(2000).setVisible(false);
+        this.pauseOverlay = this.add.container(0, 0).setDepth(2000).setVisible(false).setScrollFactor(0);
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-        const panel = this.add.image(width / 2, height / 2, 'ui-panel').setDisplaySize(400, 300);
-        const title = this.add.text(width / 2, height / 2 - 60, 'PAUSE', { fontSize: '42px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
+        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 500, 400);
 
-        const resumeBtn = this.add.container(width / 2, height / 2 + 60);
-        const btnBg = this.add.image(0, 0, 'ui-button').setDisplaySize(160, 50).setInteractive({ useHandCursor: true });
-        const btnText = this.add.text(0, 0, 'RESUME', { fontSize: '20px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
-        resumeBtn.add([btnBg, btnText]);
-        btnBg.on('pointerdown', () => this.togglePause());
+        const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
+            fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        }).setOrigin(0.5);
 
-        this.pauseOverlay.add([dim, panel, title, resumeBtn]);
+        const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'CONTINUAR', () => this.togglePause(), { width: 200, height: 60 });
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', width / 2, height / 2 + 80, 'SALIR', () => {
+            // Salir de pantalla completa
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+            // Preparar datos del juego para enviar
+            const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
+            const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
+            const attempts = this.moves;
+            const matches = this.matches;
+            const accuracy = attempts > 0 ? Math.round((matches / attempts) * 100) : 0;
+            const perfectMatch = matches > 0 && matches === attempts;
+
+            const gameExitPayload = {
+                scoreRaw: this.score + (perfectMatch ? 500 : 0),
+                correctCount: matches,
+                wrongCount: attempts - matches,
+                durationSeconds: duration,
+                answers: this.answerTracker.getAnswers().map(ans => ({
+                    ...ans,
+                    is_correct: ans.is_correct || (ans as any).result === 'correct'
+                })),
+                meta: {
+                    moves: this.moves,
+                    totalPairs: totalPairs,
+                    matchedPairs: matches,
+                    bestStreak: this.bestStreak,
+                    exitedEarly: true
+                }
+            };
+
+            console.log('[ImageMatchScene] Exiting from pause menu with data:', gameExitPayload);
+            console.log('[ImageMatchScene] answers count:', gameExitPayload.answers?.length);
+
+            this.game.events.emit('GAME_EXIT', gameExitPayload);
+        }, { width: 200, height: 60 });
+
+        this.pauseOverlay.add([dim, panel, title, resumeBtn, exitBtn]);
     }
 
     private togglePause() {
@@ -452,26 +630,23 @@ export class ImageMatchScene extends Phaser.Scene {
         if (!wasPaused) this.togglePause();
 
         const { width, height } = this.cameras.main;
-        const helpOverlay = this.add.container(0, 0).setDepth(3000);
-        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-        const panel = this.add.image(width / 2, height / 2, 'ui-panel').setDisplaySize(500, 400);
+        const helpOverlay = this.add.container(0, 0).setDepth(3000).setScrollFactor(0);
 
-        const title = this.add.text(width / 2, height / 2 - 130, 'INSTRUCTIONS', {
-            fontSize: '28px', fontFamily: 'Arial Black', color: '#ffffff'
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
+        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 550, 400);
+
+        const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
+            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions, {
-            fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', align: 'center', wordWrap: { width: 400 }
+        const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions, {
+            fontSize: '20px', fontFamily: 'Fredoka', color: '#e2e8f0', align: 'center', wordWrap: { width: 450 }
         }).setOrigin(0.5);
 
-        const closeBtn = this.add.container(width / 2, height / 2 + 130);
-        const btnBg = this.add.image(0, 0, 'ui-button').setDisplaySize(140, 50).setInteractive({ useHandCursor: true });
-        const btnText = this.add.text(0, 0, 'READY', { fontSize: '18px', fontFamily: 'Arial Black', color: '#ffffff' }).setOrigin(0.5);
-        closeBtn.add([btnBg, btnText]);
-        btnBg.on('pointerdown', () => {
+        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 120, 'ENTENDIDO', () => {
             helpOverlay.destroy();
             if (!wasPaused) this.togglePause();
-        });
+        }, { width: 200, height: 60 });
 
         helpOverlay.add([dim, panel, title, instructions, closeBtn]);
     }
@@ -479,7 +654,9 @@ export class ImageMatchScene extends Phaser.Scene {
     private startCountdown() {
         const { width, height } = this.cameras.main;
         let count = 3;
-        const txt = this.add.text(width / 2, height / 2, '3', { fontSize: '120px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000000', strokeThickness: 10 }).setOrigin(0.5).setDepth(1500);
+        const txt = this.add.text(width / 2, height / 2, '3', {
+            fontSize: '120px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 10
+        }).setOrigin(0.5).setDepth(1500).setScrollFactor(0);
 
         this.time.addEvent({
             delay: 1000, repeat: 3,
@@ -551,82 +728,83 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private createMissionCompleteModal(stats: any) {
         const { width, height } = this.cameras.main;
-        const container = this.add.container(width / 2, height / 2).setDepth(2000);
 
-        // 1. DIMMER
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-            .setDepth(1999).setInteractive();
+        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+            .setDepth(6000).setInteractive().setScrollFactor(0);
 
-        // 2. MODAL BACKGROUND
-        const bgWidth = 600;
+        const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
+
+        const bgWidth = 700;
         const bgHeight = 500;
-        const bg = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x1e293b)
-            .setStrokeStyle(4, 0xfbbf24);
+        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
 
-        // 3. TITLE
         const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
-            fontSize: '48px',
-            fontFamily: 'Arial Black',
-            color: '#fbbf24',
-            align: 'center',
-            stroke: '#000000',
-            strokeThickness: 6
+            fontSize: '52px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
-        // Separator
-        const separator = this.add.rectangle(0, -bgHeight / 2 + 100, 300, 2, 0xfbbf24, 0.5);
-
-        // 4. STATS
-        const statsStartY = -50;
-        const lineHeight = 50;
-
-        // Pairs
-        const pairsText = this.add.text(0, statsStartY, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
-            fontSize: '28px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        const pairsText = this.add.text(0, -50, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
-        container.add(pairsText);
 
-        // Memory Master Bonus
         const bonusStatus = stats.perfectMatch ? 'ACTIVE' : 'INACTIVE';
         const bonusColor = stats.perfectMatch ? '#10b981' : '#94a3b8';
-        const bonusText = this.add.text(0, statsStartY + lineHeight, `MEMORY MASTER BONUS: ${bonusStatus}`, {
-            fontSize: '22px', fontFamily: 'Arial', color: bonusColor, fontStyle: 'bold'
+        const bonusText = this.add.text(0, 0, `MEMORY MASTER: ${bonusStatus}`, {
+            fontSize: '22px', fontFamily: 'Fredoka', color: bonusColor, stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
-        container.add(bonusText);
 
-        // Rank
         let rank = 'NOVICE';
         let icon = '🌱';
         if (stats.accuracy >= 90) { rank = 'MASTER'; icon = '👑'; }
         else if (stats.accuracy >= 70) { rank = 'EXPERT'; icon = '🎓'; }
         else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
 
-        const rankText = this.add.text(0, statsStartY + lineHeight * 2, `RANK: ${icon} ${rank}`, {
-            fontSize: '32px', fontFamily: 'Arial', color: '#fbbf24', fontStyle: 'bold'
+        const rankText = this.add.text(0, 50, `RANK: ${icon} ${rank}`, {
+            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
-        container.add(rankText);
 
-        // 5. BUTTONS
         const btnY = bgHeight / 2 - 80;
 
-        const summaryBtn = this.createModalButton(-140, btnY, 'SUMMARY', 0x3b82f6, () => {
-            this.tweens.add({
-                targets: container, scale: 0, duration: 300,
-                onComplete: () => this.events.emit('gameOver', stats.eventData)
-            });
-        });
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, btnY, 'RESULTS', () => {
+            // Salir de pantalla completa
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
 
-        const repeatBtn = this.createModalButton(140, btnY, 'REPEAT', 0x10b981, () => {
+            console.log('[ImageMatchScene] Emitting game over events with eventData:', stats.eventData);
+            console.log('[ImageMatchScene] eventData.answers:', stats.eventData.answers);
+            console.log('[ImageMatchScene] answers count:', stats.eventData.answers?.length);
+
+            // End session if active
+            if (this.sessionManager?.isActive()) {
+                this.sessionManager.endSession().catch(e => console.error('End session error', e));
+            }
+
             this.tweens.add({
-                targets: container, scale: 0, duration: 300,
+                targets: container, scale: 0, alpha: 0, duration: 300,
+                onComplete: () => {
+                    // Emit multiple event variants for compatibility
+                    this.events.emit('gameOver', stats.eventData);
+                    this.events.emit('game-over', stats.eventData);
+                    this.events.emit('GAME_OVER', stats.eventData);
+
+                    this.game.events.emit('gameOver', stats.eventData);
+                    this.game.events.emit('game-over', stats.eventData);
+                    this.game.events.emit('GAME_OVER', stats.eventData);
+                }
+            });
+        }, { width: 220, height: 70 });
+
+        const repeatBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, btnY, 'REPEAT', () => {
+            this.tweens.add({
+                targets: container, scale: 0, alpha: 0, duration: 300,
                 onComplete: () => {
                     if (this.initData) this.scene.restart(this.initData);
                     else this.scene.restart();
                 }
             });
-        });
+        }, { width: 220, height: 70 });
 
-        container.add([bg, title, separator, ...summaryBtn, ...repeatBtn]);
+        container.add([bg, title, pairsText, bonusText, rankText, exitBtn, repeatBtn]);
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
     }

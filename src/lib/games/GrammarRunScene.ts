@@ -7,18 +7,18 @@ import * as Phaser from 'phaser';
 import { GRAMMAR_RUN_CONFIG, resolveGrammarRunConfig } from './grammarRun.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createPanel, showFeedback, showGlow, showBurst, showToast } from './UIKit';
+import { createPanel, createButton, showFeedback, showGlow, showBurst, showToast, showFullscreenRequest } from './UIKit';
 import type { GameContent, MissionConfig, GrammarQuestion, GrammarOption } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 import { loadGrammarRunContent, validateGrammarRunContent } from './gameLoader.utils';
 
 interface Gate {
-    sprite: Phaser.GameObjects.Image; // Ahora usa sprites del atlas
+    container: Phaser.GameObjects.Container;
+    sprite: Phaser.GameObjects.Image;
     textObj: Phaser.GameObjects.Text;
     question: GrammarQuestion;
     option: GrammarOption;
     lane: number;
-    container: Phaser.GameObjects.Container; // Para agrupar sprite + text
 }
 
 export class GrammarRunScene extends Phaser.Scene {
@@ -30,18 +30,16 @@ export class GrammarRunScene extends Phaser.Scene {
     private resolvedConfig: any = null;
     private isPaused: boolean = false;
 
-    // Game objects (ahora usan sprites del atlas)
-    private player!: Phaser.GameObjects.Sprite; // Sprite animado del atlas
+    // Game objects
+    private player!: Phaser.GameObjects.Sprite;
     private ground!: Phaser.GameObjects.Rectangle;
     private gates: Gate[] = [];
-    private obstacles: Phaser.GameObjects.Image[] = []; // Sprites del atlas
+    private obstacles: Phaser.GameObjects.Image[] = [];
 
-    // UI Elements (ahora usan GameHUD y UIKit)
-    private gameHUD!: GameHUD;
-    private distanceText!: Phaser.GameObjects.Text;
-    private streakText!: Phaser.GameObjects.Text;
+    // UI Elements
+    private hud!: GameHUD;
     private promptContainer!: Phaser.GameObjects.Container;
-    private promptPanel!: Phaser.GameObjects.Image; // Panel del atlas
+    private promptBg!: Phaser.GameObjects.Image;
     private promptText!: Phaser.GameObjects.Text;
 
     // Game state
@@ -73,6 +71,11 @@ export class GrammarRunScene extends Phaser.Scene {
 
     constructor() {
         super({ key: 'GrammarRunScene' });
+    }
+
+    preload() {
+        this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
+        this.load.atlas('gr_atlas', '/assets/atlases/grammar-run/texture.png', '/assets/atlases/grammar-run/texture.json');
     }
 
     // Data for restart
@@ -113,7 +116,7 @@ export class GrammarRunScene extends Phaser.Scene {
         this.currentLane = 1;
         this.isGameOver = false;
         this.isPaused = false;
-        this.currentSpeed = this.resolvedConfig.pacing.speed_base * 200; // Refined base speed (was 300)
+        this.currentSpeed = this.resolvedConfig.pacing.speed_base * 100;
         this.contentIndex = 0;
         this.streak = 0;
         this.bestStreak = 0;
@@ -138,10 +141,23 @@ export class GrammarRunScene extends Phaser.Scene {
     create() {
         console.log('[GrammarRun] Scene create() started');
         try {
+            // Petición de pantalla completa ANTES de iniciar los sistemas de juego
+            this.isPaused = true;
+            showFullscreenRequest(this, () => {
+                this.isPaused = false;
+                // Iniciar lógica después de confirmar
+            });
+
             const { width, height } = this.cameras.main;
 
-            // Set background
-            this.cameras.main.setBackgroundColor(GRAMMAR_RUN_CONFIG.visual.backgroundColor);
+            // Set background (Using existing width/height)
+            const bg = this.add.image(width / 2, height / 2, 'gr_atlas', 'grammar-run/background/gr_background');
+            const scaleX = width / bg.width;
+            const scaleY = height / bg.height;
+            const scale = Math.max(scaleX, scaleY);
+            bg.setScale(scale).setScrollFactor(0);
+
+            // this.cameras.main.setBackgroundColor(GRAMMAR_RUN_CONFIG.visual.backgroundColor); // Replaced by image
 
             // Create ground
             this.createGround();
@@ -149,8 +165,8 @@ export class GrammarRunScene extends Phaser.Scene {
             // Create player
             this.createPlayer();
 
-            // Create UI (Standard HUD)
-            this.createStandardHUD();
+            // Create HUD
+            this.createHUD();
 
             // Setup controls
             this.setupControls();
@@ -169,117 +185,50 @@ export class GrammarRunScene extends Phaser.Scene {
         }
     }
 
-    private createStandardHUD() {
-        const { width } = this.cameras.main;
-        const topBarHeight = 60;
-
-        // Background bar
-        this.add.rectangle(width / 2, topBarHeight / 2, width, topBarHeight, 0x000000, 0.7);
-
-        // Score
-        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#10b981',
-            fontStyle: 'bold'
+    private createHUD() {
+        this.hud = new GameHUD(this, {
+            showScore: true,
+            showTimer: true,
+            showLives: false,
+            showProgress: false,
+            showPauseButton: true,
+            showHelpButton: this.resolvedConfig.hud_help_enabled
         });
 
-        // Time
-        this.timerText = this.add.text(width / 2, 20, `TIME: ${this.timeRemaining}`, {
-            fontSize: '24px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5, 0);
-
-        // Distance
-        this.distanceText = this.add.text(width - 20, 20, '0m', {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#fbbf24',
-            fontStyle: 'bold'
-        }).setOrigin(1, 0);
-
-        // Instruction below HUD
-        this.add.text(width / 2, topBarHeight + 20, 'ARROWS: SELECT CORRECT GRAMMAR', {
-            fontSize: '18px',
-            fontFamily: 'Arial',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-            align: 'center'
-        }).setOrigin(0.5);
-
-        // Streak (if enabled)
-        if (this.resolvedConfig.ui.show_streak) {
-            this.streakText = this.add.text(20, 45, 'STREAK: 0', {
-                fontSize: '16px',
-                fontFamily: 'Arial',
-                color: '#8b5cf6',
-                fontStyle: 'bold'
-            });
-        }
-
-        // Progress (if enabled)
-        if (this.resolvedConfig.ui.show_progress) {
-            this.progressText = this.add.text(width / 2, 50, `0/${this.questions.length}`, {
-                fontSize: '14px',
-                fontFamily: 'Arial',
-                color: '#94a3b8',
-                fontStyle: 'bold'
-            }).setOrigin(0.5, 0);
-        }
-
-        // --- PROMPT PANEL (The "Why" of the game) ---
-        this.createPromptPanel();
-
-        // Help Button
+        this.hud.onPause(() => this.togglePause());
         if (this.resolvedConfig.hud_help_enabled) {
-            const helpBtnX = width - 150;
-            const helpBtnBg = this.add.circle(helpBtnX, 30, 20, 0x1e293b, 0.8)
-                .setDepth(100)
-                .setStrokeStyle(2, 0x8b5cf6, 0.5);
-
-            const helpText = this.add.text(helpBtnX, 30, '?', {
-                fontSize: '18px',
-                fontFamily: 'Arial Black',
-                color: '#ffffff',
-                fontStyle: 'bold'
-            }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
-
-            helpText.on('pointerdown', () => this.showHelpPanel());
+            this.hud.onHelp(() => this.showHelpPanel());
         }
+
+        this.hud.update({
+            score: this.score,
+            timeRemaining: this.timeRemaining
+        });
+
+        this.createPromptPanel();
     }
 
     private createPromptPanel() {
-        const { width } = this.cameras.main;
-        const panelY = 120; // Positioned below HUD and initial instructions
+        const { width, height } = this.scale;
+        const panelY = height * 0.2;
 
-        this.promptContainer = this.add.container(width / 2, panelY).setDepth(50);
+        this.promptContainer = this.add.container(width / 2, panelY)
+            .setDepth(50)
+            .setScrollFactor(0);
 
-        // Premium background for the prompt
-        this.promptBg = this.add.rectangle(0, 0, width * 0.8, 60, 0x1e293b, 0.9)
-            .setStrokeStyle(3, 0x10b981);
+        this.promptBg = this.add.image(0, 0, 'ui_atlas', 'common-ui/panels/panel_glass')
+            .setDisplaySize(width * 0.85, 100);
 
         this.promptText = this.add.text(0, 0, 'GET READY...', {
-            fontSize: '24px',
-            fontFamily: 'Arial Black',
-            color: '#fbbf24', // Use gold/yellow for prompt
+            fontSize: '28px',
+            fontFamily: 'Fredoka',
+            color: '#ffffff',
             fontStyle: 'bold',
             align: 'center',
-            wordWrap: { width: width * 0.75 }
+            wordWrap: { width: width * 0.8 }
         }).setOrigin(0.5);
 
-        // Add a "PROMPT:" label above the text
-        const promptLabel = this.add.text(0, -35, 'COMPLETE THE SENTENCE:', {
-            fontSize: '12px',
-            fontFamily: 'Arial',
-            color: '#94a3b8',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        this.promptContainer.add([this.promptBg, promptLabel, this.promptText]);
-
-        // Initial state: hidden until first spawn
+        this.promptContainer.add([this.promptBg, this.promptText]);
         this.promptContainer.setAlpha(0);
     }
 
@@ -293,12 +242,47 @@ export class GrammarRunScene extends Phaser.Scene {
             if (this.nextQuestionTimer) this.nextQuestionTimer.paused = true;
             if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = true;
             this.tweens.pauseAll();
+            this.showPauseOverlay();
         } else {
             this.physics.world.resume();
             if (this.gameTimer) this.gameTimer.paused = false;
             if (this.nextQuestionTimer) this.nextQuestionTimer.paused = false;
             if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = false;
             this.tweens.resumeAll();
+            this.hidePauseOverlay();
+        }
+    }
+
+    private pauseOverlay: Phaser.GameObjects.Container | null = null;
+
+    private showPauseOverlay() {
+        const { width, height } = this.cameras.main;
+        this.pauseOverlay = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
+
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
+        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 500, 400);
+
+        const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
+            fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        }).setOrigin(0.5);
+
+        const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'CONTINUAR', () => this.togglePause(), { width: 200, height: 60 });
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', width / 2, height / 2 + 80, 'SALIR', () => {
+            // Salir de pantalla completa
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+            // Correct exit:
+            this.game.events.emit('GAME_EXIT');
+        }, { width: 200, height: 60 });
+
+        this.pauseOverlay.add([dim, panel, title, resumeBtn, exitBtn]);
+    }
+
+    private hidePauseOverlay() {
+        if (this.pauseOverlay) {
+            this.pauseOverlay.destroy();
+            this.pauseOverlay = null;
         }
     }
 
@@ -308,32 +292,25 @@ export class GrammarRunScene extends Phaser.Scene {
         if (!wasPaused) this.togglePause();
 
         const { width, height } = this.cameras.main;
-        const panel = this.add.container(0, 0).setDepth(1000);
+        const panelContainer = this.add.container(0, 0).setDepth(10001).setScrollFactor(0);
 
-        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
-        const bg = this.add.rectangle(width / 2, height / 2, 450, 300, 0x1e293b).setStrokeStyle(2, 0x3b82f6);
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
+        const bg = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 550, 400);
 
-        const title = this.add.text(width / 2, height / 2 - 100, 'INSTRUCCIONES', {
-            fontSize: '24px', fontStyle: 'bold', color: '#ffffff'
+        const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
+            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
         }).setOrigin(0.5);
 
-        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions || 'Sigue las reglas del juego.', {
-            fontSize: '16px', color: '#e2e8f0', align: 'center', wordWrap: { width: 380 }
+        const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions || 'Sigue las reglas del juego.', {
+            fontSize: '20px', color: '#e2e8f0', align: 'center', wordWrap: { width: 450 }, fontFamily: 'Fredoka'
         }).setOrigin(0.5);
 
-        const closeBtnBg = this.add.rectangle(width / 2, height / 2 + 100, 150, 40, 0x3b82f6)
-            .setInteractive({ useHandCursor: true });
-
-        const closeBtnText = this.add.text(width / 2, height / 2 + 100, 'CERRAR', {
-            fontSize: '16px', fontStyle: 'bold', color: '#ffffff'
-        }).setOrigin(0.5);
-
-        closeBtnBg.on('pointerdown', () => {
-            panel.destroy();
+        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 120, 'ENTENDIDO', () => {
+            panelContainer.destroy();
             if (!wasPaused) this.togglePause();
-        });
+        }, { width: 200, height: 60 });
 
-        panel.add([dim, bg, title, instructions, closeBtnBg, closeBtnText]);
+        panelContainer.add([dim, bg, title, instructions, closeBtn]);
     }
 
     private startCountdown() {
@@ -342,7 +319,7 @@ export class GrammarRunScene extends Phaser.Scene {
         let count = 3;
         const countText = this.add.text(width / 2, height / 2, `${count}`, {
             fontSize: '120px',
-            fontFamily: 'Arial',
+            fontFamily: 'Fredoka',
             color: '#ffffff',
             fontStyle: 'bold',
             stroke: '#000000',
@@ -371,17 +348,15 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private startGameplay() {
-        // Start timers
         this.startGameTimer();
         this.startSpeedIncrease();
-
-        // Spawn first question after a small delay
         this.time.delayedCall(1000, () => this.spawnGate());
+        this.startDecorativeObstacles();
     }
 
     private createGround() {
-        const { width, height } = this.cameras.main;
-        const groundHeight = 100;
+        const { width, height } = this.scale;
+        const groundHeight = height * 0.15;
 
         this.ground = this.add.rectangle(
             width / 2,
@@ -391,72 +366,40 @@ export class GrammarRunScene extends Phaser.Scene {
             parseInt(GRAMMAR_RUN_CONFIG.visual.groundColor.replace('#', '0x'))
         );
 
-        this.physics.add.existing(this.ground, true); // Static body
+        this.physics.add.existing(this.ground, true);
     }
 
     private createPlayer() {
-        const { width, height } = this.cameras.main;
-        const playerSize = 40;
-        const groundHeight = 100;
+        const { width, height } = this.scale;
+        const groundHeight = height * 0.15;
 
-        this.player = this.add.rectangle(
+        this.player = this.add.sprite(
             width / 2,
-            height - groundHeight - playerSize / 2,
-            playerSize,
-            playerSize,
-            parseInt(GRAMMAR_RUN_CONFIG.visual.playerColor.replace('#', '0x'))
+            height - groundHeight - 50,
+            'gr_atlas',
+            'grammar-run/player/player_run_01'
         );
+
+        this.anims.create({
+            key: 'run',
+            frames: [
+                { key: 'gr_atlas', frame: 'grammar-run/player/player_run_01' },
+                { key: 'gr_atlas', frame: 'grammar-run/player/player_run_02' }
+            ],
+            frameRate: 7,
+            repeat: -1
+        });
+
+        this.player.play('run');
 
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
         body.setGravityY(GRAMMAR_RUN_CONFIG.physics.gravity);
 
-        // Collision with ground
         this.physics.add.collider(this.player, this.ground);
     }
 
-    private createUI() {
-        const { width, height } = this.cameras.main;
-        const padding = 20;
-
-        // Score
-        this.scoreText = this.add.text(padding, padding, 'SCORE: 0', {
-            fontSize: '24px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#00000088',
-            padding: { x: 10, y: 5 },
-        }).setDepth(100);
-
-        // Timer
-        this.timerText = this.add.text(width - padding, padding, `TIME: ${this.timeRemaining}`, {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(1, 0).setDepth(100);
-
-        // Distance
-        this.distanceText = this.add.text(padding, height - padding - 30, 'Distance: 0m', {
-            fontSize: '20px',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            backgroundColor: '#000000',
-            padding: { x: 8, y: 4 },
-        });
-
-        // Instructions
-        this.add.text(width / 2, 80, 'Use ← → to change lanes | Select correct grammar!', {
-            fontSize: '18px',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-            backgroundColor: '#00000088',
-            padding: { x: 10, y: 5 },
-        }).setOrigin(0.5);
-    }
 
     private setupControls() {
         // Keyboard controls
@@ -473,19 +416,58 @@ export class GrammarRunScene extends Phaser.Scene {
         if (newLane !== this.currentLane) {
             this.currentLane = newLane;
             this.movePlayerToLane();
+            this.highlightSelectedGate();
         }
     }
 
     private movePlayerToLane() {
-        const { width } = this.cameras.main;
+        const { width } = this.scale;
         const laneWidth = width / 3;
         const targetX = laneWidth * this.currentLane + laneWidth / 2;
 
+        // Visual Jump effect
+        this.player.stop(); // Pause run animation
+        this.player.setFrame('grammar-run/player/player_jump'); // Show jump frame
+
+        // Horizontal movement
         this.tweens.add({
             targets: this.player,
             x: targetX,
             duration: 200,
             ease: 'Power2',
+        });
+
+        // Vertical hop
+        this.tweens.add({
+            targets: this.player,
+            y: this.player.y - 25,
+            duration: 100,
+            yoyo: true,
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+                if (!this.isGameOver) {
+                    this.player.play('run'); // Resume running
+                }
+            }
+        });
+    }
+
+    private highlightSelectedGate() {
+        this.currentQuestionGates.forEach(gate => {
+            if (gate.lane === this.currentLane) {
+                this.tweens.add({
+                    targets: gate.container,
+                    scale: 1.06,
+                    duration: 150,
+                    ease: 'Back.easeOut'
+                });
+            } else {
+                this.tweens.add({
+                    targets: gate.container,
+                    scale: 1.0,
+                    duration: 150
+                });
+            }
         });
     }
 
@@ -501,17 +483,20 @@ export class GrammarRunScene extends Phaser.Scene {
     private updateTimer() {
         if (this.timeRemaining > 0) {
             this.timeRemaining--;
-            this.timerText.setText(`TIME: ${this.timeRemaining}`);
+            if (this.hud) {
+                this.hud.update({ timeRemaining: this.timeRemaining });
+            }
         } else {
-            this.timerText.setText(`TIME: 0`);
-            // Optional: You could stop the timer here, but don't end the game
+            if (this.hud) {
+                this.hud.update({ timeRemaining: 0 });
+            }
             if (this.gameTimer) this.gameTimer.remove();
         }
     }
 
     private startSpeedIncrease() {
         this.speedIncreaseTimer = this.time.addEvent({
-            delay: 10000, // Every 10 seconds
+            delay: 10000,
             callback: () => {
                 this.currentSpeed *= (1 + this.resolvedConfig.pacing.speed_increment);
             },
@@ -520,31 +505,56 @@ export class GrammarRunScene extends Phaser.Scene {
         });
     }
 
+    private startDecorativeObstacles() {
+        this.time.addEvent({
+            delay: 2000,
+            callback: () => {
+                if (!this.isGameOver) {
+                    this.spawnDecorativeObstacle();
+                }
+            },
+            loop: true
+        });
+    }
+
+    private spawnDecorativeObstacle() {
+        const { width, height } = this.scale;
+        const side = Phaser.Math.Between(0, 1);
+        const x = side === 0 ? 50 : width - 50;
+        const frame = Phaser.Math.Between(0, 1) === 0 ? 'grammar-run/obstacles/obs_box' : 'grammar-run/obstacles/obs_spike';
+
+        const obstacle = this.add.image(x, -50, 'gr_atlas', frame)
+            .setAlpha(0.6)
+            .setScale(0.8);
+
+        this.physics.add.existing(obstacle);
+        const body = obstacle.body as Phaser.Physics.Arcade.Body;
+        body.setVelocityY(this.currentSpeed * 0.8);
+
+        this.obstacles.push(obstacle);
+    }
+
     private spawnGate() {
         if (this.isGameOver || this.contentIndex >= this.questions.length) return;
         if (this.isWaitingForNextQuestion) return;
 
-        const { width } = this.cameras.main;
+        const { width } = this.scale;
         const laneWidth = width / 3;
         const gateHeight = 150;
         const gateWidth = laneWidth - 40;
         const y = -gateHeight;
 
-        // Get current question
         const question = this.questions[this.contentIndex];
         this.contentIndex++;
         this.isWaitingForNextQuestion = true;
         this.currentQuestionGates = [];
 
-        // Update Prompt UI
         this.updatePromptUI(question.questionText);
         this.currentQuestionData = question;
         this.hasRespondedToCurrentQuestion = false;
 
-        // Start timing this question
         this.questionStartTime = Date.now();
 
-        // 1. Get correct option
         const correctOption = question.options.find(opt => opt.isCorrect);
         if (!correctOption) {
             console.error('[GrammarRun] No correct option found for question:', question.questionId);
@@ -552,22 +562,17 @@ export class GrammarRunScene extends Phaser.Scene {
             return;
         }
 
-        // 2. Get wrong options (up to 2)
         let wrongOptions = question.options.filter(opt => !opt.isCorrect);
         Phaser.Utils.Array.Shuffle(wrongOptions);
         wrongOptions = wrongOptions.slice(0, 2);
 
-        // 3. Combine and shuffle options for lanes
         const roundOptions = [
             { option: correctOption, isCorrect: true },
             ...wrongOptions.map(opt => ({ option: opt, isCorrect: false }))
         ];
         Phaser.Utils.Array.Shuffle(roundOptions);
 
-        // 4. Create gates in lanes (one for each option)
         roundOptions.forEach((optData, index) => {
-            // If we have 2 options, we can put them in index 0 and 2, or random
-            // For simplicity, we use consecutive lanes starting from a random point or just 0,1,2
             const gate = this.createGateInLane(index, y, gateWidth, gateHeight, question, optData.option);
             this.currentQuestionGates.push(gate);
         });
@@ -594,11 +599,8 @@ export class GrammarRunScene extends Phaser.Scene {
             y: 100,
             duration: 200,
             onComplete: () => {
-                this.promptText.setText(text.toUpperCase());
-
-                // Adjust BG width based on text if needed
-                const textWidth = this.promptText.width;
-                this.promptBg.width = Math.max(this.cameras.main.width * 0.6, textWidth + 60);
+                this.promptText.setText(text);
+                this.promptBg.setDisplaySize(Math.max(this.scale.width * 0.7, this.promptText.width + 80), 100);
 
                 this.tweens.add({
                     targets: this.promptContainer,
@@ -619,43 +621,51 @@ export class GrammarRunScene extends Phaser.Scene {
         question: GrammarQuestion,
         option: GrammarOption
     ) {
-        const { width: screenWidth } = this.cameras.main;
+        const { width: screenWidth } = this.scale;
         const laneWidth = screenWidth / 3;
         const x = laneWidth * lane + laneWidth / 2;
 
         const isCorrect = option.isCorrect;
-        const color = isCorrect
-            ? parseInt(GRAMMAR_RUN_CONFIG.visual.correctGateColor.replace('#', '0x'))
-            : parseInt(GRAMMAR_RUN_CONFIG.visual.wrongGateColor.replace('#', '0x'));
+        const gateFrame = lane === 0 ? 'grammar-run/gates/gate_left' :
+            lane === 2 ? 'grammar-run/gates/gate_right' :
+                'grammar-run/gates/gate_center';
 
-        const gateSprite = this.add.rectangle(x, y, width, height, color, 0.3);
-        gateSprite.setStrokeStyle(4, color);
+        const container = this.add.container(x, y);
 
-        this.physics.add.existing(gateSprite);
-        const body = gateSprite.body as Phaser.Physics.Arcade.Body;
-        body.setVelocityY(this.currentSpeed);
+        const gateSprite = this.add.image(0, 0, 'gr_atlas', gateFrame)
+            .setDisplaySize(width * 0.6, height * 0.6);
+        // .setTint(isCorrect ? 0x10b981 : 0xef4444); // User requested to remove this hint
 
-        // Add text (show the option text)
-        const textObj = this.add.text(x, y, option.optionText, {
-            fontSize: `${GRAMMAR_RUN_CONFIG.visual.fontSize}px`,
-            color: isCorrect ? '#10b981' : '#ef4444',
+        const textObj = this.add.text(0, 0, option.optionText, {
+            fontSize: '18px',
+            fontFamily: 'Fredoka',
+            color: '#ffffff',
             fontStyle: 'bold',
             align: 'center',
-            wordWrap: { width: width - 20 },
+            wordWrap: { width: width * 0.75 },
+            backgroundColor: '#00000088',
+            padding: { x: 8, y: 4 }
         }).setOrigin(0.5);
 
+        container.add([gateSprite, textObj]);
+
+        this.physics.add.existing(container);
+        const body = container.body as Phaser.Physics.Arcade.Body;
+        body.setSize(width * 0.85, height * 0.8);
+        body.setVelocityY(this.currentSpeed);
+
         const gate: Gate = {
+            container: container,
             sprite: gateSprite,
             textObj: textObj,
             question: question,
             option: option,
-            lane: lane,
+            lane: lane
         };
 
         this.gates.push(gate);
 
-        // Setup overlap detection
-        this.physics.add.overlap(this.player, gateSprite, () => {
+        this.physics.add.overlap(this.player, container, () => {
             this.handleGatePass(gate);
         });
 
@@ -663,16 +673,13 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private handleGatePass(gate: Gate) {
-        if (!this.gates.includes(gate)) return; // Already processed
-        if (this.hasRespondedToCurrentQuestion) return; // Round already resolved
+        if (!this.gates.includes(gate)) return;
+        if (this.hasRespondedToCurrentQuestion) return;
 
         this.hasRespondedToCurrentQuestion = true;
 
-        // Resolve round logic: clear ALL gates of this question bunch
-        // (This prevents hitting multiple gates in one round)
         const gatesToRemove = [...this.currentQuestionGates];
 
-        // Check if player is in the same lane
         if (this.currentLane === gate.lane) {
             if (gate.option.isCorrect) {
                 this.handleCorrectGate(gate);
@@ -681,18 +688,17 @@ export class GrammarRunScene extends Phaser.Scene {
             }
         }
 
-        // Hide prompt immediately after response
-        this.tweens.add({
-            targets: this.promptContainer,
-            alpha: 0,
-            duration: 200
+        this.time.delayedCall(500, () => {
+            this.tweens.add({
+                targets: this.promptContainer,
+                alpha: 0,
+                duration: 200
+            });
+
+            gatesToRemove.forEach(g => this.removeGate(g));
+            this.prepareNextQuestion();
+            this.currentLane = 1;
         });
-
-        // Remove all gates in this bunch
-        gatesToRemove.forEach(g => this.removeGate(g));
-
-        // Trigger next spawn
-        this.prepareNextQuestion();
     }
 
     private handleCorrectGate(gate: Gate) {
@@ -702,22 +708,36 @@ export class GrammarRunScene extends Phaser.Scene {
         this.streak++;
         if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
-        // Calculate time spent on this question
+        // Tint green for feedback
+        gate.sprite.setTint(0x10b981);
+
+        const checkIcon = this.add.image(gate.container.x, gate.container.y, 'ui_atlas', 'common-ui/fx/fx_check')
+            .setScale(3)
+            .setDepth(100);
+
+        this.tweens.add({
+            targets: checkIcon,
+            scale: 5,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => checkIcon.destroy()
+        });
+
+        this.cameras.main.flash(200, 16, 185, 129);
+
         const timeSpent = this.questionStartTime > 0
             ? Math.round((Date.now() - this.questionStartTime) / 1000)
             : 0;
 
-        // Streak bonus
         if (this.resolvedConfig.scoring.streak_bonus && this.streak >= 3) {
             const bonus = Math.floor(this.streak / 3) * 5;
             this.score += bonus;
-            this.showFloatingText(gate.sprite.x, gate.sprite.y - 30, `STREAK +${bonus}!`, '#8b5cf6');
+            this.showFloatingText(gate.container.x, gate.container.y - 30, `STREAK +${bonus}!`, '#8b5cf6');
         }
 
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, true);
 
-            // Rich breakdown record
             this.sessionManager.recordItem({
                 id: gate.question.questionId,
                 text: gate.question.questionText,
@@ -744,15 +764,12 @@ export class GrammarRunScene extends Phaser.Scene {
             });
         }
 
-        // Visual feedback
-        this.showFloatingText(gate.sprite.x, gate.sprite.y, `+${points}`, '#10b981');
+        this.showFloatingText(gate.container.x, gate.container.y, `+${points}`, '#10b981');
         this.updateUI();
 
-        // Check if completed all items
         if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) {
             this.time.delayedCall(500, () => this.endGame('completed'));
         } else if (this.contentIndex >= this.questions.length) {
-            // All questions answered
             this.time.delayedCall(500, () => this.endGame('all_questions'));
         }
     }
@@ -760,10 +777,49 @@ export class GrammarRunScene extends Phaser.Scene {
     private handleWrongGate(gate: Gate) {
         const points = this.resolvedConfig.scoring.points_wrong;
         this.score += points;
-        this.wrongCount++;
-        this.streak = 0; // Reset streak
+        if (this.score < 0) this.score = 0; // Configured to never go below zero
 
-        // Calculate time spent on this question
+        this.wrongCount++;
+        this.streak = 0;
+
+        const crossIcon = this.add.image(gate.container.x, gate.container.y, 'ui_atlas', 'common-ui/fx/fx_cross')
+            .setScale(3)
+            .setDepth(100);
+
+        // Highlight the CORRECT gate to teach the player
+        this.currentQuestionGates.forEach(g => {
+            if (g.option.isCorrect) {
+                // Tint green
+                g.sprite.setTint(0x10b981);
+                // Also show a checkmark on the correct one
+                const correctCheck = this.add.image(g.container.x, g.container.y, 'ui_atlas', 'common-ui/fx/fx_check')
+                    .setScale(2)
+                    .setDepth(99);
+
+                this.tweens.add({
+                    targets: correctCheck,
+                    scale: 3,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => correctCheck.destroy()
+                });
+            } else if (g === gate) {
+                // Tint the wrong chosen one red
+                g.sprite.setTint(0xef4444);
+            }
+        });
+
+        this.tweens.add({
+            targets: crossIcon,
+            scale: 5,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => crossIcon.destroy()
+        });
+
+        this.cameras.main.flash(200, 239, 68, 68);
+        this.cameras.main.shake(200, 0.005);
+
         const timeSpent = this.questionStartTime > 0
             ? Math.round((Date.now() - this.questionStartTime) / 1000)
             : 0;
@@ -771,7 +827,6 @@ export class GrammarRunScene extends Phaser.Scene {
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, false);
 
-            // Rich breakdown record
             this.sessionManager.recordItem({
                 id: gate.question.questionId,
                 text: gate.question.questionText,
@@ -798,17 +853,12 @@ export class GrammarRunScene extends Phaser.Scene {
             });
         }
 
-        // Visual feedback
-        this.showFloatingText(gate.sprite.x, gate.sprite.y, `${points}`, '#ef4444');
-        this.cameras.main.shake(200, 0.005);
-
+        this.showFloatingText(gate.container.x, gate.container.y, `${points}`, '#ef4444');
         this.updateUI();
 
-        // Check if completed all items
         if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) {
             this.time.delayedCall(500, () => this.endGame('completed'));
         } else if (this.contentIndex >= this.questions.length) {
-            // All questions answered
             this.time.delayedCall(500, () => this.endGame('all_questions'));
         }
     }
@@ -819,21 +869,22 @@ export class GrammarRunScene extends Phaser.Scene {
             this.gates.splice(index, 1);
         }
 
-        // Also remove from current bunch tracker
         const bunchIndex = this.currentQuestionGates.indexOf(gate);
         if (bunchIndex > -1) {
             this.currentQuestionGates.splice(bunchIndex, 1);
         }
 
-        gate.sprite.destroy();
-        gate.textObj.destroy();
+        gate.container.destroy();
     }
 
     private showFloatingText(x: number, y: number, text: string, color: string) {
         const floatingText = this.add.text(x, y, text, {
             fontSize: '32px',
             color: color,
+            fontFamily: 'Fredoka',
             fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
         }).setOrigin(0.5);
 
         this.tweens.add({
@@ -848,13 +899,11 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private updateUI() {
-        this.scoreText.setText(`SCORE: ${this.score}`);
-        this.distanceText.setText(`${Math.floor(this.distance)}m`);
-        if (this.resolvedConfig.ui.show_streak && this.streakText) {
-            this.streakText.setText(`STREAK: ${this.streak}`);
-        }
-        if (this.resolvedConfig.ui.show_progress && this.progressText) {
-            this.progressText.setText(`${this.correctCount + this.wrongCount}/${this.questions.length}`);
+        if (this.hud) {
+            this.hud.update({
+                score: Math.max(0, this.score),
+                timeRemaining: this.timeRemaining
+            });
         }
     }
 
@@ -951,8 +1000,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
         // Clear gates
         this.gates.forEach(gate => {
-            gate.sprite.destroy();
-            gate.textObj.destroy();
+            gate.container.destroy();
         });
         this.gates = [];
         this.currentQuestionGates = [];
@@ -1025,102 +1073,59 @@ export class GrammarRunScene extends Phaser.Scene {
 
     private createMissionCompleteModal(stats: any) {
         const { width, height } = this.cameras.main;
-        const container = this.add.container(width / 2, height / 2)
-            .setDepth(2000)
-            .setScrollFactor(0);
 
-        // 1. DIMMER (Interactive to block clicks)
-        const dimmer = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-            .setInteractive()
-            .setDepth(1999)
-            .setScrollFactor(0);
+        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
+            .setDepth(6000).setInteractive().setScrollFactor(0);
 
-        // 2. MODAL BACKGROUND (Box)
-        const bgWidth = 600;
+        const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
+
+        const bgWidth = 700;
         const bgHeight = 500;
+        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
 
-        const bg = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x1e293b) // Slate 800
-            .setStrokeStyle(4, 0xfbbf24); // Gold border
-
-        // 3. TITLE
-        const titleText = stats.reason === 'completed' || stats.reason === 'all_questions'
-            ? 'MISSION COMPLETE'
-            : 'GAME OVER';
-
-        const title = this.add.text(0, -bgHeight / 2 + 60, titleText, {
-            fontSize: '48px',
-            fontFamily: 'Arial Black',
-            color: '#fbbf24', // Gold
-            align: 'center',
-            stroke: '#000000',
-            strokeThickness: 6,
-            shadow: { offsetX: 2, offsetY: 2, color: '#000', blur: 4, fill: true }
+        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
+            fontSize: '52px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
-        // Separator line
-        const separator = this.add.rectangle(0, -bgHeight / 2 + 100, 300, 2, 0xfbbf24, 0.5);
-
-        // 4. STATS
-        const statsStartY = -50;
-        const lineHeight = 50;
-
-        // Sentences
-        const sentencesText = this.add.text(0, statsStartY, `SENTENCES: ${stats.correct}/${stats.total}`, {
-            fontSize: '28px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
+        const sText = this.add.text(0, -50, `Sentences: ${stats.correct}/${stats.total}`, {
+            fontSize: '36px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        // Perfect Flow
-        const flowStatus = stats.perfectFlow ? 'ACTIVE' : 'INACTIVE';
-        const flowColor = stats.perfectFlow ? '#10b981' : '#94a3b8'; // Green or Slate
-        const flowText = this.add.text(0, statsStartY + lineHeight, `PERFECT FLOW BONUS: ${flowStatus}`, {
-            fontSize: '22px',
-            fontFamily: 'Arial',
-            color: flowColor,
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
+        const aText = this.add.text(0, 30, `Accuracy: ${stats.accuracy}%`, {
+            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        // Rank Calculation
-        let rank = 'NOVICE';
-        let icon = '🌱';
-        if (stats.accuracy >= 100) { rank = 'SCHOLAR'; icon = '✒️'; }
-        else if (stats.accuracy >= 80) { rank = 'EXPERT'; icon = '🎓'; }
-        else if (stats.accuracy >= 50) { rank = 'APPRENTICE'; icon = '📚'; }
-
-        const rankText = this.add.text(0, statsStartY + lineHeight * 2, `RANK: ${icon} ${rank}`, {
-            fontSize: '32px',
-            fontFamily: 'Arial',
-            color: '#fbbf24',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-
-        // 5. BUTTONS
         const btnY = bgHeight / 2 - 80;
 
-        // Summary Button (Left)
-        const summaryBtn = this.createButton(-140, btnY, 'SUMMARY', 0x3b82f6, () => {
-            // Animate out
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, btnY, 'RESULTS', () => {
+            // Salir de pantalla completa
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+            // End session if active
+            if (this.sessionManager?.isActive()) {
+                this.sessionManager.endSession().catch(e => console.error('End session error', e));
+            }
+
             this.tweens.add({
                 targets: container,
                 scale: 0,
                 alpha: 0,
                 duration: 300,
                 onComplete: () => {
+                    // Emit multiple event variants for compatibility
                     this.events.emit('gameOver', stats.eventData);
+                    this.events.emit('game-over', stats.eventData);
+                    this.events.emit('GAME_OVER', stats.eventData);
+
+                    this.game.events.emit('gameOver', stats.eventData);
+                    this.game.events.emit('game-over', stats.eventData);
+                    this.game.events.emit('GAME_OVER', stats.eventData);
                 }
             });
-        });
+        }, { width: 220, height: 70 });
 
-        // Repeat Button (Right)
-        const repeatBtn = this.createButton(140, btnY, 'REPEAT', 0x10b981, () => {
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, btnY, 'REPEAT', () => {
             this.tweens.add({
                 targets: container,
                 scale: 0,
@@ -1130,89 +1135,18 @@ export class GrammarRunScene extends Phaser.Scene {
                     if (this.initData) {
                         this.scene.restart(this.initData);
                     } else {
-                        // Fallback
                         this.scene.restart();
                     }
                 }
             });
-        });
+        }, { width: 220, height: 70 });
 
-        container.add([bg, title, separator, sentencesText, flowText, rankText, ...summaryBtn, ...repeatBtn]);
+        container.add([bg, title, sText, aText, exitBtn, replayBtn]);
 
-        // Appear animation
         container.setScale(0);
-        container.setAlpha(0);
-
-        this.tweens.add({
-            targets: container,
-            scale: 1,
-            alpha: 1,
-            duration: 500,
-            ease: 'Back.out'
-        });
+        this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
     }
 
-    private createButton(x: number, y: number, text: string, color: number, callback: () => void) {
-        const width = 180;
-        const height = 60;
-
-        const bg = this.add.rectangle(x, y, width, height, color)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(3, 0xffffff);
-
-        const shadow = this.add.rectangle(x + 5, y + 5, width, height, 0x000000, 0.3);
-
-        const label = this.add.text(x, y, text, {
-            fontSize: '24px',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-
-        label.setInteractive({ useHandCursor: true });
-
-        const onClick = () => {
-            this.tweens.add({
-                targets: [bg, label, shadow],
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 50,
-                yoyo: true,
-                onComplete: callback
-            });
-        };
-
-        const onOver = () => {
-            bg.setFillStyle(color, 0.8);
-            this.tweens.add({
-                targets: [bg, label, shadow],
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 100
-            });
-        };
-
-        const onOut = () => {
-            bg.setFillStyle(color, 1);
-            this.tweens.add({
-                targets: [bg, label, shadow],
-                scaleX: 1,
-                scaleY: 1,
-                duration: 100
-            });
-        };
-
-        bg.on('pointerdown', onClick);
-        label.on('pointerdown', onClick);
-
-        bg.on('pointerover', onOver);
-        bg.on('pointerout', onOut);
-
-        label.on('pointerover', onOver);
-        label.on('pointerout', onOut);
-
-        return [shadow, bg, label];
-    }
 
 
 
@@ -1224,6 +1158,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const points = this.resolvedConfig.scoring.points_wrong || -5;
         this.score += points;
+        if (this.score < 0) this.score = 0;
         this.wrongCount++;
         this.streak = 0;
 
@@ -1268,12 +1203,18 @@ export class GrammarRunScene extends Phaser.Scene {
         // Update gates position and remove off-screen gates
         let gatesOffScreen = false;
         this.gates.forEach(gate => {
-            gate.textObj.y = gate.sprite.y;
-
-            if (gate.sprite.y > this.cameras.main.height + 100) {
+            if (gate.container.y > this.cameras.main.height + 100) {
                 this.removeGate(gate);
                 gatesOffScreen = true;
             }
+        });
+
+        this.obstacles = this.obstacles.filter(obs => {
+            if (obs.y > this.cameras.main.height + 100) {
+                obs.destroy();
+                return false;
+            }
+            return true;
         });
 
         // If gates went off screen and we were waiting, trigger next question

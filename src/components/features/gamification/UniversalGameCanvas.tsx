@@ -158,7 +158,11 @@ export default function UniversalGameCanvas({
             if (onGameEnd) {
                 const sessionData = sessionManagerRef.current.getSessionData();
                 const duration = sessionManagerRef.current.getDuration();
-                onGameEnd({
+
+                console.log('[UniversalGameCanvas] GAME_OVER data:', data);
+                console.log('[UniversalGameCanvas] data.answers:', data.answers);
+
+                const gameEndData = {
                     score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
                     correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
                     wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
@@ -166,7 +170,12 @@ export default function UniversalGameCanvas({
                     accuracy: 0, // Calculate if needed
                     sessionId: sessionManagerRef.current.getSessionId(),
                     answers: data.answers || sessionData.items
-                });
+                };
+
+                console.log('[UniversalGameCanvas] Sending to GamePlay:', gameEndData);
+                console.log('[UniversalGameCanvas] answers count:', gameEndData.answers?.length);
+
+                onGameEnd(gameEndData);
             }
         }
     };
@@ -191,11 +200,15 @@ export default function UniversalGameCanvas({
                 const config: Phaser.Types.Core.GameConfig = {
                     type: Phaser.AUTO,
                     parent: gameContainerRef.current,
-                    width: gameConfig.config.width,
-                    height: gameConfig.config.height,
                     backgroundColor: gameConfig.config.visual.backgroundColor,
                     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
-                    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
+                    scale: {
+                        mode: Phaser.Scale.FIT,
+                        autoCenter: Phaser.Scale.CENTER_BOTH,
+                        width: gameConfig.config.width,
+                        height: gameConfig.config.height,
+                        fullscreenTarget: gameContainerRef.current
+                    }
                 };
 
                 const game = new Phaser.Game(config);
@@ -278,12 +291,20 @@ export default function UniversalGameCanvas({
 
     return (
         <div className="relative flex flex-col items-center justify-center w-full">
-            {/* CANVAS */}
+            {/* WRAPPER: Limita el tamaño en la página web normal */}
             <div
-                ref={gameContainerRef}
-                className={`rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${status === 'playing' ? 'opacity-100 visible h-auto' : 'opacity-0 invisible h-0'}`}
-                style={{ width: GAME_CONFIGS[gameType]?.config.width || 800 }}
-            />
+                className={`w-full max-w-[1200px] rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${status === 'playing' ? 'opacity-100 visible h-auto' : 'opacity-0 invisible h-0'}`}
+            >
+                {/* TARGET: Este es el elemento que entra en pantalla completa (ahora sin max-width) */}
+                <div
+                    ref={gameContainerRef}
+                    className="w-full h-full bg-black"
+                    style={{
+                        aspectRatio: `${GAME_CONFIGS[gameType]?.config.width || 800}/${GAME_CONFIGS[gameType]?.config.height || 600}`,
+                        display: 'block'
+                    }}
+                />
+            </div>
 
             {/* COMPLETED SCREEN */}
             {status === 'completed' && (

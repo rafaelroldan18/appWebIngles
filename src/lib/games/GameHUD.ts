@@ -70,8 +70,8 @@ export class GameHUD {
 
         // Panel superior oscuro (usando panel_dark del atlas)
         const panelFrame = getUIFrame('common-ui/panels/panel_dark');
-        this.topPanel = this.scene.add.image(width / 2, 40, panelFrame.atlas, panelFrame.frame);
-        this.topPanel.setDisplaySize(width - 40, 80);
+        this.topPanel = this.scene.add.image(width / 2, 30, panelFrame.atlas, panelFrame.frame);
+        this.topPanel.setDisplaySize(width - 40, 60);  // Reducido de 80 a 60
         this.topPanel.setScrollFactor(0);
         this.container.add(this.topPanel);
 
@@ -79,13 +79,13 @@ export class GameHUD {
 
         // Score (izquierda)
         if (this.config.showScore) {
-            const scoreIcon = this.scene.add.image(xOffset, 40, 'ui_atlas', 'common-ui/rewards/trophy');
-            scoreIcon.setScale(1.2);
+            const scoreIcon = this.scene.add.image(xOffset, 30, 'ui_atlas', 'common-ui/rewards/trophy');
+            scoreIcon.setScale(1.0);  // Reducido de 1.2 a 1.0
             this.container.add(scoreIcon);
 
-            this.scoreText = this.scene.add.text(xOffset + 30, 40, '0', {
+            this.scoreText = this.scene.add.text(xOffset + 30, 30, '0', {
                 fontSize: '28px',
-                fontFamily: 'Arial Black',
+                fontFamily: 'Fredoka',
                 color: '#FFD700',
                 stroke: '#000000',
                 strokeThickness: 4
@@ -100,12 +100,12 @@ export class GameHUD {
         if (this.config.showTimer) {
             const timerBg = this.scene.add.graphics();
             timerBg.fillStyle(0x000000, 0.3);
-            timerBg.fillRoundedRect(xOffset - 10, 25, 120, 30, 15);
+            timerBg.fillRoundedRect(xOffset - 10, 18, 120, 24, 12);  // Ajustado para HUD más pequeño
             this.container.add(timerBg);
 
-            this.timerText = this.scene.add.text(xOffset + 50, 40, '0:00', {
+            this.timerText = this.scene.add.text(xOffset + 50, 30, '0:00', {
                 fontSize: '24px',
-                fontFamily: 'Arial Black',
+                fontFamily: 'Fredoka',
                 color: '#FFFFFF',
                 stroke: '#000000',
                 strokeThickness: 3
@@ -118,7 +118,7 @@ export class GameHUD {
 
         // Lives (centro)
         if (this.config.showLives) {
-            this.livesContainer = this.scene.add.container(xOffset, 40);
+            this.livesContainer = this.scene.add.container(xOffset, 30);
             this.updateLives(this.config.maxLives);
             this.container.add(this.livesContainer);
             xOffset += (this.config.maxLives * 35) + 20;
@@ -143,8 +143,10 @@ export class GameHUD {
         }
 
         // Botones de acción (derecha)
-        const buttonY = 40;
-        let rightOffset = width - 60;
+        // Botones de acción (derecha)
+        // Botones de acción (derecha)
+        const buttonY = 30;
+        let rightOffset = width - 60; // Simétrico con el lado izquierdo (xOffset comienza en 60)
 
         // Pause button
         if (this.config.showPauseButton) {
@@ -155,7 +157,7 @@ export class GameHUD {
                 () => this.onPauseCallback?.()
             );
             this.container.add(this.pauseButton);
-            rightOffset -= 90;
+            rightOffset -= 55; // Espaciado ajustado para botones de escala 0.65
         }
 
         // Help button
@@ -176,7 +178,7 @@ export class GameHUD {
         iconFrame: string,
         callback: () => void
     ): Phaser.GameObjects.Container {
-        // Usar el UIKit para crear el botón
+        // Usar el UIKit para crear el botón, más pequeño para encajar en barra 60px
         return createIconButton(
             this.scene,
             'common-ui/buttons/btn_round',
@@ -184,7 +186,7 @@ export class GameHUD {
             x,
             y,
             callback,
-            { scale: 1.1, iconScale: 1.3, iconOffsetY: -2 }
+            { scale: 0.65, iconScale: 0.8, iconOffsetY: 0 }
         );
     }
 

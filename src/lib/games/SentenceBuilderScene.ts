@@ -7,7 +7,7 @@ import * as Phaser from 'phaser';
 import { SENTENCE_BUILDER_CONFIG } from './sentenceBuilder.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createButton, createPanel, showFeedback, showModal, showToast } from './UIKit';
+import { createButton, createPanel, showFeedback, showModal, showToast, showFullscreenRequest } from './UIKit';
 import type { GameContent, MissionConfig } from '@/types';
 import { loadSentenceBuilderContent, type SentenceBuilderItem, type SentenceBuilderToken } from './gameLoader.utils';
 import type { GameSessionManager } from './GameSessionManager';
@@ -144,7 +144,12 @@ export class SentenceBuilderScene extends Phaser.Scene {
             return;
         }
 
-        this.startCountdown();
+        // Start Game (Moved after fullscreen request)
+        this.isPaused = true;
+        showFullscreenRequest(this, () => {
+            this.isPaused = false;
+            this.startCountdown();
+        });
 
         this.events.emit('scene-ready');
     }
@@ -974,11 +979,33 @@ export class SentenceBuilderScene extends Phaser.Scene {
         // BUTTONS
         const btnY = bgHeight / 2 - 80;
 
-        // EXIT (Left)
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_primary', -120, btnY, 'EXIT', () => {
-            console.log('EXIT BUTTON CLICKED');
-            this.game.events.emit('GAME_EXIT', stats.eventData);
-            this.game.events.emit('GAME_OVER', stats.eventData);
+        // RESULTS (Left)
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -120, btnY, 'RESULTS', () => {
+            console.log('RESULTS BUTTON CLICKED');
+
+            // Salir de pantalla completa al volver a la web
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            }
+
+            // End session if active (it's already called in endGame but safe to ensure)
+            if (this.sessionManager?.isActive()) {
+                this.sessionManager.endSession().catch(e => console.error(e));
+            }
+
+            this.tweens.add({
+                targets: container, scale: 0, duration: 300,
+                onComplete: () => {
+                    // Emit multiple event variants for compatibility
+                    this.events.emit('gameOver', stats.eventData);
+                    this.events.emit('game-over', stats.eventData);
+                    this.events.emit('GAME_OVER', stats.eventData);
+
+                    this.game.events.emit('gameOver', stats.eventData);
+                    this.game.events.emit('game-over', stats.eventData);
+                    this.game.events.emit('GAME_OVER', stats.eventData);
+                }
+            });
         }, { width: 180, height: 70, fontSize: '24px', textOffsetY: -4 });
 
         // REPLAY (Right)
@@ -1018,11 +1045,30 @@ export class SentenceBuilderScene extends Phaser.Scene {
                 strokeThickness: 10
             }).setOrigin(0.5).setScrollFactor(0);
 
-            const rBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 100, 'RESUME GAME', () => {
+            const rBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 50, 'RESUME GAME', () => {
                 this.togglePause();
-            }, { width: 280, height: 80, fontSize: '28px', textOffsetY: -5 });
+            }, { width: 280, height: 75, fontSize: '26px', textOffsetY: -5 });
 
-            this.pauseOverlay.add([backdrop, panel, pTitle, rBtn]);
+            const eBtn = createButton(this, 'common-ui/buttons/btn_secondary', width / 2, height / 2 + 150, 'EXIT GAME', () => {
+                // Salir de pantalla completa
+                if (this.scale.isFullscreen) {
+                    this.scale.stopFullscreen();
+                }
+
+                // Generar payload parcial
+                const duration = Math.floor((Date.now() - this.itemStartTime) / 1000);
+                const payload = {
+                    scoreRaw: this.score,
+                    correctCount: this.currentSentenceIndex,
+                    durationSeconds: duration,
+                    exitedEarly: true
+                };
+
+                this.events.emit('exit', payload);
+                this.game.events.emit('exit', payload);
+            }, { width: 280, height: 75, fontSize: '26px', textOffsetY: -5 });
+
+            this.pauseOverlay.add([backdrop, panel, pTitle, rBtn, eBtn]);
 
 
             // Force visibility immediately - no tween for debug reliability

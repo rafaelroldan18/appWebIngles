@@ -12,8 +12,8 @@ const DEFAULT_ITEMS_LIMIT = 12;
 
 export const GRAMMAR_RUN_CONFIG = {
     // Game dimensions
-    width: 800,
-    height: 600,
+    width: 1280,
+    height: 720,
 
     // Scoring (base values, pueden ser sobrescritos por mission_config)
     scoring: {
@@ -49,7 +49,7 @@ export const GRAMMAR_RUN_CONFIG = {
     physics: {
         gravity: 800,
         jumpVelocity: -400,
-        laneWidth: 200,
+        laneWidth: 300,
         lanes: 3, // Left, Center, Right
     },
 

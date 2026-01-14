@@ -59,9 +59,9 @@ export const IMAGE_MATCH_CONFIG = {
     grid: {
         rows: 4,
         cols: 4,
-        cardWidth: 140,
-        cardHeight: 140,
-        cardSpacing: 15,
+        cardWidth: 100,
+        cardHeight: 100,
+        cardSpacing: 12,
         cardRadius: 10,
     },
 

@@ -25,18 +25,25 @@ export class GameLoader {
         try {
             console.log(`[GameLoader] Loading content for topic: ${topicId}, game: ${gameTypeId}`);
 
+            const url = `/api/games/content?topicId=${topicId}&targetGameTypeId=${gameTypeId}`;
+            console.log(`[GameLoader] Fetching from: ${url}`);
+
             // CRÍTICO: Siempre filtrar por gameTypeId para evitar mezcla de contenido
-            const response = await fetch(
-                `/api/games/content?topicId=${topicId}&targetGameTypeId=${gameTypeId}`
-            );
+            const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(`Failed to load game content for ${gameTypeId}`);
+                const errorText = await response.text();
+                console.error(`[GameLoader] API Error (${response.status}):`, errorText);
+                throw new Error(`Failed to load game content for ${gameTypeId}: ${response.status}`);
             }
 
             const data = await response.json();
 
-            console.log(`[GameLoader] Loaded ${data.length} items for ${gameTypeId}`);
+            console.log(`[GameLoader] API Response:`, {
+                itemCount: data.length,
+                firstItem: data[0],
+                gameTypeId: gameTypeId
+            });
 
             // Validar que el contenido recibido es del juego correcto
             const invalidItems = data.filter((item: GameContent) =>
@@ -80,6 +87,7 @@ export class GameLoader {
 
     /**
      * Validate game data before starting
+     * Flexible validation that works for all game types
      */
     static validateGameData(data: GameContent[]): boolean {
         if (!data || data.length === 0) {
@@ -87,20 +95,32 @@ export class GameLoader {
             return false;
         }
 
-        // Check that we have at least some correct and incorrect words
-        const correctWords = data.filter(item => item.is_correct);
-        const incorrectWords = data.filter(item => !item.is_correct);
+        console.log(`[GameLoader] Validating ${data.length} content items`);
 
-        if (correctWords.length === 0) {
-            console.error('[GameLoader] No correct words found. At least one correct word is required.');
-            return false;
+        // Basic validation passed - we have content
+        // Some games (like Image Match) don't use is_correct field
+        // They use pair_id or other structures
+
+        // Optional: Check for games that DO use is_correct (Word Catcher, Grammar Run)
+        const hasCorrectField = data.some(item => 'is_correct' in item);
+
+        if (hasCorrectField) {
+            const correctWords = data.filter(item => item.is_correct);
+            const incorrectWords = data.filter(item => !item.is_correct);
+
+            if (correctWords.length === 0) {
+                console.error('[GameLoader] No correct words found. At least one correct word is required for this game type.');
+                return false;
+            }
+
+            if (incorrectWords.length === 0) {
+                console.warn('[GameLoader] No incorrect words found - game may be too easy or some mechanics may use fallbacks.');
+            }
+
+            console.log(`[GameLoader] Validation successful: ${correctWords.length} correct, ${incorrectWords.length} incorrect items.`);
+        } else {
+            console.log(`[GameLoader] Validation successful: ${data.length} items loaded (no is_correct field required for this game type).`);
         }
-
-        if (incorrectWords.length === 0) {
-            console.warn('[GameLoader] No incorrect words found - game may be too easy or some mechanics (like Grammar Run gates) may use fallbacks.');
-        }
-
-        console.log(`[GameLoader] Validation successful: ${correctWords.length} correct, ${incorrectWords.length} incorrect items.`);
 
         return true;
     }

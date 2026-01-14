@@ -55,6 +55,7 @@ export function createButton(
         hoverScale?: number;
         clickScale?: number;
         textOffsetY?: number;
+        fontFamily?: string;
     } = {}
 ): Phaser.GameObjects.Container {
     const {
@@ -65,7 +66,8 @@ export function createButton(
         fontColor = '#FFFFFF',
         hoverScale = 1.05,
         clickScale = 0.95,
-        textOffsetY = 0
+        textOffsetY = 0,
+        fontFamily = 'Fredoka'
     } = options;
 
     const container = scene.add.container(x, y);
@@ -88,7 +90,7 @@ export function createButton(
     // Texto del botón
     const text = scene.add.text(0, textOffsetY, label, {
         fontSize,
-        fontFamily: 'Arial Black',
+        fontFamily,
         color: fontColor,
         stroke: '#000000',
         strokeThickness: 4
@@ -551,4 +553,36 @@ export function createProgressBar(
         setProgress,
         destroy: () => container.destroy()
     };
+}
+
+/**
+ * Muestra un modal solicitando permiso para entrar en pantalla completa.
+ * Es necesario una interacción de usuario para que el navegador lo permita.
+ * @param scene - La escena de Phaser
+ * @param onDone - Callback opcional al cerrar el modal
+ */
+export function showFullscreenRequest(scene: Phaser.Scene, onDone?: () => void) {
+    // Si ya está en pantalla completa (por un reinicio de escena, por ejemplo), no preguntar de nuevo
+    if (scene.scale.isFullscreen) {
+        if (onDone) onDone();
+        return;
+    }
+
+    return showModal(scene, {
+        title: 'PANTALLA COMPLETA',
+        message: '¿Permitir poner en pantalla completa el juego?',
+        buttons: [
+            {
+                label: 'OK',
+                isPrimary: true,
+                onClick: () => {
+                    if (!scene.scale.isFullscreen) {
+                        scene.scale.startFullscreen();
+                    }
+                    if (onDone) onDone();
+                }
+            }
+        ],
+        closeOnBackdrop: false
+    });
 }
