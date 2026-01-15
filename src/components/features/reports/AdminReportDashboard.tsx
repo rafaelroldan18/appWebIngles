@@ -50,7 +50,9 @@ export default function AdminReportDashboard() {
     const loadAdminStats = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/reports/admin-stats?range=${timeRange}`);
+            const response = await fetch(`/api/reports/admin-stats?range=${timeRange}`, {
+                credentials: 'include'
+            });
             if (response.ok) {
                 const data = await response.json();
                 setStats(data);

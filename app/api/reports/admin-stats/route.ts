@@ -109,11 +109,137 @@ export async function GET(request: NextRequest) {
             }))
         };
 
+        // 7. Fetch game sessions data for statistics
+        const { data: gameSessions, error: sessionsError } = await supabase
+            .from('game_sessions')
+            .select('student_id, score, accuracy, game_type_id, completed')
+            .eq('completed', true);
+
+        if (sessionsError) throw sessionsError;
+
+        // Calculate total points and average accuracy
+        const totalPoints = gameSessions?.reduce((sum, s) => sum + (s.score || 0), 0) || 0;
+        const avgAccuracy = gameSessions?.length
+            ? Math.round(gameSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / gameSessions.length)
+            : 0;
+
+        // 8. Top Parallels by points
+        const parallelStats = new Map<string, { points: number; sessions: number; accuracies: number[] }>();
+        gameSessions?.forEach(session => {
+            const student = allUsers?.find(u => u.user_id === session.student_id);
+            if (student?.parallel_id) {
+                const current = parallelStats.get(student.parallel_id) || { points: 0, sessions: 0, accuracies: [] };
+                current.points += session.score || 0;
+                current.sessions += 1;
+                current.accuracies.push(session.accuracy || 0);
+                parallelStats.set(student.parallel_id, current);
+            }
+        });
+
+        const topParallels = Array.from(parallelStats.entries())
+            .map(([parallelId, stats]) => {
+                const parallel = allParallels?.find(p => p.parallel_id === parallelId);
+                const studentCount = allUsers?.filter(u => u.parallel_id === parallelId && u.role === 'estudiante').length || 0;
+                const avgAcc = stats.accuracies.length
+                    ? Math.round(stats.accuracies.reduce((a, b) => a + b, 0) / stats.accuracies.length)
+                    : 0;
+
+                return {
+                    parallel_id: parallelId,
+                    parallel_name: parallel?.name || 'Desconocido',
+                    total_sessions: stats.sessions,
+                    total_points: stats.points,
+                    avg_accuracy: avgAcc,
+                    student_count: studentCount
+                };
+            })
+            .sort((a, b) => b.total_points - a.total_points)
+            .slice(0, 5);
+
+        // 9. Top Teachers by their students' sessions
+        const teacherStats = new Map<string, { sessions: number; parallels: Set<string>; accuracies: number[] }>();
+
+        gameSessions?.forEach(session => {
+            const student = allUsers?.find(u => u.user_id === session.student_id);
+            if (student?.parallel_id) {
+                const teacherIds = allTeacherRels?.filter(rel => rel.parallel_id === student.parallel_id).map(rel => rel.teacher_id) || [];
+                teacherIds.forEach(teacherId => {
+                    const current = teacherStats.get(teacherId) || { sessions: 0, parallels: new Set(), accuracies: [] };
+                    current.sessions += 1;
+                    current.parallels.add(student.parallel_id);
+                    current.accuracies.push(session.accuracy || 0);
+                    teacherStats.set(teacherId, current);
+                });
+            }
+        });
+
+        const topTeachers = Array.from(teacherStats.entries())
+            .map(([teacherId, stats]) => {
+                const teacher = allUsers?.find(u => u.user_id === teacherId);
+                const avgAcc = stats.accuracies.length
+                    ? Math.round(stats.accuracies.reduce((a, b) => a + b, 0) / stats.accuracies.length)
+                    : 0;
+
+                return {
+                    teacher_id: teacherId,
+                    teacher_name: teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Desconocido',
+                    parallel_count: stats.parallels.size,
+                    total_sessions: stats.sessions,
+                    avg_accuracy: avgAcc
+                };
+            })
+            .sort((a, b) => b.total_sessions - a.total_sessions)
+            .slice(0, 5);
+
+        // 10. Game usage statistics
+        const { data: gameTypes, error: gameTypesError } = await supabase
+            .from('game_types')
+            .select('game_type_id, name');
+
+        if (gameTypesError) throw gameTypesError;
+
+        const gameUsageMap = new Map<string, { sessions: number; scores: number[]; accuracies: number[] }>();
+        gameSessions?.forEach(session => {
+            if (session.game_type_id) {
+                const current = gameUsageMap.get(session.game_type_id) || { sessions: 0, scores: [], accuracies: [] };
+                current.sessions += 1;
+                current.scores.push(session.score || 0);
+                current.accuracies.push(session.accuracy || 0);
+                gameUsageMap.set(session.game_type_id, current);
+            }
+        });
+
+        const gameUsage = Array.from(gameUsageMap.entries())
+            .map(([gameTypeId, stats]) => {
+                const gameType = gameTypes?.find(gt => gt.game_type_id === gameTypeId);
+                const avgScore = stats.scores.length
+                    ? Math.round(stats.scores.reduce((a, b) => a + b, 0) / stats.scores.length)
+                    : 0;
+                const avgAcc = stats.accuracies.length
+                    ? Math.round(stats.accuracies.reduce((a, b) => a + b, 0) / stats.accuracies.length)
+                    : 0;
+
+                return {
+                    game_name: gameType?.name || 'Desconocido',
+                    total_sessions: stats.sessions,
+                    avg_score: avgScore,
+                    avg_accuracy: avgAcc
+                };
+            })
+            .sort((a, b) => b.total_sessions - a.total_sessions);
+
         return NextResponse.json({
-            userMetrics,
-            parallelsList,
-            studentReport,
-            systemUsage
+            global: {
+                total_teachers: userMetrics.byRole.teachers,
+                total_students: userMetrics.byRole.students,
+                total_parallels: allParallels?.length || 0,
+                total_sessions: totalSessions || 0,
+                total_points: totalPoints,
+                avg_accuracy: avgAccuracy
+            },
+            topParallels,
+            topTeachers,
+            gameUsage
         });
 
     } catch (error: any) {

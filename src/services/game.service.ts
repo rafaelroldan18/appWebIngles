@@ -12,7 +12,9 @@ export class GameService {
      * Obtiene todos los tipos de juegos disponibles
      */
     static async getGameTypes(): Promise<GameType[]> {
-        const response = await fetch('/api/games/types');
+        const response = await fetch('/api/games/types', {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener tipos de juegos');
@@ -26,7 +28,9 @@ export class GameService {
      * @param activeOnly - Si es true, solo devuelve misiones activas (default: true)
      */
     static async getAvailability(parallelId: string, activeOnly: boolean = true): Promise<GameAvailability[]> {
-        const response = await fetch(`/api/games/availability?parallelId=${parallelId}&activeOnly=${activeOnly}&_t=${Date.now()}`);
+        const response = await fetch(`/api/games/availability?parallelId=${parallelId}&activeOnly=${activeOnly}&_t=${Date.now()}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener disponibilidad de juegos');
@@ -38,7 +42,9 @@ export class GameService {
      * Obtiene el contenido de un juego para un tema
      */
     static async getGameContent(topicId: string): Promise<GameContent[]> {
-        const response = await fetch(`/api/games/content?topicId=${topicId}`);
+        const response = await fetch(`/api/games/content?topicId=${topicId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener contenido del juego');
@@ -54,6 +60,7 @@ export class GameService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
         if (!response.ok) {
             const error = await response.json();
@@ -70,6 +77,7 @@ export class GameService {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
         if (!response.ok) {
             const error = await response.json();
@@ -82,7 +90,9 @@ export class GameService {
      * Obtiene el progreso de un estudiante
      */
     static async getProgress(studentId: string): Promise<StudentProgress> {
-        const response = await fetch(`/api/progress?studentId=${studentId}`);
+        const response = await fetch(`/api/progress?studentId=${studentId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener progreso del estudiante');
@@ -94,7 +104,9 @@ export class GameService {
      * Obtiene las sesiones de juego de un estudiante
      */
     static async getSessions(studentId: string): Promise<GameSession[]> {
-        const response = await fetch(`/api/games/sessions?studentId=${studentId}`);
+        const response = await fetch(`/api/games/sessions?studentId=${studentId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener sesiones de juego');

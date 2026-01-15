@@ -2,7 +2,9 @@ import type { Usuario, UserRole, AccountStatus } from '@/types';
 
 export class UserService {
   static async getAll(): Promise<Usuario[]> {
-    const response = await fetch('/api/users');
+    const response = await fetch('/api/users', {
+      credentials: 'include'
+    });
 
     if (!response.ok) {
       const error = await response.json();
@@ -13,7 +15,9 @@ export class UserService {
   }
 
   static async getByRole(role: UserRole): Promise<Usuario[]> {
-    const response = await fetch(`/api/users?role=${role}`);
+    const response = await fetch(`/api/users?role=${role}`, {
+      credentials: 'include'
+    });
 
     if (!response.ok) {
       const error = await response.json();
@@ -28,6 +32,7 @@ export class UserService {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ account_status: status }),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -47,6 +52,7 @@ export class UserService {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -62,6 +68,7 @@ export class UserService {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: role }),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -73,6 +80,7 @@ export class UserService {
   static async delete(userId: string) {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'DELETE',
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -82,7 +90,9 @@ export class UserService {
   }
 
   static async getStats() {
-    const response = await fetch('/api/users/stats');
+    const response = await fetch('/api/users/stats', {
+      credentials: 'include'
+    });
 
     if (!response.ok) {
       const error = await response.json();

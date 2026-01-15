@@ -5,7 +5,9 @@ export class ParallelService {
      * Get all parallels
      */
     static async getAll(): Promise<Parallel[]> {
-        const response = await fetch('/api/parallels');
+        const response = await fetch('/api/parallels', {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();
@@ -19,7 +21,9 @@ export class ParallelService {
      * Get parallel by ID
      */
     static async getById(parallelId: string): Promise<Parallel> {
-        const response = await fetch(`/api/parallels/${parallelId}`);
+        const response = await fetch(`/api/parallels/${parallelId}`, {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();
@@ -33,7 +37,9 @@ export class ParallelService {
      * Get parallels with statistics
      */
     static async getAllWithStats(): Promise<ParallelWithStats[]> {
-        const response = await fetch('/api/parallels?include_stats=true');
+        const response = await fetch('/api/parallels?include_stats=true', {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();
@@ -51,6 +57,7 @@ export class ParallelService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -69,6 +76,7 @@ export class ParallelService {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -85,6 +93,7 @@ export class ParallelService {
     static async delete(parallelId: string): Promise<void> {
         const response = await fetch(`/api/parallels/${parallelId}`, {
             method: 'DELETE',
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -97,7 +106,9 @@ export class ParallelService {
      * Get parallels assigned to a teacher
      */
     static async getByTeacher(teacherId: string): Promise<Parallel[]> {
-        const response = await fetch(`/api/parallels/teacher/${teacherId}`);
+        const response = await fetch(`/api/parallels/teacher/${teacherId}`, {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();
@@ -115,6 +126,7 @@ export class ParallelService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ teacher_id: teacherId, parallel_id: parallelId }),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -133,6 +145,7 @@ export class ParallelService {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ teacher_id: teacherId, parallel_id: parallelId }),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -145,7 +158,9 @@ export class ParallelService {
      * Get parallels assigned to a teacher (with details)
      */
     static async getTeacherParallels(teacherId: string): Promise<Parallel[]> {
-        const response = await fetch(`/api/parallels/teacher/${teacherId}`);
+        const response = await fetch(`/api/parallels/teacher/${teacherId}`, {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();
@@ -163,6 +178,7 @@ export class ParallelService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ teacher_id: teacherId, parallel_ids: parallelIds }),
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -175,7 +191,9 @@ export class ParallelService {
      * Get students in a parallel
      */
     static async getStudents(parallelId: string) {
-        const response = await fetch(`/api/parallels/${parallelId}/students`);
+        const response = await fetch(`/api/parallels/${parallelId}/students`, {
+            credentials: 'include'
+        });
 
         if (!response.ok) {
             const error = await response.json();

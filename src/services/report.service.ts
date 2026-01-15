@@ -10,7 +10,9 @@ export class ReportService {
      * Obtiene todas las definiciones de reportes disponibles
      */
     static async getDefinitions(): Promise<ReportDefinition[]> {
-        const response = await fetch('/api/reports/definitions');
+        const response = await fetch('/api/reports/definitions', {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener definiciones de reportes');
@@ -26,6 +28,7 @@ export class ReportService {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data),
+            credentials: 'include'
         });
         if (!response.ok) {
             const error = await response.json();
@@ -38,7 +41,9 @@ export class ReportService {
      * Obtiene el resultado (snapshot) de una ejecución de reporte
      */
     static async getSnapshot(runId: string): Promise<ReportSnapshot> {
-        const response = await fetch(`/api/reports/snapshots/${runId}`);
+        const response = await fetch(`/api/reports/snapshots/${runId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener resultado del reporte');
@@ -50,7 +55,9 @@ export class ReportService {
      * Obtiene el historial de ejecuciones de un reporte específico
      */
     static async getRunHistory(reportId: string): Promise<ReportRun[]> {
-        const response = await fetch(`/api/reports/history?reportId=${reportId}`);
+        const response = await fetch(`/api/reports/history?reportId=${reportId}`, {
+            credentials: 'include'
+        });
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Error al obtener historial de reportes');
