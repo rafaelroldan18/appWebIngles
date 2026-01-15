@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trophy, BookOpen, Award, Target, TrendingUp, Users, Gamepad2, ChevronRight, CheckCircle2, Lock, Star, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,13 +14,36 @@ import { colors, getCardClasses } from '@/config/colors';
 
 interface EstudianteDashboardProps {
   onLogout: () => void;
+  isPreviewMode?: boolean;
 }
 
-export default function EstudianteDashboard({ onLogout }: EstudianteDashboardProps) {
+export default function EstudianteDashboard({ onLogout, isPreviewMode = false }: EstudianteDashboardProps) {
   const router = useRouter();
   const { usuario, signOut } = useAuth();
   const { t } = useLanguage();
-  const { stats, availableGames, loading: dashboardLoading } = useStudentDashboard(usuario?.user_id, usuario?.parallel_id || undefined);
+
+  // When in preview mode and user is a teacher, get their first parallel for demo
+  const [demoParallelId, setDemoParallelId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (isPreviewMode && usuario?.role === 'docente' && usuario?.user_id) {
+      // Load teacher's parallels to use the first one for demo
+      import('@/services/parallel.service').then(({ ParallelService }) => {
+        ParallelService.getTeacherParallels(usuario.user_id).then(parallels => {
+          if (parallels.length > 0) {
+            setDemoParallelId(parallels[0].parallel_id);
+          }
+        }).catch(err => {
+          console.error('Error loading teacher parallels for preview:', err);
+        });
+      });
+    }
+  }, [isPreviewMode, usuario]);
+
+  // Use demo parallel if in preview mode, otherwise use user's parallel
+  const effectiveParallelId = isPreviewMode ? demoParallelId : usuario?.parallel_id;
+
+  const { stats, availableGames, loading: dashboardLoading } = useStudentDashboard(usuario?.user_id, effectiveParallelId || undefined);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentView, setCurrentView] = useState<'dashboard' | 'profile' | 'settings' | 'gamification' | 'reports'>('dashboard');
 
@@ -71,7 +94,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
             <h2 className="text-2xl font-bold">{t.student.dashboard.myGames}</h2>
             <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-slate-200 dark:bg-gray-700 rounded-lg font-bold">{t.student.dashboard.back}</button>
           </div>
-          <StudentGames studentId={usuario?.user_id || ''} parallelId={usuario?.parallel_id || ''} />
+          <StudentGames studentId={usuario?.user_id || ''} parallelId={effectiveParallelId || ''} />
         </div>
       ) : currentView === 'reports' ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -79,7 +102,7 @@ export default function EstudianteDashboard({ onLogout }: EstudianteDashboardPro
             <h2 className="text-2xl font-bold">{t.student.dashboard.myStats}</h2>
             <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-slate-200 dark:bg-gray-700 rounded-lg font-bold">{t.student.dashboard.back}</button>
           </div>
-          <StudentReport studentId={usuario?.user_id || ''} parallelId={usuario?.parallel_id || ''} />
+          <StudentReport studentId={usuario?.user_id || ''} parallelId={effectiveParallelId || ''} />
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

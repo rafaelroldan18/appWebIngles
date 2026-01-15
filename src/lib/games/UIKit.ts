@@ -343,73 +343,82 @@ export function showModal(
         message,
         buttons = [{ label: 'OK', onClick: () => { }, isPrimary: true }],
         width = 500,
-        height = 300,
+        height = 360,
         closeOnBackdrop = true
     } = options;
 
     const { width: screenWidth, height: screenHeight } = scene.cameras.main;
-    const container = scene.add.container(0, 0);
+    const container = scene.add.container(screenWidth / 2, screenHeight / 2);
     container.setDepth(3000);
 
-    // Fondo oscuro (backdrop)
-    const backdrop = scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    // Fondo oscuro (backdrop) - Relative to screen
+    const backdrop = scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7)
+        .setInteractive()
+        .setScrollFactor(0)
+        .setPosition(0, 0); // Position at container's center relative to screen
+
+    // Note: backdrop needs to be moved to cover the whole screen, but container is at center.
+    // So we offset backdrop by -center.
+    backdrop.setX(-screenWidth / 2);
+    backdrop.setY(-screenHeight / 2);
     backdrop.setOrigin(0);
+
     if (closeOnBackdrop) {
-        backdrop.setInteractive();
         backdrop.on('pointerdown', () => {
             container.destroy();
         });
     }
 
-    // Panel del modal
+    // Panel del modal - Centered in container (which is screen center)
     const panel = createPanel(
         scene,
         'common-ui/panels/panel_modal',
-        screenWidth / 2,
-        screenHeight / 2,
+        0, 0,
         width,
         height
     );
 
+    // Layout inside modal (Relative to container center 0,0)
+    let currentY = -height / 2 + 60;
+
     // Título (si existe)
-    let yOffset = screenHeight / 2 - height / 2 + 60;
     if (title) {
-        const titleText = scene.add.text(screenWidth / 2, yOffset, title, {
+        const titleText = scene.add.text(0, currentY, title, {
             fontSize: '32px',
-            fontFamily: 'Arial Black',
-            color: '#FFD700',
+            fontFamily: 'Fredoka',
+            color: '#fbbf24',
             stroke: '#000000',
-            strokeThickness: 6
-        });
-        titleText.setOrigin(0.5);
+            strokeThickness: 6,
+            align: 'center'
+        }).setOrigin(0.5);
         container.add(titleText);
-        yOffset += 60;
+        currentY += 70;
     }
 
     // Mensaje
-    const messageText = scene.add.text(screenWidth / 2, yOffset, message, {
-        fontSize: '20px',
-        fontFamily: 'Arial',
+    const messageText = scene.add.text(0, currentY, message, {
+        fontSize: '22px',
+        fontFamily: 'Fredoka',
         color: '#FFFFFF',
         stroke: '#000000',
         strokeThickness: 3,
         align: 'center',
         wordWrap: { width: width - 80 }
-    });
-    messageText.setOrigin(0.5);
+    }).setOrigin(0.5);
+    container.add(messageText);
 
     // Botones
-    const buttonSpacing = 150;
-    const totalButtonWidth = buttons.length * buttonSpacing;
-    const startX = screenWidth / 2 - totalButtonWidth / 2 + buttonSpacing / 2;
-    const buttonY = screenHeight / 2 + height / 2 - 60;
+    const buttonSpacing = 160;
+    const totalButtonWidth = (buttons.length - 1) * buttonSpacing;
+    const startX = -totalButtonWidth / 2;
+    const buttonY = height / 2 - 70;
 
     const buttonContainers = buttons.map((btn, index) => {
         const buttonFrame = btn.isPrimary
             ? 'common-ui/buttons/btn_primary'
             : 'common-ui/buttons/btn_secondary';
 
-        return createButton(
+        const btnObj = createButton(
             scene,
             buttonFrame,
             startX + index * buttonSpacing,
@@ -419,22 +428,23 @@ export function showModal(
                 btn.onClick();
                 container.destroy();
             },
-            { scale: 1.5, fontSize: '18px' }
+            {
+                width: buttons.length > 1 ? 140 : 180,
+                height: 60,
+                fontSize: '20px'
+            }
         );
+        return btnObj;
     });
 
     container.add([backdrop, panel, messageText, ...buttonContainers]);
 
     // Animación de entrada
     container.setAlpha(0);
-    panel.setScale(0.5);
+    container.setScale(0.8);
     scene.tweens.add({
         targets: container,
         alpha: 1,
-        duration: 200
-    });
-    scene.tweens.add({
-        targets: panel,
         scale: 1,
         duration: 300,
         ease: 'Back.easeOut'
@@ -561,23 +571,37 @@ export function createProgressBar(
  * @param scene - La escena de Phaser
  * @param onDone - Callback opcional al cerrar el modal
  */
-export function showFullscreenRequest(scene: Phaser.Scene, onDone?: () => void) {
+export function showFullscreenRequest(
+    scene: Phaser.Scene,
+    onDone?: () => void,
+    options: { title?: string; message?: string; buttonLabel?: string } = {}
+) {
     // Si ya está en pantalla completa (por un reinicio de escena, por ejemplo), no preguntar de nuevo
     if (scene.scale.isFullscreen) {
         if (onDone) onDone();
         return;
     }
 
+    const {
+        title = 'FULLSCREEN',
+        message = 'Enable fullscreen mode for a better experience?',
+        buttonLabel = 'START!'
+    } = options;
+
     return showModal(scene, {
-        title: 'PANTALLA COMPLETA',
-        message: '¿Permitir poner en pantalla completa el juego?',
+        title,
+        message,
         buttons: [
             {
-                label: 'OK',
+                label: buttonLabel,
                 isPrimary: true,
                 onClick: () => {
-                    if (!scene.scale.isFullscreen) {
-                        scene.scale.startFullscreen();
+                    try {
+                        if (!scene.scale.isFullscreen) {
+                            scene.scale.startFullscreen();
+                        }
+                    } catch (e) {
+                        console.warn('Fullscreen failed:', e);
                     }
                     if (onDone) onDone();
                 }

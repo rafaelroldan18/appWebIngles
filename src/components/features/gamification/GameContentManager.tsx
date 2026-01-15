@@ -138,13 +138,13 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
             if (response.ok) {
                 const data = await response.json();
                 updateFormRow(rowIndex, 'image_url', data.url);
-                success('Imagen subida correctamente');
+                success(t.gamification.content.messages.imageUploadSuccess);
             } else {
-                toastError('Error al subir la imagen');
+                toastError(t.gamification.content.messages.imageUploadError);
             }
         } catch (error) {
             console.error('Error uploading image:', error);
-            toastError('Error inesperado al subir imagen');
+            toastError(t.gamification.content.messages.unexpectedError);
         } finally {
             setUploadingRowIndex(null);
         }
@@ -165,7 +165,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
     };
 
     const clearAllRows = () => {
-        if (confirm('¿Estás seguro de que deseas limpiar todas las filas?')) {
+        if (confirm(t.gamification.content.messages.confirmClearRows)) {
             setFormRows([{}]);
             setValidation({ isValid: true, errors: [], errorsByRow: new Map() });
         }
@@ -181,7 +181,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
         e.preventDefault();
 
         if (!selectedTopic) {
-            toastError('Por favor selecciona un tema', 'Faltan datos');
+            toastError(t.gamification.content.messages.selectTopic, t.gamification.content.messages.missingData);
             return;
         }
 
@@ -193,7 +193,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
         if (!validationResult.isValid) {
             const summary = getValidationSummary(validationResult);
-            toastError(`Hay errores en el formulario:\n${summary}`, 'Validación fallida');
+            toastError(`${t.gamification.content.messages.formErrors}:\n${summary}`, t.gamification.content.messages.validationFailed);
             return;
         }
 
@@ -264,14 +264,14 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
             if (response.ok) {
                 await loadContent();
                 resetForm();
-                success('Contenido guardado exitosamente');
+                success(t.gamification.content.messages.saveSuccess);
             } else {
                 const errorData = await response.json();
-                toastError(`Error: ${errorData.error || 'No se pudo guardar el contenido'}`, 'Error al guardar');
+                toastError(`Error: ${errorData.error || t.gamification.content.messages.saveError}`, t.gamification.content.messages.saveError);
             }
         } catch (error) {
             console.error('Error saving content:', error);
-            toastError('Error inesperado al guardar contenido');
+            toastError(t.gamification.content.messages.unexpectedError);
         }
     };
 
@@ -311,7 +311,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
     };
 
     const handleDelete = async (contentId: string, skipConfirm: boolean = false) => {
-        if (!skipConfirm && !confirm('¿Estás seguro de eliminar este contenido?')) return;
+        if (!skipConfirm && !confirm(t.gamification.content.messages.deleteConfirm)) return;
 
         try {
             const response = await fetch(`/api/games/content/${contentId}`, {
@@ -320,13 +320,13 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
             if (response.ok) {
                 await loadContent();
-                if (!skipConfirm) success('Contenido eliminado correctamente');
+                if (!skipConfirm) success(t.gamification.content.messages.deleteSuccess);
             } else {
-                toastError('Error al eliminar el contenido');
+                toastError(t.gamification.content.messages.deleteError);
             }
         } catch (error) {
             console.error('Error deleting content:', error);
-            toastError('Error inesperado al eliminar');
+            toastError(t.gamification.content.messages.unexpectedError);
         }
     };
 
@@ -338,7 +338,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
     const handleGenerateWithAI = async () => {
         if (!selectedTopic) {
-            alert('Por favor selecciona un tema primero');
+            alert(t.gamification.content.messages.selectTopic);
             return;
         }
 
@@ -347,7 +347,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
             // Obtener el título del tema
             const topic = topics.find(t => t.topic_id === selectedTopic);
             if (!topic) {
-                toastError('Tema no encontrado');
+                toastError(t.gamification.content.messages.topicNotFound);
                 return;
             }
 
@@ -366,8 +366,8 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
 
             // Mostrar advertencias si las hay
             if (result.validation?.hasWarnings) {
-                const warningMsg = `Se generó el contenido pero con algunas advertencias:\n${result.validation.warnings.join('\n')}`;
-                warning(warningMsg, 'Advertencia de IA');
+                const warningMsg = `${t.gamification.content.messages.aiWarningDetail}\n${result.validation.warnings.join('\n')}`;
+                warning(warningMsg, t.gamification.content.messages.aiWarning);
             }
 
             // Convertir el contenido generado al formato de formRows
@@ -408,15 +408,15 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
             setShowAIModal(false);
 
             const successMsg = result.validation?.wasAutoCorrected
-                ? `Se generaron ${result.count} elementos con IA (con correcciones automáticas). Revisa y edita si es necesario antes de guardar.`
-                : `Se generaron ${result.count} elementos con IA. Revisa y edita si es necesario antes de guardar.`;
+                ? t.gamification.content.messages.aiSuccessAuto.replace('{count}', result.count.toString())
+                : t.gamification.content.messages.aiSuccess.replace('{count}', result.count.toString());
 
-            success(successMsg, 'Generación completada');
+            success(successMsg, t.gamification.content.messages.aiGenerationCompleted);
 
         } catch (error) {
             console.error('Error generando con IA:', error);
-            const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
-            toastError(`Error al generar con IA: ${errorMsg}`, 'Fallo en generación');
+            const errorMsg = error instanceof Error ? error.message : t.gamification.content.messages.unexpectedError;
+            toastError(`${t.gamification.content.messages.generationFailed}: ${errorMsg}`, t.gamification.content.messages.generationFailed);
         } finally {
             setIsGeneratingAI(false);
         }
@@ -580,7 +580,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                     <button
                         onClick={() => {
                             if (isAdding && formRows.length > 1 && !editingId) {
-                                if (!confirm('¿Cerrar el formulario? Se perderán los datos no guardados.')) return;
+                                if (!confirm(t.gamification.content.messages.confirmCloseForm)) return;
                             }
                             setIsAdding(!isAdding);
                             if (editingId) setEditingId(null);
@@ -639,8 +639,8 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                         <button
                                             type="button"
                                             onClick={() => removeFormRow(rowIndex)}
-                                            className="absolute -right-2.5 -top-2.5 w-8 h-8 bg-white dark:bg-slate-900 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm border-2 border-slate-100 dark:border-gray-800"
-                                            title="Eliminar esta fila"
+                                            className="absolute -right-2.5 -top-2.5 w-8 h-8 bg-white dark:bg-slate-900 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm border-2 border-slate-100 dark:border-gray-700"
+                                            title={t.gamification.table.actions}
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -682,7 +682,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                                 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/40 px-3 py-1 rounded-xl transition-all border border-indigo-100 dark:border-indigo-800 shadow-sm"
                                                             >
                                                                 <PlusCircle className="w-4 h-4" />
-                                                                Insertar espacio (___)
+                                                                {t.gamification.content.insertSpace}
                                                             </button>
                                                         )}
                                                     </div>
@@ -697,7 +697,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                                     ? 'border-red-500 ring-1 ring-red-500/20 text-red-700 dark:text-red-400'
                                                                     : 'border-slate-100 dark:border-gray-700 text-slate-700 dark:text-white'
                                                                     } placeholder:font-normal placeholder:text-slate-400`}
-                                                                placeholder={field.placeholder}
+                                                                placeholder={fieldInfo.placeholder || field.placeholder}
                                                                 required={field.required}
                                                             />
                                                             {hasFieldError(validation, rowIndex, field.name) && (
@@ -718,7 +718,7 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                                     ? 'border-red-500 ring-1 ring-red-500/20 text-red-700 dark:text-red-400'
                                                                     : 'border-slate-100 dark:border-gray-700 text-slate-700 dark:text-white'
                                                                     } placeholder:font-normal placeholder:text-slate-400`}
-                                                                placeholder={field.placeholder}
+                                                                placeholder={fieldInfo.placeholder || field.placeholder}
                                                                 required={field.required}
                                                             />
                                                             {hasFieldError(validation, rowIndex, field.name) && (
@@ -1057,14 +1057,14 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                                                         <button
                                                             onClick={() => handleEdit(item)}
                                                             className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all"
-                                                            title="Editar"
+                                                            title={t.gamification.table.edit}
                                                         >
                                                             <Edit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDelete(item.content_id)}
                                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                                                            title="Eliminar"
+                                                            title={t.gamification.table.delete}
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
@@ -1080,23 +1080,23 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                             <div className={`px-6 py-4 ${gameColors.bg} border-t-2 ${gameColors.border}`}>
                                 <div className="flex items-center justify-between">
                                     <p className={`text-sm font-bold ${gameColors.text}`}>
-                                        Total: {content.length} {content.length === 1 ? 'item' : 'items'}
+                                        {t.gamification.table.total}: {content.length} {content.length === 1 ? t.gamification.table.item : t.gamification.table.items}
                                     </p>
                                     {selectedContent.length > 0 && (
                                         <button
                                             onClick={async () => {
-                                                if (confirm(`¿Eliminar ${selectedContent.length} contenido(s)?`)) {
+                                                if (confirm(t.gamification.content.messages.deleteSelectedConfirm.replace('{count}', selectedContent.length.toString()))) {
                                                     for (const id of selectedContent) {
                                                         await handleDelete(id, true);
                                                     }
                                                     setSelectedContent([]);
-                                                    success(`${selectedContent.length} contenido(s) eliminado(s) correctamente`);
+                                                    success(t.gamification.content.messages.deleteSelectedSuccess.replace('{count}', selectedContent.length.toString()));
                                                 }
                                             }}
                                             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            Eliminar {selectedContent.length} seleccionado(s)
+                                            {t.gamification.content.messages.deleteSelected.replace('{count}', selectedContent.length.toString())}
                                         </button>
                                     )}
                                     <div className="flex items-center gap-4 text-xs">

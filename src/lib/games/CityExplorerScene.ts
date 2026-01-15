@@ -28,6 +28,7 @@ export class CityExplorerScene extends Phaser.Scene {
     private sessionManager: GameSessionManager | null = null;
     private mapData: { checkpoints: CityExplorerLocationItem[] } | null = null;
     private missionConfig: MissionConfig | undefined;
+    private translations: any = null;
 
     // Game objects
     private player!: Phaser.GameObjects.Image;
@@ -65,8 +66,14 @@ export class CityExplorerScene extends Phaser.Scene {
 
     private initData: any = null;
 
-    init(data: any) {
+    init(data: {
+        sessionManager: GameSessionManager;
+        map?: any;
+        missionConfig?: MissionConfig;
+        translations?: any;
+    }) {
         this.initData = data;
+        this.translations = data.translations || null;
         this.sessionManager = data.sessionManager;
         this.mapData = data.map || { checkpoints: [] };
         this.missionConfig = data.missionConfig;
@@ -133,6 +140,10 @@ export class CityExplorerScene extends Phaser.Scene {
             this.isAnswering = true; // Bloquear movimiento inicialmente
             showFullscreenRequest(this, () => {
                 this.isAnswering = false; // Desbloquear al cerrar
+            }, {
+                title: this.translations?.fullscreenTitle,
+                message: this.translations?.fullscreenPrompt,
+                buttonLabel: this.translations?.fullscreenStart
             });
 
             console.log('[CityExplorer] Scene Created. Player at:', this.player.x, this.player.y);
@@ -610,31 +621,33 @@ export class CityExplorerScene extends Phaser.Scene {
         // 1. Fondo Atenuado
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.85).setInteractive();
 
-        // 2. Panel Principal (ui_atlas)
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, 650, 550);
+        // 2. Panel Principal (ui_atlas) - Reduced size
+        const bgWidth = 520;
+        const bgHeight = 450;
+        const panel = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
 
-        // 3. Icono de Recompensa (Trophy)
-        const trophy = this.add.image(0, -90, 'ui_atlas', 'common-ui/rewards/trophy')
-            .setScale(1.8)
+        // 3. Icono de Recompensa (Trophy) - Smaller
+        const trophy = this.add.image(0, -70, 'ui_atlas', 'common-ui/rewards/trophy')
+            .setScale(1.4)
             .setDepth(8001);
 
-        // Efecto de brillo detrás del trofeo
-        const glow = this.add.image(0, -90, 'ui_atlas', 'common-ui/fx/fx_glow')
-            .setScale(2.5)
+        // Efecto de brillo detrás del trofeo - Smaller
+        const glow = this.add.image(0, -70, 'ui_atlas', 'common-ui/fx/fx_glow')
+            .setScale(2.0)
             .setAlpha(0.6)
             .setTint(0xffcc00);
 
-        // 4. Título
-        const title = this.add.text(0, -210, 'CITY EXPLORED!', {
-            fontSize: '52px',
+        // 4. Título - Smaller and repositioned
+        const title = this.add.text(0, -175, 'CITY EXPLORED!', {
+            fontSize: '40px',
             fontFamily: 'Fredoka',
             color: '#fbbf24',
             stroke: '#000000',
-            strokeThickness: 10
+            strokeThickness: 8
         }).setOrigin(0.5);
 
-        // 5. Estadísticas
-        const statsContainer = this.add.container(0, 50);
+        // 5. Estadísticas - Smaller and repositioned
+        const statsContainer = this.add.container(0, 40);
         const stats = [
             { label: 'CHECKPOINTS', value: `${payload.correctCount}/${this.requiredCheckpoints}` },
             { label: 'ACCURACY', value: `${payload.accuracy}%` },
@@ -642,21 +655,21 @@ export class CityExplorerScene extends Phaser.Scene {
         ];
 
         stats.forEach((item, idx) => {
-            const y = idx * 45;
-            const labelText = this.add.text(-120, y, item.label, {
-                fontSize: '22px', fontFamily: 'Fredoka', color: '#94a3b8'
+            const y = idx * 40;
+            const labelText = this.add.text(-100, y, item.label, {
+                fontSize: '20px', fontFamily: 'Fredoka', color: '#94a3b8'
             }).setOrigin(0, 0.5);
 
-            const valueText = this.add.text(120, y, item.value.toString(), {
-                fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', fontStyle: 'bold'
+            const valueText = this.add.text(100, y, item.value.toString(), {
+                fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(1, 0.5);
 
             statsContainer.add([labelText, valueText]);
         });
 
-        // 6. Botones (Consistentes)
-        const resultsBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, 190, 'RESULTS', () => {
-            // Salir de pantalla completa al volver a la web
+        // 6. Botones (Consistentes) - Smaller
+        const btnY = 165;
+        const resultsBtn = createButton(this, 'common-ui/buttons/btn_secondary', -125, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
             }
@@ -666,11 +679,11 @@ export class CityExplorerScene extends Phaser.Scene {
             this.game.events.emit('gameOver', payload);
             this.game.events.emit('game-over', payload);
             this.game.events.emit('GAME_OVER', payload);
-        }, { width: 240, height: 75 });
+        }, { width: 190, height: 60 });
 
-        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, 190, 'REPEAT', () => {
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 125, btnY, 'REPEAT', () => {
             this.scene.restart(this.initData);
-        }, { width: 240, height: 75 });
+        }, { width: 190, height: 60 });
 
         container.add([dim, panel, glow, trophy, title, statsContainer, resultsBtn, replayBtn]);
 
@@ -686,7 +699,7 @@ export class CityExplorerScene extends Phaser.Scene {
         // Animación sutil del trofeo
         this.tweens.add({
             targets: trophy,
-            y: -100,
+            y: -80,
             duration: 1500,
             yoyo: true,
             repeat: -1,

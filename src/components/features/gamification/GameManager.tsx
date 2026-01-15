@@ -32,7 +32,7 @@ interface GameManagerProps {
 
 export default function GameManager({ teacherId, onViewReport }: GameManagerProps) {
     const { toast, success, error: toastError } = useToast();
-    const { t } = useLanguage();
+    const { t, locale } = useLanguage();
     const [parallels, setParallels] = useState<Parallel[]>([]);
     const [selectedParallel, setSelectedParallel] = useState<string>('');
     const [availability, setAvailability] = useState<GameAvailability[]>([]);
@@ -196,7 +196,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
     };
 
     const handleDeleteMission = async (availabilityId: string, skipConfirm: boolean = false) => {
-        if (!skipConfirm && !confirm('¿Estás seguro de que deseas eliminar esta misión?')) return;
+        if (!skipConfirm && !confirm(t.gamification.mission.messages.deleteConfirm)) return;
 
         try {
             const response = await fetch(`/api/games/availability/${availabilityId}`, {
@@ -210,11 +210,11 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                     setIsAssigning(false);
                     setEditingMissionId(null);
                 }
-                if (!skipConfirm) success('Misión eliminada correctamente');
+                if (!skipConfirm) success(t.gamification.mission.messages.deleteSuccess);
             } else {
                 const errorData = await response.json();
                 console.error('[GameManager] Delete failed:', errorData);
-                toastError(`Error al eliminar la misión: ${errorData.error || 'Intente de nuevo'}`, 'No se pudo eliminar');
+                toastError(`${t.gamification.mission.messages.deleteError}: ${errorData.error || 'Intente de nuevo'}`, t.gamification.mission.messages.deleteError);
             }
         } catch (error) {
             console.error('Error deleting mission:', error);
@@ -225,7 +225,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
     const handleSubmitMission = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!missionForm.game_type_id || !missionForm.topic_id || !selectedParallel) {
-            toastError('Por favor selecciona un juego y un tema.', 'Faltan datos');
+            toastError(t.gamification.mission.messages.validationError, t.gamification.mission.messages.missingData);
             return;
         }
 
@@ -266,29 +266,34 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
             }
 
             if (!validationResult.valid) {
-                toastError(validationResult.error || 'Contenido inválido para este juego.', 'Error de Validación');
+                toastError(validationResult.error || t.gamification.mission.messages.invalidContent, t.gamification.mission.messages.missingData);
                 return;
             }
 
             if (availableCount < requiredItems && gameTypeName !== 'Word Catcher') {
                 // Word Catcher can repeat items if needed, but others usually shouldn't or have specific limits
                 toastError(
-                    `El tema solo tiene ${availableCount} ítems válidos para ${gameTypeName}. La misión requiere ${requiredItems}. Reduce la cantidad o agrega más contenido.`,
-                    'Contenido Insuficiente'
+                    t.gamification.mission.messages.insufficientContent
+                        .replace('{count}', availableCount.toString())
+                        .replace('{game}', gameTypeName || '')
+                        .replace('{required}', requiredItems.toString()),
+                    t.gamification.mission.messages.insufficientContentTitle
                 );
                 return;
             }
         } catch (error) {
             console.error('Error validating content:', error);
-            toastError('No se pudo verificar el contenido del tema.', 'Error de Validación');
+            toastError(t.gamification.mission.messages.verifyContentError, t.gamification.mission.messages.missingData);
             return;
         }
 
         // Validate dates (client-side check to prevent DB constraint errors)
         if (missionForm.available_until && missionForm.available_until < missionForm.available_from) {
             toastError(
-                `La fecha de finalización (${missionForm.available_until}) no puede ser anterior a la de inicio (${missionForm.available_from}).`,
-                'Error de Fechas'
+                t.gamification.mission.messages.dateError
+                    .replace('{until}', missionForm.available_until)
+                    .replace('{from}', missionForm.available_from),
+                t.gamification.mission.messages.dateErrorTitle
             );
             return;
         }
@@ -369,14 +374,14 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                         city_explorer: { checkpoints_to_complete: 6, attempts_per_challenge: 2, challenge_time_seconds: 45, hint_cost: 5 }
                     }
                 });
-                success(editingMissionId ? 'Misión actualizada correctamente' : 'Misión creada correctamente');
+                success(editingMissionId ? t.gamification.mission.messages.saveSuccess : t.gamification.mission.messages.saveSuccess);
             } else {
                 const err = await response.json();
-                toastError(`Error: ${err.error}`, 'No se pudo guardar');
+                toastError(`Error: ${err.error}`, t.gamification.mission.messages.saveError);
             }
         } catch (error) {
             console.error('Error saving mission:', error);
-            toastError('Error al guardar la misión', 'Intenta de nuevo');
+            toastError(t.gamification.mission.messages.saveError, 'Intente de nuevo');
         }
     };
 
@@ -427,7 +432,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
                 {activeTab === 'misiones' && (
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
-                        <label className="text-xs font-black text-slate-400 px-2 border-r border-slate-100 dark:border-slate-700">Paralelo</label>
+                        <label className="text-xs font-black text-slate-400 px-2 border-r border-slate-100 dark:border-slate-700">{t.gamification.mission.parallel}</label>
                         <select
                             value={selectedParallel}
                             onChange={(e) => setSelectedParallel(e.target.value)}
@@ -635,10 +640,10 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                     {/* Game Specific Minimal Options */}
                                     {['Sentence Builder', 'City Explorer'].includes(gameTypes.find(gt => gt.game_type_id === missionForm.game_type_id)?.name || '') && (
                                         <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
-                                            <h5 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">Ajustes de Juego</h5>
+                                            <h5 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">{t.gamification.mission.gameSettings}</h5>
                                             <div className="flex flex-wrap gap-6">
                                                 <div className="flex-1 min-w-[150px]">
-                                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">Costo de Ayuda (Puntos)</label>
+                                                    <label className="block text-xs font-bold text-slate-600 dark:text-gray-400 mb-1">{t.gamification.mission.hintCost}</label>
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="range"
@@ -763,7 +768,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                     setIsAssigning(true);
                                                 }}
                                                 className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
-                                                title="Limpiar formulario"
+                                                title={t.gamification.mission.clearForm}
                                             >
                                                 <Eraser className="w-4 h-4" />
                                                 {t.gamification.mission.clear}
@@ -781,13 +786,13 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                         {!isAssigning && availability.length > 0 && (
                             <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
                                 <div className="flex items-center gap-3">
-                                    <label className="text-sm font-bold text-slate-700 dark:text-gray-300">Filtrar por tema:</label>
+                                    <label className="text-sm font-bold text-slate-700 dark:text-gray-300">{t.gamification.mission.filterByTopic}</label>
                                     <select
                                         value={topicFilter}
                                         onChange={(e) => setTopicFilter(e.target.value)}
                                         className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-gray-700 rounded-lg text-sm font-medium text-slate-700 dark:text-gray-200"
                                     >
-                                        <option value="" className="bg-white dark:bg-slate-900">Todos los temas</option>
+                                        <option value="" className="bg-white dark:bg-slate-900">{t.gamification.mission.allTopics}</option>
                                         {topics.map(topic => (
                                             <option key={topic.topic_id} value={topic.topic_id} className="bg-white dark:bg-slate-900">{topic.title}</option>
                                         ))}
@@ -796,18 +801,18 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                 {selectedMissions.length > 0 && (
                                     <button
                                         onClick={async () => {
-                                            if (confirm(`¿Eliminar ${selectedMissions.length} misión(es)?`)) {
+                                            if (confirm(t.gamification.mission.deleteSelectedConfirm.replace('{count}', selectedMissions.length.toString()))) {
                                                 for (const id of selectedMissions) {
                                                     await handleDeleteMission(id, true); // Skip individual confirmations
                                                 }
                                                 setSelectedMissions([]);
-                                                success(`${selectedMissions.length} misión(es) eliminada(s) correctamente`);
+                                                success(t.gamification.mission.deleteSelectedSuccess.replace('{count}', selectedMissions.length.toString()));
                                             }
                                         }}
                                         className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
                                     >
                                         <Trash2 className="w-4 h-4" />
-                                        Eliminar {selectedMissions.length} seleccionada(s)
+                                        {t.gamification.mission.deleteSelected.replace('{count}', selectedMissions.length.toString())}
                                     </button>
                                 )}
                             </div>
@@ -866,14 +871,14 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                     <button
                                                         onClick={() => handleEditClick(item)}
                                                         className="p-2 bg-slate-50 dark:bg-gray-800 rounded-xl text-slate-400 hover:text-indigo-600 transition-colors"
-                                                        title="Editar misión"
+                                                        title={t.gamification.table.edit}
                                                     >
                                                         <Settings className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteMission(item.availability_id)}
                                                         className="p-2 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-400 hover:text-rose-600 transition-colors"
-                                                        title="Eliminar misión"
+                                                        title={t.gamification.table.delete}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -910,14 +915,14 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                             <span className="text-[10px] opacity-60">{t.gamification.mission.cards.activated}</span>
                                                             <span>
                                                                 {item.activated_at
-                                                                    ? new Date(item.activated_at).toLocaleString('es-ES', {
+                                                                    ? new Date(item.activated_at).toLocaleString(locale === 'es' ? 'es-ES' : 'en-US', {
                                                                         day: '2-digit',
                                                                         month: '2-digit',
                                                                         year: 'numeric',
                                                                         hour: '2-digit',
                                                                         minute: '2-digit'
                                                                     })
-                                                                    : new Date(item.created_at).toLocaleString('es-ES', {
+                                                                    : new Date(item.created_at).toLocaleString(locale === 'es' ? 'es-ES' : 'en-US', {
                                                                         day: '2-digit',
                                                                         month: '2-digit',
                                                                         year: 'numeric',

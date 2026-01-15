@@ -11,14 +11,20 @@ import { Plus, Trash2, Edit2, Save, X, BookOpen, FileText } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// Loading component for the visual editor
+const EditorLoading = () => {
+    const { t } = useLanguage();
+    return (
+        <div className="h-64 bg-slate-900/50 rounded-2xl flex items-center justify-center border border-slate-800 animate-pulse">
+            <div className="text-slate-500 font-bold">{t.gamification.topic.loadingEditor}</div>
+        </div>
+    );
+};
+
 // Dynamic import for RichTextEditor to avoid SSR issues with TipTap
 const RichTextEditor = dynamic(() => import('./RichTextEditor'), {
     ssr: false,
-    loading: () => (
-        <div className="h-64 bg-slate-900/50 rounded-2xl flex items-center justify-center border border-slate-800 animate-pulse">
-            <div className="text-slate-500 font-bold">Cargando editor visual...</div>
-        </div>
-    )
+    loading: EditorLoading
 });
 
 interface Topic {
@@ -110,7 +116,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
         e.preventDefault();
 
         if (!formData.title.trim()) {
-            toastError('Por favor ingresa un título para el tema', 'Campo requerido');
+            toastError(t.gamification.topic.form.titleRequired, t.gamification.topic.form.fieldRequired);
             return;
         }
 
@@ -159,14 +165,14 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
             if (response.ok) {
                 await loadTopics();
                 resetForm();
-                success(editingId ? 'Tema actualizado correctamente' : 'Tema creado correctamente');
+                success(editingId ? t.gamification.topic.messages.topicUpdated : t.gamification.topic.messages.topicCreated);
             } else {
                 const errorData = await response.json();
-                toastError(`Error guardando tema: ${errorData.error}`, 'Error');
+                toastError(`${t.gamification.topic.messages.errorSaving}: ${errorData.error}`, t.gamification.topic.messages.errorDeleting);
             }
         } catch (error) {
             console.error('Error saving topic:', error);
-            toastError('Error inesperado al guardar el tema');
+            toastError(t.gamification.topic.messages.unexpectedError);
         }
     };
 
@@ -184,7 +190,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
     };
 
     const handleDelete = async (topicId: string, skipConfirm: boolean = false) => {
-        if (!skipConfirm && !confirm('¿Estás seguro de eliminar este tema? Se eliminarán también todas las misiones y el contenido asociado. Esta acción no se puede deshacer.')) return;
+        if (!skipConfirm && !confirm(t.gamification.topic.messages.confirmDelete)) return;
 
         try {
             const response = await fetch(`/api/topics/${topicId}`, {
@@ -193,14 +199,14 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
             if (response.ok) {
                 await loadTopics();
-                if (!skipConfirm) success('Tema y contenido asociado eliminados correctamente');
+                if (!skipConfirm) success(t.gamification.topic.messages.topicDeleted);
             } else {
                 const errorData = await response.json();
-                toastError(`Error: ${errorData.error}`, 'No se pudo eliminar');
+                toastError(`${t.gamification.topic.messages.errorDeleting}: ${errorData.error}`, t.gamification.topic.messages.errorDeleting);
             }
         } catch (error) {
             console.error('Error deleting topic:', error);
-            toastError('Error al intentar eliminar el tema');
+            toastError(t.gamification.topic.messages.errorDeletingTopic);
         }
     };
 
@@ -370,18 +376,18 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                     {selectedTopics.length > 0 && (
                         <button
                             onClick={async () => {
-                                if (confirm(`¿Eliminar ${selectedTopics.length} tema(s)?`)) {
+                                if (confirm(t.gamification.topic.messages.confirmBulkDelete.replace('{count}', selectedTopics.length.toString()))) {
                                     for (const id of selectedTopics) {
                                         await handleDelete(id, true);
                                     }
                                     setSelectedTopics([]);
-                                    success(`${selectedTopics.length} tema(s) eliminado(s) correctamente`);
+                                    success(t.gamification.topic.messages.bulkDeleted.replace('{count}', selectedTopics.length.toString()));
                                 }
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all"
                         >
                             <Trash2 className="w-4 h-4" />
-                            Eliminar {selectedTopics.length} seleccionado(s)
+                            {t.gamification.topic.messages.deleteSelected.replace('{count}', selectedTopics.length.toString())}
                         </button>
                     )}
                 </div>
@@ -446,7 +452,7 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                                     </div>
                                 </div>
                                 <h4 className="text-lg font-black text-slate-800 dark:text-white mb-2 leading-tight">{topic.title}</h4>
-                                <p className="text-sm text-slate-500 dark:text-gray-400 line-clamp-2 mb-4 h-10">{topic.description || 'Sin descripción disponible.'}</p>
+                                <p className="text-sm text-slate-500 dark:text-gray-400 line-clamp-2 mb-4 h-10">{topic.description || t.gamification.topic.list.noDescription}</p>
 
                                 <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-gray-800">
                                     {topic.theory_content ? (

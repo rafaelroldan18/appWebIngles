@@ -15,6 +15,7 @@ import { CityExplorerScene } from '@/lib/games/CityExplorerScene';
 import { GameLoader } from '@/lib/games/GameLoader';
 import { GameSessionManager } from '@/lib/games/GameSessionManager';
 import { Sparkles, AlertCircle, RefreshCw, Clock, Heart, Target, Play, Flag } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { buildImageMatchCards, prepareCityExplorerLevel } from '@/lib/games/gameLoader.utils';
 import { resolveImageMatchConfig } from '@/lib/games/imageMatch.config';
 import { WORD_CATCHER_CONFIG } from '@/lib/games/wordCatcher.config';
@@ -85,6 +86,7 @@ export default function UniversalGameCanvas({
     onGameEnd,
     onError,
 }: UniversalGameCanvasProps) {
+    const { t } = useLanguage();
     const gameContainerRef = useRef<HTMLDivElement>(null);
     const gameInstanceRef = useRef<Phaser.Game | null>(null);
     const sessionManagerRef = useRef<GameSessionManager | null>(null);
@@ -231,7 +233,8 @@ export default function UniversalGameCanvas({
                         sessionManager: session,
                         missionTitle,
                         missionInstructions,
-                        missionConfig
+                        missionConfig,
+                        translations: t.gamification.general
                     };
 
                     const content = gameContentRef.current;

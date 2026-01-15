@@ -72,6 +72,36 @@
 └─────────────────────────────────────┘
 ```
 
+### Arquitectura REST-API
+Visualización de la interacción entre el cliente, la interfaz de comunicación y el servidor de datos:
+
+```mermaid
+graph LR
+    subgraph "CLIENTE (Frontend)"
+        A[💻 Aplicación Web<br/>React + Phaser]
+    end
+
+    subgraph "INTERFAZ DE COMUNICACIÓN (REST-API)"
+        direction TB
+        B1["Métodos HTTP<br/>(GET, POST, PATCH, DELETE)"]
+        B2["Formato JSON<br/>(Intercambio de datos)"]
+    end
+
+    subgraph "SERVIDOR & DATOS (Backend)"
+        C[⚡ Next.js API Routes<br/>Lógica de Servidor]
+        D[(🌲 Supabase<br/>PostgreSQL + Auth)]
+    end
+
+    %% Conexiones
+    A <--> B1
+    B1 <--> C
+    C <--> D
+    
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style C fill:#000,color:#fff,stroke:#333,stroke-width:2px
+    style D fill:#3ecf8e,color:#fff,stroke:#059669,stroke-width:2px
+```
+
 ### Patrones Implementados
 - ✅ **Service Layer Pattern** - Capa de servicios para API
 - ✅ **Custom Hooks Pattern** - Lógica reutilizable

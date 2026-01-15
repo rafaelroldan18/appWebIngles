@@ -83,7 +83,7 @@ export class GameSessionManager {
      * Update score and statistics
      */
     updateScore(points: number, isCorrect: boolean): void {
-        this.sessionData.score += points;
+        this.sessionData.score = Math.max(0, this.sessionData.score + points);
 
         if (isCorrect) {
             this.sessionData.correctCount++;

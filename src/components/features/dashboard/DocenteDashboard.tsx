@@ -175,10 +175,12 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
   if (isStudentView) {
     return (
       <div className={`relative transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
-        <EstudianteDashboard onLogout={onLogout} />
+        <EstudianteDashboard onLogout={onLogout} isPreviewMode={true} />
+
+        {/* Preview Mode Banner - Bottom Right (Original Design) */}
         <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50">
-          <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white rounded shadow-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded flex items-center justify-center">
+          <div className="bg-gradient-to-r from-[#3B82F6] to-[#2563EB] text-white rounded-xl shadow-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border-2 border-white/20">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="pr-1 sm:pr-2">
@@ -188,7 +190,7 @@ export default function DocenteDashboard({ onLogout }: DocenteDashboardProps) {
             <button
               onClick={handleExitPreview}
               disabled={isTransitioning}
-              className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50"
+              className="ml-1 sm:ml-2 bg-white/20 hover:bg-white/30 rounded-lg px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all disabled:opacity-50 active:scale-95"
             >
               {t.salir}
             </button>

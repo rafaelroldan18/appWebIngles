@@ -29,6 +29,7 @@ export class GrammarRunScene extends Phaser.Scene {
     private missionConfig: MissionConfig | null = null;
     private resolvedConfig: any = null;
     private isPaused: boolean = false;
+    private translations: any = null;
 
     // Game objects
     private player!: Phaser.GameObjects.Sprite;
@@ -87,8 +88,10 @@ export class GrammarRunScene extends Phaser.Scene {
         missionTitle?: string;
         missionInstructions?: string;
         missionConfig?: MissionConfig;
+        translations?: any;
     }) {
         this.initData = data;
+        this.translations = data.translations || null;
         const rawContent = data.words || [];
         this.sessionManager = data.sessionManager || null;
         this.missionTitle = data.missionTitle || 'GRAMMAR RUN';
@@ -146,6 +149,10 @@ export class GrammarRunScene extends Phaser.Scene {
             showFullscreenRequest(this, () => {
                 this.isPaused = false;
                 // Iniciar lógica después de confirmar
+            }, {
+                title: this.translations?.fullscreenTitle,
+                message: this.translations?.fullscreenPrompt,
+                buttonLabel: this.translations?.fullscreenStart
             });
 
             const { width, height } = this.cameras.main;
@@ -1079,53 +1086,65 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
 
-        const bgWidth = 700;
-        const bgHeight = 500;
+        // Reduced dimensions
+        const bgWidth = 520;
+        const bgHeight = 420;
         const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
+        container.add(bg);
 
-        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
-            fontSize: '52px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        // TITLE - Reduced and repositioned
+        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
+            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
-        const sText = this.add.text(0, -50, `Sentences: ${stats.correct}/${stats.total}`, {
-            fontSize: '36px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
+        // MAIN STATS (Centered) - Reduced and repositioned
+        const sText = this.add.text(0, -40, `Sentences: ${stats.correct}/${stats.total}`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const aText = this.add.text(0, 30, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
+        const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const btnY = bgHeight / 2 - 80;
+        // RANK
+        let rankLabel = 'NOVICE';
+        let rankIcon = '🌱';
+        if (stats.accuracy >= 90) { rankLabel = 'MASTER'; rankIcon = '👑'; }
+        else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
+        else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
 
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, btnY, 'RESULTS', () => {
-            // Salir de pantalla completa
+        const rText = this.add.text(0, 85, `RANK: ${rankIcon} ${rankLabel}`, {
+            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        // BUTTONS - smaller
+        const btnY = 155;
+
+        // RESULTS
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
             }
-            // End session if active
+
             if (this.sessionManager?.isActive()) {
-                this.sessionManager.endSession().catch(e => console.error('End session error', e));
+                this.sessionManager.endSession().catch(e => console.error(e));
             }
 
             this.tweens.add({
-                targets: container,
-                scale: 0,
-                alpha: 0,
-                duration: 300,
+                targets: container, scale: 0, duration: 300,
                 onComplete: () => {
-                    // Emit multiple event variants for compatibility
                     this.events.emit('gameOver', stats.eventData);
                     this.events.emit('game-over', stats.eventData);
                     this.events.emit('GAME_OVER', stats.eventData);
-
                     this.game.events.emit('gameOver', stats.eventData);
                     this.game.events.emit('game-over', stats.eventData);
                     this.game.events.emit('GAME_OVER', stats.eventData);
                 }
             });
-        }, { width: 220, height: 70 });
+        }, { width: 190, height: 55 });
 
-        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, btnY, 'REPEAT', () => {
+        // REPEAT
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, btnY, 'REPEAT', () => {
             this.tweens.add({
                 targets: container,
                 scale: 0,

@@ -118,30 +118,30 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
             styleManager: {
                 appendTo: '#styles-container',
                 sectors: [{
-                    name: 'Propiedades del Elemento',
+                    name: t.gamification.topic.builder.elementProperties,
                     open: true,
                     buildProps: ['font-size', 'font-family', 'color', 'font-weight', 'text-align', 'line-height', 'letter-spacing'],
                     properties: [
                         {
-                            name: 'Tamaño de Letra', property: 'font-size', type: 'select', options: [
-                                { id: '12px', value: '12px', name: 'Muy Pequeña' },
-                                { id: '14px', value: '14px', name: 'Pequeña' },
-                                { id: '16px', value: '16px', name: 'Normal' },
-                                { id: '18px', value: '18px', name: 'Media' },
-                                { id: '20px', value: '20px', name: 'Grande' },
-                                { id: '24px', value: '24px', name: 'Muy Grande' },
-                                { id: '32px', value: '32px', name: 'Título' },
-                                { id: '48px', value: '48px', name: 'Cabecera' },
-                                { id: '64px', value: '64px', name: 'Gigante' }
+                            name: t.gamification.topic.builder.fontSize, property: 'font-size', type: 'select', options: [
+                                { id: '12px', value: '12px', name: t.gamification.topic.builder.fontSizes.xsmall },
+                                { id: '14px', value: '14px', name: t.gamification.topic.builder.fontSizes.small },
+                                { id: '16px', value: '16px', name: t.gamification.topic.builder.fontSizes.normal },
+                                { id: '18px', value: '18px', name: t.gamification.topic.builder.fontSizes.medium },
+                                { id: '20px', value: '20px', name: t.gamification.topic.builder.fontSizes.large },
+                                { id: '24px', value: '24px', name: t.gamification.topic.builder.fontSizes.xlarge },
+                                { id: '32px', value: '32px', name: t.gamification.topic.builder.fontSizes.title },
+                                { id: '48px', value: '48px', name: t.gamification.topic.builder.fontSizes.heading },
+                                { id: '64px', value: '64px', name: t.gamification.topic.builder.fontSizes.gigantic }
                             ]
                         },
-                        { name: 'Color de Texto', property: 'color', type: 'color' },
+                        { name: t.gamification.topic.builder.textColor, property: 'color', type: 'color' },
                         {
-                            name: 'Grosor', property: 'font-weight', type: 'select', options: [
-                                { id: '400', value: '400', name: 'Normal' },
-                                { id: '600', value: '600', name: 'Semi-Negrita' },
-                                { id: '700', value: '700', name: 'Negrita' },
-                                { id: '900', value: '900', name: 'Extra-Negrita' }
+                            name: t.gamification.topic.builder.fontWeight, property: 'font-weight', type: 'select', options: [
+                                { id: '400', value: '400', name: t.gamification.topic.builder.weights.normal },
+                                { id: '600', value: '600', name: t.gamification.topic.builder.weights.semibold },
+                                { id: '700', value: '700', name: t.gamification.topic.builder.weights.bold },
+                                { id: '900', value: '900', name: t.gamification.topic.builder.weights.black }
                             ]
                         }
                     ]
@@ -161,42 +161,42 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                 blocks: [
                     {
                         id: 'text-heading',
-                        label: '<b>Título</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.title}</b>`,
                         content: {
                             type: 'text',
-                            content: 'ESCRIBE TU TÍTULO AQUÍ',
+                            content: t.gamification.topic.builder.blocks.titleDefault,
                             style: { position: 'absolute', width: '100%', 'font-family': 'Inter, sans-serif', 'font-size': '42px', 'font-weight': '900', color: '#6366f1', 'text-transform': 'uppercase' },
                             editable: true
                         }
                     },
                     {
                         id: 'text-paragraph',
-                        label: '<b>Párrafo</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.paragraph}</b>`,
                         content: {
                             type: 'text',
-                            content: 'Haz doble clic para escribir un párrafo largo con tus explicaciones pedagógicas...',
+                            content: t.gamification.topic.builder.blocks.paragraphDefault,
                             style: { position: 'absolute', width: '400px', 'font-family': 'Inter, sans-serif', 'font-size': '16px', 'line-height': '1.6', color: isDark ? '#cbd5e1' : '#4b5563' },
                             editable: true
                         }
                     },
                     {
                         id: 'card-grammar',
-                        label: '<b>Regla</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.rule}</b>`,
                         content: {
                             style: { position: 'absolute', width: '350px', background: isDark ? '#1e293b' : '#f8fafc', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, 'border-left': '6px solid #6366f1', padding: '20px', 'border-radius': '4px', color: isDark ? '#f1f5f9' : '#1e293b' },
                             components: [
-                                { type: 'text', content: 'REGLA GRAMATICAL', style: { color: '#6366f1', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '5px' } },
-                                { type: 'text', content: 'Sujeto + Verbo + Complemento', style: { color: isDark ? '#f1f5f9' : '#1e293b', 'font-weight': '700', 'font-size': '16px' } }
+                                { type: 'text', content: t.gamification.topic.builder.blocks.ruleHeader, style: { color: '#6366f1', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '5px' } },
+                                { type: 'text', content: t.gamification.topic.builder.blocks.ruleDefault, style: { color: isDark ? '#f1f5f9' : '#1e293b', 'font-weight': '700', 'font-size': '16px' } }
                             ]
                         }
                     },
                     {
                         id: 'card-vocab-pro',
-                        label: '<b>Vocabulario</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.vocabulary}</b>`,
                         content: {
                             style: { position: 'absolute', width: '300px', background: '#fff1f2', border: '1px solid #fecaca', padding: '15px', 'border-radius': '12px' },
                             components: [
-                                { type: 'text', content: 'VOCABULARIO CLAVE', style: { 'text-align': 'center', color: '#be123c', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '10px' } },
+                                { type: 'text', content: t.gamification.topic.builder.blocks.vocabHeader, style: { 'text-align': 'center', color: '#be123c', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '10px' } },
                                 { style: { display: 'flex', 'justify-content': 'space-between', padding: '5px 0', 'border-bottom': '1px solid #fecaca' }, components: [{ type: 'text', content: 'Apple', style: { 'font-weight': '700' } }, { type: 'text', content: 'Manzana' }] },
                                 { style: { display: 'flex', 'justify-content': 'space-between', padding: '5px 0' }, components: [{ type: 'text', content: 'Book', style: { 'font-weight': '700' } }, { type: 'text', content: 'Libro' }] }
                             ]
@@ -204,24 +204,24 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'post-it-art',
-                        label: '<b>Nota</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.note}</b>`,
                         content: {
                             style: { position: 'absolute', width: '200px', height: '200px', background: '#fef9c3', padding: '20px', border: '1px solid #fde047', 'box-shadow': '5px 5px 10px rgba(0,0,0,0.05)', display: 'flex', 'align-items': 'center', 'justify-content': 'center' },
                             components: [
-                                { type: 'text', content: '¡RECORDATORIO!', style: { 'text-align': 'center', 'font-family': 'cursive', 'font-size': '20px', color: '#854d0e' } }
+                                { type: 'text', content: t.gamification.topic.builder.blocks.noteHeader, style: { 'text-align': 'center', 'font-family': 'cursive', 'font-size': '20px', color: '#854d0e' } }
                             ]
                         }
                     },
                     {
                         id: 'table-compare',
-                        label: '<b>Contraste</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.contrast}</b>`,
                         content: {
                             style: { position: 'absolute', width: '450px', background: '#fff', border: '1px solid #cbd5e1', 'border-radius': '8px', overflow: 'hidden' },
                             components: [
                                 {
                                     style: { display: 'flex', background: '#f1f5f9', 'font-weight': '900' }, components: [
-                                        { type: 'text', content: 'OPCIÓN A', style: { flex: 1, padding: '10px', 'text-align': 'center', 'border-right': '1px solid #cbd5e1' } },
-                                        { type: 'text', content: 'OPCIÓN B', style: { flex: 1, padding: '10px', 'text-align': 'center' } }
+                                        { type: 'text', content: t.gamification.topic.builder.blocks.optionA, style: { flex: 1, padding: '10px', 'text-align': 'center', 'border-right': '1px solid #cbd5e1' } },
+                                        { type: 'text', content: t.gamification.topic.builder.blocks.optionB, style: { flex: 1, padding: '10px', 'text-align': 'center' } }
                                     ]
                                 },
                                 {
@@ -235,17 +235,17 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'speech-bubble',
-                        label: '<b>Burbuja</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.bubble}</b>`,
                         content: {
                             style: { position: 'absolute', width: '220px', background: '#e0e7ff', padding: '15px', 'border-radius': '20px 20px 20px 0', border: '1px solid #c7d2fe' },
                             components: [
-                                { type: 'text', content: '¡Hola! Escribe tu diálogo aquí...', style: { color: '#3730a3', 'font-weight': '600' } }
+                                { type: 'text', content: t.gamification.topic.builder.blocks.bubbleDefault, style: { color: '#3730a3', 'font-weight': '600' } }
                             ]
                         }
                     },
                     {
                         id: 'grammar-formula',
-                        label: '<b>Fórmula</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.formula}</b>`,
                         content: {
                             style: { position: 'absolute', width: '400px', background: '#f1f5f9', border: '2px dashed #64748b', padding: '15px', 'border-radius': '8px', display: 'flex', 'align-items': 'center', 'justify-content': 'center', gap: '10px' },
                             components: [
@@ -259,7 +259,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'common-mistakes',
-                        label: '<b>Errores</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.errors}</b>`,
                         content: {
                             style: { position: 'absolute', width: '320px', background: '#fff', border: '1px solid #e2e8f0', 'border-radius': '10px', overflow: 'hidden' },
                             components: [
@@ -280,18 +280,18 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'did-you-know',
-                        label: '<b>Sabías que?</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.didYouKnow}</b>`,
                         content: {
                             style: { position: 'absolute', width: '300px', background: '#faf5ff', border: '1px solid #e9d5ff', padding: '20px', 'border-radius': '20px', 'box-shadow': '0 4px 6px -1px rgba(0,0,0,0.05)' },
                             components: [
-                                { type: 'text', content: '¿SABÍAS QUE?', style: { color: '#7c3aed', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '8px' } },
+                                { type: 'text', content: t.gamification.topic.builder.blocks.didYouKnowHeader, style: { color: '#7c3aed', 'font-weight': '900', 'font-size': '11px', 'margin-bottom': '8px' } },
                                 { type: 'text', content: 'El inglés es el idioma con más palabras en el mundo. ¡Hay más de 1 millón!', style: { color: '#581c87', 'font-size': '14px', 'line-height': '1.5' } }
                             ]
                         }
                     },
                     {
                         id: 'verb-timeline',
-                        label: '<b>Línea Tiempo</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.timeline}</b>`,
                         content: {
                             style: { position: 'absolute', width: '500px', padding: '20px', background: '#fff' },
                             components: [
@@ -314,7 +314,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'proverb-card',
-                        label: '<b>Refrán</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.proverb}</b>`,
                         content: {
                             style: { width: '280px', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', padding: '25px', 'border-radius': '15px', color: 'white', 'text-align': 'center' },
                             components: [
@@ -325,7 +325,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'audio-player',
-                        label: '<b>Módulo Audio</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.audio}</b>`,
                         content: {
                             style: { width: '300px', background: '#1e293b', padding: '15px', 'border-radius': '50px', display: 'flex', 'align-items': 'center', gap: '15px' },
                             components: [
@@ -337,7 +337,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'fancy-separator',
-                        label: '<b>Divisor Art</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.separator}</b>`,
                         content: {
                             style: { width: '100%', display: 'flex', 'align-items': 'center', gap: '20px', padding: '20px 0' },
                             components: [
@@ -349,7 +349,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'checklist-pro',
-                        label: '<b>Lista Ok</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.checklist}</b>`,
                         content: {
                             style: { width: '250px', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '15px', 'border-radius': '10px' },
                             components: [
@@ -360,7 +360,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'quote-box-art',
-                        label: '<b>Cita Docente</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.quote}</b>`,
                         content: {
                             style: { position: 'absolute', top: '20px', left: '20px', width: '350px', border: 'none', 'border-left': '4px solid #6366f1', padding: '10px 20px', background: '#f1f5f9' },
                             components: [
@@ -371,7 +371,7 @@ export default React.memo(function RichTextEditor({ content, onChange }: RichTex
                     },
                     {
                         id: 'transcription-box',
-                        label: '<b>Guión/Audio</b>',
+                        label: `<b>${t.gamification.topic.builder.blocks.script}</b>`,
                         content: {
                             style: { position: 'absolute', top: '20px', left: '20px', width: '320px', background: '#fffbeb', border: '1px dashed #b45309', padding: '15px', 'border-radius': '4px' },
                             components: [

@@ -49,6 +49,7 @@ export class ImageMatchScene extends Phaser.Scene {
     private missionInstructions: string = '';
     private missionConfig: MissionConfig | null = null;
     private resolvedConfig: any = null;
+    private translations: any = null;
 
     // UI Elements
     private gameHUD!: GameHUD;
@@ -87,8 +88,10 @@ export class ImageMatchScene extends Phaser.Scene {
         missionTitle?: string;
         missionInstructions?: string;
         missionConfig?: MissionConfig;
+        translations?: any;
     }) {
         this.initData = data;
+        this.translations = data.translations || null;
         this.cardsData = data.cards || [];
         this.sessionManager = data.sessionManager || null;
         this.missionTitle = data.missionTitle || 'IMAGE MATCH';
@@ -131,12 +134,15 @@ export class ImageMatchScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
 
         // Petición de pantalla completa ANTES de iniciar los sistemas de juego
-        this.isProcessing = true; // Evitar clics antes del OK
         this.isPaused = true;
         showFullscreenRequest(this, () => {
             this.isProcessing = false;
             this.isPaused = false;
             this.startCountdown();
+        }, {
+            title: this.translations?.fullscreenTitle,
+            message: this.translations?.fullscreenPrompt,
+            buttonLabel: this.translations?.fullscreenStart
         });
 
         // 1. Background
@@ -417,8 +423,7 @@ export class ImageMatchScene extends Phaser.Scene {
         if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
         const points = IMAGE_MATCH_CONFIG.scoring.matchFound;
-        this.score += points;
-        if (this.score < 0) this.score = 0;
+        this.score = Math.max(0, this.score + points);
         this.sessionManager?.updateScore(points, true);
 
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
@@ -497,8 +502,7 @@ export class ImageMatchScene extends Phaser.Scene {
     private handleMismatch(p1: CardObject, p2: CardObject) {
         this.streak = 0;
         const penalty = IMAGE_MATCH_CONFIG.scoring.wrongMatch;
-        this.score += penalty;
-        if (this.score < 0) this.score = 0;
+        this.score = Math.max(0, this.score + penalty);
         this.sessionManager?.updateScore(penalty, false);
         this.gameHUD.update({ score: Math.max(0, this.score) });
 
@@ -734,22 +738,26 @@ export class ImageMatchScene extends Phaser.Scene {
 
         const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
 
-        const bgWidth = 700;
-        const bgHeight = 500;
+        // Reduced dimensions
+        const bgWidth = 520;
+        const bgHeight = 420;
         const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
+        container.add(bg);
 
-        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
-            fontSize: '52px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        // TITLE - Reduced and repositioned
+        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
+            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
-        const pairsText = this.add.text(0, -50, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
+        // STATS - Reduced and repositioned
+        const pairsText = this.add.text(0, -40, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
+            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         const bonusStatus = stats.perfectMatch ? 'ACTIVE' : 'INACTIVE';
         const bonusColor = stats.perfectMatch ? '#10b981' : '#94a3b8';
-        const bonusText = this.add.text(0, 0, `MEMORY MASTER: ${bonusStatus}`, {
-            fontSize: '22px', fontFamily: 'Fredoka', color: bonusColor, stroke: '#000000', strokeThickness: 3
+        const bonusText = this.add.text(0, 5, `MEMORY MASTER: ${bonusStatus}`, {
+            fontSize: '20px', fontFamily: 'Fredoka', color: bonusColor, stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
 
         let rank = 'NOVICE';
@@ -758,23 +766,18 @@ export class ImageMatchScene extends Phaser.Scene {
         else if (stats.accuracy >= 70) { rank = 'EXPERT'; icon = '🎓'; }
         else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
 
-        const rankText = this.add.text(0, 50, `RANK: ${icon} ${rank}`, {
-            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
+        const rankText = this.add.text(0, 60, `RANK: ${icon} ${rank}`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const btnY = bgHeight / 2 - 80;
+        // BUTTONS - smaller
+        const btnY = 155;
 
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -150, btnY, 'RESULTS', () => {
-            // Salir de pantalla completa
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
             }
 
-            console.log('[ImageMatchScene] Emitting game over events with eventData:', stats.eventData);
-            console.log('[ImageMatchScene] eventData.answers:', stats.eventData.answers);
-            console.log('[ImageMatchScene] answers count:', stats.eventData.answers?.length);
-
-            // End session if active
             if (this.sessionManager?.isActive()) {
                 this.sessionManager.endSession().catch(e => console.error('End session error', e));
             }
@@ -782,19 +785,17 @@ export class ImageMatchScene extends Phaser.Scene {
             this.tweens.add({
                 targets: container, scale: 0, alpha: 0, duration: 300,
                 onComplete: () => {
-                    // Emit multiple event variants for compatibility
                     this.events.emit('gameOver', stats.eventData);
                     this.events.emit('game-over', stats.eventData);
                     this.events.emit('GAME_OVER', stats.eventData);
-
                     this.game.events.emit('gameOver', stats.eventData);
                     this.game.events.emit('game-over', stats.eventData);
                     this.game.events.emit('GAME_OVER', stats.eventData);
                 }
             });
-        }, { width: 220, height: 70 });
+        }, { width: 190, height: 55 });
 
-        const repeatBtn = createButton(this, 'common-ui/buttons/btn_primary', 150, btnY, 'REPEAT', () => {
+        const repeatBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, btnY, 'REPEAT', () => {
             this.tweens.add({
                 targets: container, scale: 0, alpha: 0, duration: 300,
                 onComplete: () => {
@@ -802,9 +803,9 @@ export class ImageMatchScene extends Phaser.Scene {
                     else this.scene.restart();
                 }
             });
-        }, { width: 220, height: 70 });
+        }, { width: 190, height: 55 });
 
-        container.add([bg, title, pairsText, bonusText, rankText, exitBtn, repeatBtn]);
+        container.add([title, pairsText, bonusText, rankText, exitBtn, repeatBtn]);
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
     }

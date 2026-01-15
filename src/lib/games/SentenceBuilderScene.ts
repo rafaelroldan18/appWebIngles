@@ -36,6 +36,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
     private maxItemAttempts: number = 2; // Default
     private hintsUsed: number = 0;
     private itemStartTime: number = 0;
+    private translations: any = null;
 
     // Logic Arrays
     private builtTokens: WordCard[] = [];
@@ -79,8 +80,10 @@ export class SentenceBuilderScene extends Phaser.Scene {
         missionTitle?: string;
         missionInstructions?: string;
         missionConfig?: MissionConfig;
+        translations?: any;
     }) {
         this.initData = data;
+        this.translations = data.translations || null;
 
         // Load and Prepare Content
         this.missionConfig = data.missionConfig || null;
@@ -144,11 +147,14 @@ export class SentenceBuilderScene extends Phaser.Scene {
             return;
         }
 
-        // Start Game (Moved after fullscreen request)
         this.isPaused = true;
         showFullscreenRequest(this, () => {
             this.isPaused = false;
             this.startCountdown();
+        }, {
+            title: this.translations?.fullscreenTitle,
+            message: this.translations?.fullscreenPrompt,
+            buttonLabel: this.translations?.fullscreenStart
         });
 
         this.events.emit('scene-ready');
@@ -957,38 +963,46 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
 
-        const bgWidth = 700;
-        const bgHeight = 500;
-        const bg = this.add.image(0, 0, 'ui_atlas', 'common-ui/panels/panel_modal');
-        bg.setDisplaySize(bgWidth, bgHeight);
+        // Reduced dimensions
+        const bgWidth = 520;
+        const bgHeight = 420;
+        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
+        container.add(bg);
 
-        // TITLE
-        const title = this.add.text(0, -bgHeight / 2 + 60, 'MISSION COMPLETE', {
-            fontSize: '52px', fontFamily: 'Arial Black', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        // TITLE - Reduced and repositioned
+        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
+            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
-        // MAIN STATS (Centered)
-        const sText = this.add.text(0, -50, `Sentences: ${stats.sentences}/${stats.totalSentences}`, {
-            fontSize: '36px', fontFamily: 'Arial Black', color: '#ffffff', align: 'center'
+        // MAIN STATS (Centered) - Reduced and repositioned
+        const sText = this.add.text(0, -40, `Sentences: ${stats.sentences}/${stats.totalSentences}`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const aText = this.add.text(0, 30, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '36px', fontFamily: 'Arial Black', color: '#fbbf24', align: 'center'
+        const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        // BUTTONS
-        const btnY = bgHeight / 2 - 80;
+        // RANK - Added Rank for consistency
+        let rankLabel = 'NOVICE';
+        let rankIcon = '🌱';
+        if (stats.accuracy >= 90) { rankLabel = 'MASTER'; rankIcon = '👑'; }
+        else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
+        else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
+
+        const rText = this.add.text(0, 85, `RANK: ${rankIcon} ${rankLabel}`, {
+            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0.5);
+
+        // BUTTONS - Smaller and repositioned
+        const btnY = 155;
 
         // RESULTS (Left)
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -120, btnY, 'RESULTS', () => {
-            console.log('RESULTS BUTTON CLICKED');
-
-            // Salir de pantalla completa al volver a la web
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) {
                 this.scale.stopFullscreen();
             }
 
-            // End session if active (it's already called in endGame but safe to ensure)
             if (this.sessionManager?.isActive()) {
                 this.sessionManager.endSession().catch(e => console.error(e));
             }
@@ -996,24 +1010,22 @@ export class SentenceBuilderScene extends Phaser.Scene {
             this.tweens.add({
                 targets: container, scale: 0, duration: 300,
                 onComplete: () => {
-                    // Emit multiple event variants for compatibility
                     this.events.emit('gameOver', stats.eventData);
                     this.events.emit('game-over', stats.eventData);
                     this.events.emit('GAME_OVER', stats.eventData);
-
                     this.game.events.emit('gameOver', stats.eventData);
                     this.game.events.emit('game-over', stats.eventData);
                     this.game.events.emit('GAME_OVER', stats.eventData);
                 }
             });
-        }, { width: 180, height: 70, fontSize: '24px', textOffsetY: -4 });
+        }, { width: 190, height: 55, fontSize: '20px' });
 
         // REPLAY (Right)
-        const replayBtn = createButton(this, 'common-ui/buttons/btn_secondary', 120, btnY, 'REPLAY', () => {
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, btnY, 'REPLAY', () => {
             this.scene.restart();
-        }, { width: 180, height: 70, fontSize: '24px', textOffsetY: -4 });
+        }, { width: 190, height: 55, fontSize: '20px' });
 
-        container.add([bg, title, sText, aText, exitBtn, replayBtn]);
+        container.add([title, sText, aText, rText, exitBtn, replayBtn]);
 
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });

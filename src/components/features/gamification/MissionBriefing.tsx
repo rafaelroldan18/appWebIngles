@@ -116,9 +116,9 @@ export default function MissionBriefing({
                                         </svg>
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Vidas</h4>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">{t.student.briefing.lives}</h4>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                            {config.lives} {config.lives === 1 ? 'vida disponible' : 'vidas disponibles'}
+                                            {config.lives} {config.lives === 1 ? t.student.briefing.lifeAvailable : t.student.briefing.livesAvailable}
                                         </p>
                                     </div>
                                 </div>
@@ -143,9 +143,9 @@ export default function MissionBriefing({
                                         <Target className="text-emerald-600 dark:text-emerald-400" size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Preguntas</h4>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">{t.student.briefing.questions}</h4>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                            {config.grammar_run.items_limit} preguntas a responder
+                                            {config.grammar_run.items_limit} {t.student.briefing.questionsToAnswer}
                                         </p>
                                     </div>
                                 </div>
@@ -158,9 +158,9 @@ export default function MissionBriefing({
                                         <AlertCircle className="text-amber-600 dark:text-amber-400" size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">Modo</h4>
+                                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">{t.student.briefing.mode}</h4>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                                            {config.grammar_run.mode === 'choose_correct' ? 'Elige la respuesta correcta' : 'Evita las incorrectas'}
+                                            {config.grammar_run.mode === 'choose_correct' ? t.student.briefing.chooseCorrect : t.student.briefing.avoidIncorrect}
                                         </p>
                                     </div>
                                 </div>
@@ -233,7 +233,7 @@ export default function MissionBriefing({
                                     className="w-full py-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs transition-all hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center gap-2 mt-2"
                                 >
                                     <Trophy size={14} />
-                                    Ver último resultado
+                                    {t.student.briefing.viewLastResult}
                                 </button>
                             )}
                         </div>

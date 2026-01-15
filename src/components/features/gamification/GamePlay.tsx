@@ -221,7 +221,7 @@ export default function GamePlay({
                                 className="px-6 py-3 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-xl font-bold text-xs hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 tracking-wide"
                             >
                                 <Trophy className="w-4 h-4" />
-                                Ver Resultado
+                                {t.student.gameplay.viewResult}
                             </button>
                         )}
 
@@ -276,9 +276,9 @@ export default function GamePlay({
                             { icon: Star, label: t.student.gameplay.score, val: gameResult.score },
                             { icon: Target, label: t.student.gameplay.hits, val: gameResult.correctCount },
                             { icon: AlertCircle, label: t.student.gameplay.failures, val: gameResult.wrongCount },
-                            { icon: Clock, label: 'Tiempo', val: `${gameResult.duration}s` },
+                            { icon: Clock, label: t.student.gameplay.time, val: `${gameResult.duration}s` },
                             { icon: TrendingUp, label: t.student.gameplay.precision, val: `${gameResult.accuracy}%` },
-                            { icon: Sparkles, label: 'Estado', val: missionResult.completed ? 'Completado' : 'Fallido' }
+                            { icon: Sparkles, label: t.student.gameplay.status, val: missionResult.completed ? t.student.gameplay.completed : t.student.gameplay.failed }
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 text-center border border-slate-200 dark:border-slate-700 shadow-sm hover:-translate-y-1 transition-transform">
                                 <stat.icon className="w-4 h-4 text-slate-400 mx-auto mb-1" />
@@ -308,7 +308,7 @@ export default function GamePlay({
                         <div className="mb-8 space-y-4 animate-in slide-in-from-bottom-4 duration-1000">
                             <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-slate-400" />
-                                REPORTE PEDAGÓGICO
+                                {t.student.gameplay.pedagogicalReport}
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -316,7 +316,7 @@ export default function GamePlay({
                                 <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
                                     <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                         <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                                        Fortalezas
+                                        {t.student.gameplay.strengths}
                                     </h4>
                                     <ul className="space-y-2">
                                         {missionResult.review.strengths.map((s, i) => (
@@ -331,7 +331,7 @@ export default function GamePlay({
                                 <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl p-5">
                                     <h4 className="text-[10px] font-black text-amber-500 dark:text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                                         <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                                        Áreas de Mejora
+                                        {t.student.gameplay.areasOfImprovement}
                                     </h4>
                                     <ul className="space-y-2">
                                         {missionResult.review.improvements.map((im, i) => (
@@ -349,7 +349,7 @@ export default function GamePlay({
                                     <BookOpen className="w-6 h-6 text-indigo-500" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Práctica Recomendada</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.student.gameplay.recommendedPractice}</p>
                                     <p className="text-base font-black text-slate-700 dark:text-white capitalize">{missionResult.review.recommended_practice}</p>
                                 </div>
                             </div>
@@ -390,7 +390,7 @@ export default function GamePlay({
                             className="text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors flex items-center gap-2"
                         >
                             <BookOpen className="w-3 h-3" />
-                            Volver a Instrucciones (Briefing)
+                            {t.student.gameplay.backToBriefing}
                         </button>
                     </div>
                 </div>
@@ -491,14 +491,15 @@ export default function GamePlay({
 }
 
 function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () => void }) {
+    const { t } = useLanguage();
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm" onClick={onClose} />
             <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden relative z-10 max-h-[85vh] flex flex-col ring-1 ring-slate-200 dark:ring-slate-800">
                 <div className="p-6 md:p-8 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
                     <div>
-                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Review de Misión</h3>
-                        <p className="text-slate-500 font-medium">Análisis detallado de tus respuestas</p>
+                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">{t.student.gameplay.missionReview}</h3>
+                        <p className="text-slate-500 font-medium">{t.student.gameplay.detailedAnalysis}</p>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-white">
                         <ArrowLeft className="w-6 h-6" />
@@ -509,7 +510,7 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
                     {answers.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-20 text-slate-400 text-center">
                             <BookOpen className="w-16 h-16 mb-4 opacity-20" />
-                            <p className="text-lg font-bold">No hay detalles disponibles para esta sesión.</p>
+                            <p className="text-lg font-bold">{t.student.gameplay.noDetailsAvailable}</p>
                         </div>
                     ) : (
                         answers.map((ans: any, i: number) => {
@@ -582,14 +583,14 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
                                             <div className="flex justify-between items-start mb-3">
                                                 <p className="text-lg font-bold text-slate-800 dark:text-white leading-snug pr-4">{prompt}</p>
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
-                                                    {isCorrect ? 'Correcto' : 'Incorrecto'}
+                                                    {isCorrect ? t.student.gameplay.correct : t.student.gameplay.incorrect}
                                                 </span>
                                             </div>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-100 dark:border-slate-700/50">
                                                     <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-slate-400 flex items-center gap-1.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Tu Respuesta
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> {t.student.gameplay.yourAnswer}
                                                     </p>
                                                     {studentAnswerData.images.length > 0 && (
                                                         <div className="flex gap-2 mb-3 flex-wrap">
@@ -604,14 +605,14 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
                                                         </div>
                                                     )}
                                                     <p className={`text-base font-semibold ${isCorrect ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                                        {studentAnswerData.text || <span className="italic opacity-50 text-slate-400">(Sin respuesta)</span>}
+                                                        {studentAnswerData.text || <span className="italic opacity-50 text-slate-400">{t.student.gameplay.noAnswer}</span>}
                                                     </p>
                                                 </div>
 
                                                 {!isCorrect && correctAnswerData.text && (
                                                     <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10">
                                                         <p className="text-[10px] font-bold uppercase tracking-wider mb-2 text-indigo-400 flex items-center gap-1.5">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> Solución Correcta
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400"></span> {t.student.gameplay.correctSolution}
                                                         </p>
                                                         {correctAnswerData.images.length > 0 && (
                                                             <div className="flex gap-2 mb-3 flex-wrap">
@@ -639,7 +640,7 @@ function ReviewDetailsModal({ answers, onClose }: { answers: any[], onClose: () 
 
                 <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 flex justify-end">
                     <button onClick={onClose} className="px-8 py-3 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors shadow-lg shadow-slate-200 dark:shadow-none">
-                        Cerrar Review
+                        {t.student.gameplay.closeReview}
                     </button>
                 </div>
             </div>
