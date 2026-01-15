@@ -77,32 +77,28 @@ Visualización de la interacción entre el cliente, la interfaz de comunicación
 
 ```mermaid
 graph LR
-    %% Nodos Principales
-    Cliente[" CLIENTE (Frontend)<br/>React + Phaser"]
-    
-    subgraph Interfaz ["REST-API INTERFAZ"]
-        HTTP["Métodos HTTP<br/>(GET, POST, PATCH, DELETE)"]
-        JSON["Formato JSON<br/>(Intercambio de datos)"]
+    subgraph "CLIENTE (Frontend)"
+        A[ Aplicación Web<br/>React + Phaser]
     end
 
-    subgraph Backend ["SERVIDOR & DATOS"]
-        API[" Next.js API Routes<br/>Lógica de Servidor"]
-        DB[(" Supabase<br/>PostgreSQL + Auth")]
+    subgraph "COMUNICACIÓN REST-API"
+    B1["Métodos HTTP<br/>(GET, POST, PATCH, DELETE)"]
+    B2["Formato JSON<br/>(Intercambio de datos)"]
+    end
+
+    subgraph "SERVIDOR Y DATOS"
+    C[ Next.js API Routes<br/>Lógica de Servidor]
+    D[( Supabase<br/>PostgreSQL + Auth)]
     end
 
     %% Conexiones
-    Cliente <--> HTTP
-    Cliente <--> JSON
-    HTTP <--> API
-    JSON <--> API
-    API <--> DB
-
-    %% Estilos
-    style Cliente fill:#f9f9f9,stroke:#333,stroke-width:2px
-    style API fill:#000,color:#fff,stroke:#333,stroke-width:2px
-    style DB fill:#3ecf8e,color:#fff,stroke:#059669,stroke-width:2px
-    style Interfaz fill:#f5f5f5,stroke:#666,stroke-dasharray: 5 5
-    style Backend fill:#f5f5f5,stroke:#666,stroke-dasharray: 5 5
+    A --- B1
+    B1 --- C
+    C --- D
+    
+    style A fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style C fill:#000,color:#fff,stroke:#333,stroke-width:2px
+    style D fill:#3ecf8e,color:#fff,stroke:#059669,stroke-width:2px
 ```
 
 ### Patrones Implementados
