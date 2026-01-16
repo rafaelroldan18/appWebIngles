@@ -45,7 +45,7 @@ export default function MissionBriefing({
 }: MissionBriefingProps) {
     const { t } = useLanguage();
     const formattedDate = availableUntil
-        ? new Date(availableUntil).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+        ? availableUntil.split('T')[0]
         : t.student.games.noLimit;
 
     return (

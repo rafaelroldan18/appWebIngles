@@ -653,6 +653,7 @@ export interface CityExplorerChallenge {
     options: CityExplorerOption[];
     correctOptionId?: string;
     explanation?: string;
+    ruleTag?: string;
 }
 
 export interface CityExplorerLocationItem {
@@ -663,6 +664,11 @@ export interface CityExplorerLocationItem {
     radius: number;
     emoji: string;
     challenge?: CityExplorerChallenge;
+}
+
+export interface CityExplorerMapData {
+    checkpoints: CityExplorerLocationItem[];
+    config?: any;
 }
 
 export function loadCityExplorerContent(content: GameContent[]): CityExplorerLocationItem[] {
@@ -688,7 +694,8 @@ export function loadCityExplorerContent(content: GameContent[]): CityExplorerLoc
             prompt: loc.content_text, // The dialogue (e.g., "There isn't a police officer...")
             kind: 'mcq',
             options: [{ id: 'collect', text: 'Collect', isCorrect: true }],
-            correctOptionId: 'collect'
+            correctOptionId: 'collect',
+            ruleTag: meta?.rule_tag
         };
 
         return {
@@ -736,7 +743,8 @@ export function prepareCityExplorerLevel(content: GameContent[], config: Mission
                         prompt: item.content_text, // Dialogue (e.g. "Can I have a menu?")
                         kind: 'mcq',
                         options: [{ id: 'collect', text: 'Collect', isCorrect: true }],
-                        correctOptionId: 'collect'
+                        correctOptionId: 'collect',
+                        ruleTag: meta?.rule_tag
                     }
                 };
             });
@@ -775,15 +783,14 @@ export function prepareCityExplorerLevel(content: GameContent[], config: Mission
         return { checkpoints: [] };
     }
 
-    // 4. Auto-Layout (Grid System)
-    // Map dimensions assumed 800x600 based on Scene config (could be dynamic)
-    const margin = 80;
-    const mapW = 800;
-    const mapH = 600;
+    // 4. Auto-Layout (Grid System) - Expanded for 1600x1200 World
+    const margin = 120;
+    const mapW = 1600; // Match World Width
+    const mapH = 1200; // Match World Height
 
-    // Define a grid (e.g. 3x3 or 4x3) to distribute points
-    const cols = 4;
-    const rows = 3;
+    // Define a denser grid (e.g. 6x5) to distribute points across the larger map
+    const cols = 6;
+    const rows = 5;
     const cellW = (mapW - 2 * margin) / cols;
     const cellH = (mapH - 2 * margin) / rows;
 
@@ -802,9 +809,9 @@ export function prepareCityExplorerLevel(content: GameContent[], config: Mission
 
     selected.forEach((item, index) => {
         const slot = shuffledSlots[index % shuffledSlots.length];
-        // Apply position with small random jitter to look natural
-        item.x = slot.x + (Math.random() * 40 - 20);
-        item.y = slot.y + (Math.random() * 40 - 20);
+        // Apply position with random jitter to look natural and use space
+        item.x = slot.x + (Math.random() * 100 - 50);
+        item.y = slot.y + (Math.random() * 100 - 50);
     });
 
     console.log(`[CityExplorer] Prepared Level: ${selected.length} checkpoints selected via fallback/layout.`);

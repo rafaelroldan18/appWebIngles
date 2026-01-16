@@ -258,27 +258,39 @@ export default function GamePlay({
                         <div className={`w-20 h-20 ${missionResult.success ? 'bg-emerald-50 dark:bg-emerald-900/30' : 'bg-amber-50 dark:bg-amber-900/30'} rounded-2xl flex items-center justify-center mx-auto mb-4 border ${missionResult.success ? 'border-emerald-100 dark:border-emerald-800' : 'border-amber-100 dark:border-amber-800'}`}>
                             <Trophy className={`w-10 h-10 ${missionResult.success ? 'text-emerald-500' : 'text-amber-500'}`} />
                         </div>
-                        <h2 className="text-2xl font-bold mb-2 text-slate-800 dark:text-white tracking-tighter">
+                        <h2 className="text-2xl font-black mb-1 text-slate-800 dark:text-white tracking-tighter uppercase">
                             {missionResult.success ? t.student.gameplay.missionAchieved : t.student.gameplay.missionCompleted}
                         </h2>
+                        <div className="flex flex-col items-center mb-4">
+                            <h3 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 leading-tight">
+                                {validation?.availabilityData?.mission_title || topicTitle}
+                            </h3>
+                            <p className="text-[10px] font-black text-slate-400 tracking-[0.2em] uppercase mt-1">
+                                {gameTypeName} <span className="mx-2 text-slate-300">•</span> {topicTitle}
+                            </p>
+                        </div>
                         <div className="flex justify-center">
                             <span className={`px-4 py-1.5 rounded-full font-bold text-xs tracking-wide ${missionResult.performance === 'excellent' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' :
                                 missionResult.performance === 'good' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800' :
                                     'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                                 }`}>
-                                {missionResult.feedback}
+                                {t.student.gameplay.feedback[missionResult.feedback as keyof typeof t.student.gameplay.feedback]?.replace('{accuracy}', '60') || missionResult.feedback}
                             </span>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
                         {[
-                            { icon: Star, label: t.student.gameplay.score, val: gameResult.score },
+                            { icon: Star, label: t.student.gameplay.score, val: `${gameResult.score.toFixed(1)}/10` },
                             { icon: Target, label: t.student.gameplay.hits, val: gameResult.correctCount },
                             { icon: AlertCircle, label: t.student.gameplay.failures, val: gameResult.wrongCount },
-                            { icon: Clock, label: t.student.gameplay.time, val: `${gameResult.duration}s` },
-                            { icon: TrendingUp, label: t.student.gameplay.precision, val: `${gameResult.accuracy}%` },
-                            { icon: Sparkles, label: t.student.gameplay.status, val: missionResult.completed ? t.student.gameplay.completed : t.student.gameplay.failed }
+                            {
+                                icon: Clock,
+                                label: t.student.gameplay.time,
+                                val: gameResult.duration >= 60
+                                    ? `${Math.floor(gameResult.duration / 60)}:${(gameResult.duration % 60).toString().padStart(2, '0')}`
+                                    : `${gameResult.duration}s`
+                            },
                         ].map((stat, i) => (
                             <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 text-center border border-slate-200 dark:border-slate-700 shadow-sm hover:-translate-y-1 transition-transform">
                                 <stat.icon className="w-4 h-4 text-slate-400 mx-auto mb-1" />
@@ -321,7 +333,8 @@ export default function GamePlay({
                                     <ul className="space-y-2">
                                         {missionResult.review.strengths.map((s, i) => (
                                             <li key={i} className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2 capitalize">
-                                                <Target className="w-3.5 h-3.5 text-slate-400" /> {s}
+                                                <Target className="w-3.5 h-3.5 text-slate-400" />
+                                                {t.student.gameplay.feedback[s as keyof typeof t.student.gameplay.feedback] || s.replace(/_/g, ' ')}
                                             </li>
                                         ))}
                                     </ul>
@@ -336,7 +349,8 @@ export default function GamePlay({
                                     <ul className="space-y-2">
                                         {missionResult.review.improvements.map((im, i) => (
                                             <li key={i} className="text-sm font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2 capitalize">
-                                                <AlertCircle className="w-3.5 h-3.5 text-slate-400" /> {im}
+                                                <AlertCircle className="w-3.5 h-3.5 text-slate-400" />
+                                                {t.student.gameplay.feedback[im as keyof typeof t.student.gameplay.feedback] || im.replace(/_/g, ' ')}
                                             </li>
                                         ))}
                                     </ul>
@@ -350,7 +364,10 @@ export default function GamePlay({
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.student.gameplay.recommendedPractice}</p>
-                                    <p className="text-base font-black text-slate-700 dark:text-white capitalize">{missionResult.review.recommended_practice}</p>
+                                    <p className="text-base font-black text-slate-700 dark:text-white capitalize">
+                                        {t.student.gameplay.feedback[missionResult.review.recommended_practice as keyof typeof t.student.gameplay.feedback]?.replace('{topic}', missionResult.review.recommended_practice.replace(/_/g, ' ')) ||
+                                            (missionResult.review.recommended_practice.includes('Mastery') ? missionResult.review.recommended_practice : `${t.student.gameplay.feedback.review.replace('{topic}', '')} ${missionResult.review.recommended_practice.replace(/_/g, ' ')}`)}
+                                    </p>
                                 </div>
                             </div>
                         </div>

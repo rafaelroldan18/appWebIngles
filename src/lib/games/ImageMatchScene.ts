@@ -118,6 +118,7 @@ export class ImageMatchScene extends Phaser.Scene {
         // Cargar atlas común (UI) + atlas específico de Image Match
         this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
         this.load.atlas('im_atlas', '/assets/atlases/image-match/texture.png', '/assets/atlases/image-match/texture.json');
+        this.load.image('im_bg_table', '/assets/backgrounds/image-match/bg_table.png');
 
         // Preload content images
         this.cardsData.forEach(card => {
@@ -145,12 +146,13 @@ export class ImageMatchScene extends Phaser.Scene {
             buttonLabel: this.translations?.fullscreenStart
         });
 
-        // 1. Background
-        const bg = this.add.image(width / 2, height / 2, 'im_atlas', 'image-match/background/im_bg_table');
+        // 1. Fondo de mesa
+        const bg = this.add.image(width / 2, height / 2, 'im_bg_table');
         const scaleX = width / bg.width;
         const scaleY = height / bg.height;
         const scale = Math.max(scaleX, scaleY);
         bg.setScale(scale).setScrollFactor(0);
+
 
         // 2. HUD
         this.createStandardHUD();
@@ -623,10 +625,24 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private togglePause() {
         if (this.isGameOver) return;
+
+        // Evitar múltiples aperturas
+        if (this.isPaused && !this.pauseOverlay?.visible) {
+            this.isPaused = false; // Reset if overlay is somehow gone
+        }
+
         this.isPaused = !this.isPaused;
         this.pauseOverlay.setVisible(this.isPaused);
-        if (this.gameTimer) this.gameTimer.paused = this.isPaused;
-        if (this.isPaused) this.tweens.pauseAll(); else this.tweens.resumeAll();
+
+        if (this.isPaused) {
+            this.physics.pause();
+            if (this.gameTimer) this.gameTimer.paused = true;
+            // this.tweens.pauseAll(); 
+        } else {
+            this.physics.resume();
+            if (this.gameTimer) this.gameTimer.paused = false;
+            // this.tweens.resumeAll();
+        }
     }
 
     private showHelpPanel() {

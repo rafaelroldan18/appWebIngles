@@ -96,6 +96,7 @@ export class WordCatcherScene extends Phaser.Scene {
     preload() {
         // Cargar atlas común (UI) + atlas específico de Word Catcher
         preloadCommonAndGame(this, 'word-catcher', ASSET_MANIFEST);
+        this.load.image('wc_bg_fixed', '/assets/backgrounds/word-catcher/bg_soft.png');
     }
 
     create() {
@@ -104,7 +105,7 @@ export class WordCatcherScene extends Phaser.Scene {
 
             // 1. Fondo (Fijo y limpio) - Usar wc_bg_soft (match manifest)
             // Asegurar que cubra toda la pantalla
-            const bg = this.add.image(width / 2, height / 2, 'wc_bg_soft');
+            const bg = this.add.image(width / 2, height / 2, 'wc_bg_fixed');
             const scaleX = width / bg.width;
             const scaleY = height / bg.height;
             const scale = Math.max(scaleX, scaleY);

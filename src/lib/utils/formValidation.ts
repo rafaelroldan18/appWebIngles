@@ -134,7 +134,7 @@ export const commonValidations = {
   },
   password: {
     required: true,
-    minLength: 6,
+    minLength: 8,
   },
   name: {
     required: true,

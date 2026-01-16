@@ -40,7 +40,7 @@ export default function AccountTab() {
       confirmPassword: '',
     },
     validationRules: {
-      currentPassword: commonValidations.password,
+      currentPassword: { required: true },
       newPassword: commonValidations.password,
       confirmPassword: {
         ...commonValidations.password,
@@ -139,11 +139,10 @@ export default function AccountTab() {
               onChange={(e) => profileValidation.handleChange('first_name', e.target.value)}
               onBlur={() => profileValidation.handleBlur('first_name')}
               disabled={isReadOnly}
-              className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${
-                profileValidation.errors.first_name && profileValidation.touched.first_name && !isReadOnly
-                  ? 'border-red-500 focus:border-red-500'
-                  : `focus:${colors.border.focus}`
-              }`}
+              className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${profileValidation.errors.first_name && profileValidation.touched.first_name && !isReadOnly
+                ? 'border-red-500 focus:border-red-500'
+                : `focus:${colors.border.focus}`
+                }`}
             />
             {profileValidation.errors.first_name && profileValidation.touched.first_name && !isReadOnly && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -160,11 +159,10 @@ export default function AccountTab() {
               onChange={(e) => profileValidation.handleChange('last_name', e.target.value)}
               onBlur={() => profileValidation.handleBlur('last_name')}
               disabled={isReadOnly}
-              className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${
-                profileValidation.errors.last_name && profileValidation.touched.last_name && !isReadOnly
-                  ? 'border-red-500 focus:border-red-500'
-                  : `focus:${colors.border.focus}`
-              }`}
+              className={`w-full px-4 py-3 ${colors.background.base} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} disabled:opacity-50 disabled:cursor-not-allowed ${profileValidation.errors.last_name && profileValidation.touched.last_name && !isReadOnly
+                ? 'border-red-500 focus:border-red-500'
+                : `focus:${colors.border.focus}`
+                }`}
             />
             {profileValidation.errors.last_name && profileValidation.touched.last_name && !isReadOnly && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -175,25 +173,24 @@ export default function AccountTab() {
         </div>
 
         {message && (
-          <div className={`mt-4 p-3 rounded-lg text-sm border-2 ${
-            message.includes('exitosamente') 
-              ? `${colors.status.success.bg} ${colors.status.success.border} ${colors.status.success.text}`
-              : `${colors.status.error.bg} ${colors.status.error.border} ${colors.status.error.text}`
-          }`}>
+          <div className={`mt-4 p-3 rounded-lg text-sm border-2 ${message.includes('exitosamente')
+            ? `${colors.status.success.bg} ${colors.status.success.border} ${colors.status.success.text}`
+            : `${colors.status.error.bg} ${colors.status.error.border} ${colors.status.error.text}`
+            }`}>
             {message}
           </div>
         )}
 
         {!isReadOnly && (
           <div className="flex justify-end gap-3 mt-6">
-            <button 
+            <button
               onClick={handleCancel}
               disabled={!hasChanges || loading}
               className={`px-6 py-2 ${colors.background.base} hover:${colors.background.hover} ${colors.text.secondary} rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {t.accountCancel}
             </button>
-            <button 
+            <button
               onClick={handleSave}
               disabled={!hasChanges || loading}
               className={`px-6 py-2 bg-gradient-to-r ${colors.primary.gradient} hover:opacity-90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -206,7 +203,7 @@ export default function AccountTab() {
 
       <div className={`border-t-2 ${colors.border.light} pt-8`}>
         <h2 className={`text-2xl font-bold mb-6 ${colors.text.title}`}>{t.accountSecurity}</h2>
-        
+
         <button
           onClick={() => setShowPasswordSection(!showPasswordSection)}
           className={`w-full flex items-center justify-between px-4 py-4 ${colors.background.base} hover:${colors.background.hover} ${colors.border.light} rounded-lg transition-colors`}
@@ -228,11 +225,10 @@ export default function AccountTab() {
                   value={passwordValidation.values.currentPassword}
                   onChange={(e) => passwordValidation.handleChange('currentPassword', e.target.value)}
                   onBlur={() => passwordValidation.handleBlur('currentPassword')}
-                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${
-                    passwordValidation.errors.currentPassword && passwordValidation.touched.currentPassword
-                      ? 'border-red-500 focus:border-red-500'
-                      : `focus:${colors.border.focus}`
-                  }`}
+                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${passwordValidation.errors.currentPassword && passwordValidation.touched.currentPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : `focus:${colors.border.focus}`
+                    }`}
                 />
                 <button
                   type="button"
@@ -257,11 +253,10 @@ export default function AccountTab() {
                   value={passwordValidation.values.newPassword}
                   onChange={(e) => passwordValidation.handleChange('newPassword', e.target.value)}
                   onBlur={() => passwordValidation.handleBlur('newPassword')}
-                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${
-                    passwordValidation.errors.newPassword && passwordValidation.touched.newPassword
-                      ? 'border-red-500 focus:border-red-500'
-                      : `focus:${colors.border.focus}`
-                  }`}
+                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${passwordValidation.errors.newPassword && passwordValidation.touched.newPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : `focus:${colors.border.focus}`
+                    }`}
                 />
                 <button
                   type="button"
@@ -286,11 +281,10 @@ export default function AccountTab() {
                   value={passwordValidation.values.confirmPassword}
                   onChange={(e) => passwordValidation.handleChange('confirmPassword', e.target.value)}
                   onBlur={() => passwordValidation.handleBlur('confirmPassword')}
-                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${
-                    passwordValidation.errors.confirmPassword && passwordValidation.touched.confirmPassword
-                      ? 'border-red-500 focus:border-red-500'
-                      : `focus:${colors.border.focus}`
-                  }`}
+                  className={`w-full px-4 py-3 pr-12 ${colors.background.card} ${colors.border.light} rounded-lg focus:outline-none ${colors.text.primary} ${passwordValidation.errors.confirmPassword && passwordValidation.touched.confirmPassword
+                    ? 'border-red-500 focus:border-red-500'
+                    : `focus:${colors.border.focus}`
+                    }`}
                 />
                 <button
                   type="button"
@@ -332,7 +326,7 @@ export default function AccountTab() {
 
                   // Actualizar la regla de coincidencia para confirmPassword
                   const customRules = {
-                    currentPassword: commonValidations.password,
+                    currentPassword: { required: true },
                     newPassword: commonValidations.password,
                     confirmPassword: {
                       ...commonValidations.password,

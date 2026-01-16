@@ -347,20 +347,18 @@ export function showModal(
         closeOnBackdrop = true
     } = options;
 
-    const { width: screenWidth, height: screenHeight } = scene.cameras.main;
-    const container = scene.add.container(screenWidth / 2, screenHeight / 2);
+    const cam = scene.cameras.main;
+    const container = scene.add.container(cam.worldView.centerX, cam.worldView.centerY);
     container.setDepth(3000);
 
-    // Fondo oscuro (backdrop) - Relative to screen
-    const backdrop = scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7)
+    // Fondo oscuro (backdrop) - Covers viewport
+    const backdrop = scene.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.7)
         .setInteractive()
-        .setScrollFactor(0)
         .setPosition(0, 0); // Position at container's center relative to screen
 
-    // Note: backdrop needs to be moved to cover the whole screen, but container is at center.
     // So we offset backdrop by -center.
-    backdrop.setX(-screenWidth / 2);
-    backdrop.setY(-screenHeight / 2);
+    backdrop.setX(-cam.width / 2);
+    backdrop.setY(-cam.height / 2);
     backdrop.setOrigin(0);
 
     if (closeOnBackdrop) {

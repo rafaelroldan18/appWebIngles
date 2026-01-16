@@ -30,10 +30,8 @@ export async function GET(request: NextRequest) {
 
         if (isUuid) {
             gameTypeUuid = targetGameTypeId;
-            console.log(`[API GET] Using UUID directly: ${gameTypeUuid}`);
         } else if (targetGameTypeId) {
             const formattedName = formatGameTypeName(targetGameTypeId);
-            console.log(`[API GET] Converting slug '${targetGameTypeId}' to name '${formattedName}'`);
 
             const { data: gameType } = await supabase
                 .from('game_types')
@@ -66,7 +64,6 @@ export async function GET(request: NextRequest) {
         const { data, error } = await query;
 
         if (error) {
-            console.error('[API GET] Supabase Error:', error);
             return NextResponse.json({ error: error.message }, { status: 400 });
         }
 
@@ -86,11 +83,8 @@ export async function GET(request: NextRequest) {
             game_types: undefined // Remover el objeto anidado para limpiar la respuesta
         }));
 
-        console.log(`[API] Loaded ${enrichedData.length} items for topic ${topicId}${targetGameTypeId ? ` and game ${targetGameTypeId}` : ''}`);
-
         return NextResponse.json(enrichedData);
     } catch (error) {
-        console.error('Error in /api/games/content:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

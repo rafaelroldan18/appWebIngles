@@ -106,6 +106,12 @@ export default function StudentGames({ studentId, parallelId }: StudentGamesProp
                             const attemptsUsed = missionSessions.length;
                             const remainingAttempts = Math.max(0, game.max_attempts - attemptsUsed);
 
+                            // Calculate best score and completion status
+                            const bestScore = missionSessions.length > 0
+                                ? Math.max(...missionSessions.map(s => s.score || 0))
+                                : null;
+                            const isCompleted = missionSessions.some(s => s.completed);
+
                             return (
                                 <div
                                     key={game.availability_id}
@@ -144,6 +150,27 @@ export default function StudentGames({ studentId, parallelId }: StudentGamesProp
                                             <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed font-medium">
                                                 {(game as any).topics?.description || t.student.games.challengeDescription}
                                             </p>
+
+                                            {/* Best Score and Completion Status */}
+                                            {bestScore !== null && bestScore !== undefined && (
+                                                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                                                        <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                                                            {t.student.dashboard.best} {bestScore.toFixed(1)}/10
+                                                        </span>
+                                                    </div>
+                                                    {isCompleted && (
+                                                        <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                                            <Trophy className="w-3 h-3 text-emerald-600" />
+                                                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                                                                {t.student.dashboard.completed}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {(game.activated_at || (game.is_active && game.created_at)) && (
                                                 <div className="flex items-center gap-2 text-tiny text-slate-400 mt-3">
                                                     <Clock className="w-3 h-3" />
@@ -181,7 +208,7 @@ export default function StudentGames({ studentId, parallelId }: StudentGamesProp
                                                 <div className="flex flex-col">
                                                     <span className="text-tiny text-slate-400 font-bold tracking-tighter">{t.student.games.expiration}</span>
                                                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                                        {game.available_until ? new Date(game.available_until).toLocaleDateString() : t.student.games.noLimit}
+                                                        {game.available_until ? game.available_until.split('T')[0] : t.student.games.noLimit}
                                                     </span>
                                                 </div>
                                             </div>

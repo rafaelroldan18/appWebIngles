@@ -164,14 +164,20 @@ export default function UniversalGameCanvas({
                 console.log('[UniversalGameCanvas] GAME_OVER data:', data);
                 console.log('[UniversalGameCanvas] data.answers:', data.answers);
 
+                const accuracy = (data.correctCount + data.wrongCount) > 0
+                    ? Math.round((data.correctCount / (data.correctCount + data.wrongCount)) * 100)
+                    : (sessionData.correctCount + sessionData.wrongCount > 0
+                        ? Math.round((sessionData.correctCount / (sessionData.correctCount + sessionData.wrongCount)) * 100)
+                        : 0);
+
                 const gameEndData = {
                     score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
                     correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
                     wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
                     duration: data.durationSeconds !== undefined ? data.durationSeconds : duration,
-                    accuracy: 0, // Calculate if needed
+                    accuracy: data.accuracy !== undefined ? data.accuracy : accuracy,
                     sessionId: sessionManagerRef.current.getSessionId(),
-                    answers: data.answers || sessionData.items
+                    answers: (data.answers && data.answers.length > 0) ? data.answers : sessionData.items
                 };
 
                 console.log('[UniversalGameCanvas] Sending to GamePlay:', gameEndData);
@@ -239,7 +245,7 @@ export default function UniversalGameCanvas({
 
                     const content = gameContentRef.current;
                     if (gameType === 'city-explorer') {
-                        sceneData.map = prepareCityExplorerLevel(content, missionConfig);
+                        sceneData.mapData = prepareCityExplorerLevel(content, missionConfig);
                         sceneData.words = content;
                     } else if (gameType === 'image-match') {
                         const resolvedConfig = resolveImageMatchConfig(missionConfig);
@@ -254,14 +260,20 @@ export default function UniversalGameCanvas({
                     // Listeners on GLOBAL game events for reliability
                     game.events.off('GAME_OVER');
                     game.events.off('GAME_EXIT');
+                    game.events.off('exit');
+                    game.events.off('game-end');
 
                     game.events.on('GAME_OVER', handleGameOver);
                     game.events.on('GAME_EXIT', (data: any) => handleGameOver(data || {}));
+                    game.events.on('exit', (data: any) => handleGameOver(data || {}));
+                    game.events.on('game-end', (data: any) => handleGameOver(data || {}));
 
                     // Error handling remains on scene if possible, or we can use game events too if we emit them
                     const scene = game.scene.getScene(key);
                     if (scene) {
                         scene.events.on('error', (err: any) => setError(String(err)));
+                        scene.events.on('exit', (data: any) => handleGameOver(data || {}));
+                        scene.events.on('game-end', (data: any) => handleGameOver(data || {}));
                     }
                 };
 

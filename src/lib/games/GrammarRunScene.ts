@@ -33,6 +33,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
     // Game objects
     private player!: Phaser.GameObjects.Sprite;
+    private bg!: Phaser.GameObjects.TileSprite; // Scrolling background
     private ground!: Phaser.GameObjects.Rectangle;
     private gates: Gate[] = [];
     private obstacles: Phaser.GameObjects.Image[] = [];
@@ -77,6 +78,7 @@ export class GrammarRunScene extends Phaser.Scene {
     preload() {
         this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
         this.load.atlas('gr_atlas', '/assets/atlases/grammar-run/texture.png', '/assets/atlases/grammar-run/texture.json');
+        this.load.image('bg_grammar', '/assets/backgrounds/grammar-run/bg_trees.png');
     }
 
     // Data for restart
@@ -157,14 +159,10 @@ export class GrammarRunScene extends Phaser.Scene {
 
             const { width, height } = this.cameras.main;
 
-            // Set background (Using existing width/height)
-            const bg = this.add.image(width / 2, height / 2, 'gr_atlas', 'grammar-run/background/gr_background');
-            const scaleX = width / bg.width;
-            const scaleY = height / bg.height;
-            const scale = Math.max(scaleX, scaleY);
-            bg.setScale(scale).setScrollFactor(0);
-
-            // this.cameras.main.setBackgroundColor(GRAMMAR_RUN_CONFIG.visual.backgroundColor); // Replaced by image
+            // Set background (Using tiled sprite for scrolling)
+            this.bg = this.add.tileSprite(width / 2, height / 2, width, height, 'bg_grammar');
+            this.bg.setScrollFactor(0);
+            this.bg.setDepth(-100);
 
             // Create ground
             this.createGround();
@@ -241,6 +239,10 @@ export class GrammarRunScene extends Phaser.Scene {
 
     private togglePause() {
         if (this.isGameOver) return;
+
+        // Evitar múltiples aperturas
+        if (this.isPaused && !this.pauseOverlay) return;
+
         this.isPaused = !this.isPaused;
 
         if (this.isPaused) {
@@ -248,7 +250,7 @@ export class GrammarRunScene extends Phaser.Scene {
             if (this.gameTimer) this.gameTimer.paused = true;
             if (this.nextQuestionTimer) this.nextQuestionTimer.paused = true;
             if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = true;
-            this.tweens.pauseAll();
+            // this.tweens.pauseAll(); // Disable to allow UI animations
             this.showPauseOverlay();
         } else {
             this.physics.world.resume();

@@ -122,13 +122,16 @@ export class SentenceBuilderScene extends Phaser.Scene {
     preload() {
         // Cargar atlas común (UI) + atlas específico de Sentence Builder
         loadGameAtlases(this, 'sb');
+        this.load.image('bg_sentence', '/assets/backgrounds/sentence-builder/bg_streets.png');
     }
 
     create() {
         const { width, height } = this.cameras.main;
 
         // Background
-        this.cameras.main.setBackgroundColor('#f8fafc'); // Slate-50 equivalent
+        const bg = this.add.image(width / 2, height / 2, 'bg_sentence');
+        bg.setDisplaySize(width, height);
+        bg.setDepth(-100);
 
         // HUD (común)
         this.createHUD();
@@ -1034,13 +1037,16 @@ export class SentenceBuilderScene extends Phaser.Scene {
     private togglePause() {
         if (this.isGameOver) return;
 
+        // Evitar múltiples aperturas
+        if (this.isPaused && !this.pauseOverlay) return;
+
         this.isPaused = !this.isPaused;
 
         if (this.isPaused) {
             console.log('DEBUG: PAUSING');
             this.physics.pause();
             if (this.gameTimer) this.gameTimer.paused = true;
-            this.tweens.pauseAll();
+            // this.tweens.pauseAll();
 
             // Create Pause UI
             const { width, height } = this.cameras.main;

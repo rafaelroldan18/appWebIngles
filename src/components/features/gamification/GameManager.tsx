@@ -181,8 +181,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
         setMissionForm({
             game_type_id: mission.game_type_id,
             topic_id: mission.topic_id,
-            available_from: new Date(mission.available_from).toLocaleDateString('en-CA'),
-            available_until: mission.available_until ? new Date(mission.available_until).toLocaleDateString('en-CA') : '',
+            // Extract date portion directly to avoid timezone issues
+            available_from: mission.available_from.split('T')[0],
+            available_until: mission.available_until ? mission.available_until.split('T')[0] : '',
             max_attempts: mission.max_attempts,
             show_theory: mission.show_theory !== false,
             is_active: mission.is_active !== false,
@@ -892,7 +893,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-[10px] opacity-60">{t.gamification.mission.cards.validity}</span>
-                                                        <span>{new Date(item.available_from).toLocaleDateString()} - {item.available_until ? new Date(item.available_until).toLocaleDateString() : t.gamification.mission.cards.indefinite}</span>
+                                                        <span>{item.available_from.split('T')[0]} - {item.available_until ? item.available_until.split('T')[0] : t.gamification.mission.cards.indefinite}</span>
                                                     </div>
                                                 </div>
 

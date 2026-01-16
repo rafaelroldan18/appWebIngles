@@ -106,42 +106,86 @@ export default function EstudianteDashboard({ onLogout, isPreviewMode = false }:
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          {/* Header Dashboard: Bienvenida + Métricas Integradas */}
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-8 shadow-sm overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 dark:bg-slate-800/20 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
-
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Compact Header Dashboard */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              {/* Left: Welcome + Continue message */}
               <div className="flex-1">
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                   {t.hola}, {usuario?.first_name}!
                 </h2>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 mt-1">
                   {usuario?.parallel_name && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-semibold">
-                      {t.student.dashboard.course} {usuario.parallel_name}
-                    </div>
+                    <>
+                      <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+                        {t.student.dashboard.course} {usuario.parallel_name}
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
+                    </>
                   )}
-                  <p className="text-sm font-medium text-slate-500 dark:text-gray-400">{t.continuaAventura}</p>
+                  <span className="text-sm text-slate-500 dark:text-slate-500">{t.continuaAventura}</span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Badge de Puntos */}
-                <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-2xl border border-amber-100 dark:border-amber-800 shadow-sm transition-all hover:scale-105">
-                  <div className="w-7 h-7 bg-amber-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-200 dark:shadow-none">
-                    <Trophy className="w-4 h-4 text-white" />
+              {/* Right: Stats + Button */}
+              <div className="flex items-center gap-5">
+                {/* Stats Grid */}
+                <div className="flex items-center gap-5">
+                  {/* Points */}
+                  <div className="text-center min-w-[70px]">
+                    <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                      {stats?.summary?.totalPoints || usuario?.points || 0}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-tight">
+                      {t.student.dashboard.pointsAccumulated}
+                    </p>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-amber-500 dark:text-amber-500/70 leading-none mb-0.5">{t.puntos}</span>
-                    <span className="text-base font-bold leading-none">{stats?.summary?.totalPoints || usuario?.points || 0}</span>
+
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+
+                  {/* Completed */}
+                  <div className="text-center min-w-[70px]">
+                    <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                      {stats?.summary?.completedMissions || 0}<span className="text-xs text-slate-400">/{stats?.summary?.totalMissions || 0}</span>
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-tight">
+                      {t.student.dashboard.missionsCompleted}
+                    </p>
+                  </div>
+
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+
+                  {/* Average */}
+                  <div className="text-center min-w-[70px]">
+                    <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                      {stats?.summary?.completedMissions > 0
+                        ? ((stats?.summary?.totalPoints || 0) / (stats?.summary?.completedMissions || 1)).toFixed(1)
+                        : '0.0'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-tight">
+                      {t.student.dashboard.averagePerMission}
+                    </p>
+                  </div>
+
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+
+                  {/* Accuracy */}
+                  <div className="text-center min-w-[70px]">
+                    <p className="text-lg font-bold text-slate-800 dark:text-white leading-tight">
+                      {stats?.summary?.averageAccuracy || 0}%
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-1 leading-tight">
+                      {t.student.dashboard.overallAccuracy}
+                    </p>
                   </div>
                 </div>
 
+                {/* Button */}
                 <button
                   onClick={() => setCurrentView('gamification')}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-semibold transition-all shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95"
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-colors whitespace-nowrap"
                 >
-                  <Gamepad2 className="w-5 h-5" />
+                  <Gamepad2 className="w-4 h-4" />
                   <span>{t.student.dashboard.myGamesButton}</span>
                 </button>
               </div>
@@ -204,7 +248,7 @@ export default function EstudianteDashboard({ onLogout, isPreviewMode = false }:
                           m.status === 'bloqueada' ? 'bg-slate-50 text-slate-500 border-slate-100' :
                             'bg-indigo-50 text-indigo-700 border-indigo-100'
                           }`}>
-                          {m.status.charAt(0).toUpperCase() + m.status.slice(1)}
+                          {t.student.statistics.statusLabels?.[m.status as keyof typeof t.student.statistics.statusLabels] || m.status.charAt(0).toUpperCase() + m.status.slice(1)}
                         </span>
                       </div>
 
@@ -217,6 +261,26 @@ export default function EstudianteDashboard({ onLogout, isPreviewMode = false }:
                         )}
                       </h4>
                       <p className="text-xs text-slate-500 mb-2 font-semibold tracking-widest">{m.game}</p>
+
+                      {/* Best Score Display */}
+                      {m.bestScore !== null && m.bestScore !== undefined && (
+                        <div className="mb-3 flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                              {t.student.dashboard.best} {m.bestScore.toFixed(1)}/10
+                            </span>
+                          </div>
+                          {m.isCompleted && (
+                            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                              <Trophy className="w-3 h-3 text-emerald-600" />
+                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                                {t.student.dashboard.completed}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {(m.activatedAt || m.createdAt) && (
                         <p className="text-xs text-slate-400 mb-4 flex items-center gap-1">
                           <Clock className="w-3 h-3" />

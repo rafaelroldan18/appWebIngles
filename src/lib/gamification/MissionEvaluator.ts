@@ -88,7 +88,7 @@ export class MissionEvaluator {
                 accuracy,
                 performance: 'fair',
                 pointsEarned: score,
-                feedback: 'Sesión finalizada. Sigue practicando.',
+                feedback: 'fair',
                 achievements: [],
                 summary: {
                     score_raw: score,
@@ -141,20 +141,26 @@ export class MissionEvaluator {
     }
 
     /**
-     * Calculate points earned based on performance
+     * Calculate points earned based on accuracy (normalized to 0-10 scale)
+     * Each mission now awards points proportional to accuracy
+     * Formula: (accuracy / 100) * 10
      */
     private static calculatePointsEarned(
         score: number,
         performance: 'excellent' | 'good' | 'fair' | 'poor'
     ): number {
-        const multipliers = {
-            excellent: 1.5,
-            good: 1.2,
-            fair: 1.0,
-            poor: 0.5,
+        // This method is kept for backward compatibility
+        // but the actual score calculation is done in generateStandardizedDetails
+        // based on correct/total ratio
+        const performanceToAccuracy = {
+            excellent: 90,  // Assume 90% accuracy for excellent
+            good: 75,       // Assume 75% accuracy for good
+            fair: 65,       // Assume 65% accuracy for fair
+            poor: 50,       // Assume 50% accuracy for poor
         };
 
-        return Math.floor(score * multipliers[performance]);
+        const estimatedAccuracy = performanceToAccuracy[performance];
+        return Math.round((estimatedAccuracy / 100) * 10 * 10) / 10;
     }
 
     /**
@@ -165,19 +171,11 @@ export class MissionEvaluator {
         success: boolean,
         accuracy: number
     ): string {
-        if (performance === 'excellent') {
-            return '¡Excelente trabajo! Has dominado este tema. 🌟';
-        }
-        if (performance === 'good') {
-            return '¡Buen trabajo! Estás progresando muy bien. 💪';
-        }
-        if (performance === 'fair') {
-            return 'Misión completada. Sigue practicando para mejorar. 📚';
-        }
-        if (success) {
-            return 'Has completado la misión, pero hay espacio para mejorar. 🎯';
-        }
-        return `Misión no completada. Necesitas al menos ${this.DEFAULT_CRITERIA.minAccuracyToPass}% de precisión. Inténtalo de nuevo. 🔄`;
+        if (performance === 'excellent') return 'excellent';
+        if (performance === 'good') return 'good';
+        if (performance === 'fair') return 'fair';
+        if (success) return 'successLow';
+        return 'failed';
     }
 
     /**
@@ -193,8 +191,8 @@ export class MissionEvaluator {
         if (accuracy === 100) {
             achievements.push('perfect_score');
         }
-        if (score >= 150) {
-            achievements.push('high_scorer');
+        if (accuracy >= 90) {
+            achievements.push('high_accuracy');
         }
         if (correctCount >= 20) {
             achievements.push('word_master');
@@ -227,20 +225,19 @@ export class MissionEvaluator {
         const success = this.isMissionSuccessful(score, accuracy, criteria);
         const performance = this.calculatePerformance(accuracy, criteria);
 
-        const multipliers = {
-            excellent: 1.5,
-            good: 1.2,
-            fair: 1.0,
-            poor: 0.5,
-        };
-        const multiplier = multipliers[performance];
-        const scoreFinal = Math.floor(score * multiplier);
+        // Calculate score on 0-10 scale based on correct answers
+        // Formula: (correct / total) * 10
+        const totalItems = correctCount + wrongCount;
+        const scoreFinal = totalItems > 0
+            ? Math.round((correctCount / totalItems) * 10 * 10) / 10  // Round to 1 decimal
+            : 0;
+
         const review = this.generatePedagogicalReview(answers);
 
         return {
             summary: {
                 score_raw: score,
-                score_final: scoreFinal,
+                score_final: scoreFinal, // Now calculated as (correct/total) * 10
                 duration_seconds: durationSeconds,
                 correct_count: correctCount,
                 wrong_count: wrongCount,
@@ -251,7 +248,7 @@ export class MissionEvaluator {
             },
             breakdown: {
                 base_points: score,
-                multiplier: multiplier,
+                multiplier: 1, // No longer using multipliers
                 bonus_points: 0,
                 penalty_points: 0,
                 rules_used: {
@@ -293,7 +290,7 @@ export class MissionEvaluator {
             });
 
             // Recommended practice based on the weakest tag
-            let recommended_practice = '¡Sigue practicando para mejorar tu fluidez!';
+            let recommended_practice = 'keepPracticing';
 
             const improvementEntries = Object.entries(tagStats)
                 .filter(([tag]) => improvements.includes(tag))
@@ -305,22 +302,22 @@ export class MissionEvaluator {
 
             if (improvementEntries.length > 0) {
                 const weakestTag = improvementEntries[0][0];
-                recommended_practice = `Repasar: ${weakestTag.replace(/_/g, ' ')}`;
+                recommended_practice = weakestTag; // The key to translate
             } else if (strengths.length > 0 && safeAnswers.length > 5) {
-                recommended_practice = '¡Excelente dominio! Intenta subir la dificultad.';
+                recommended_practice = 'excellentMastery';
             }
 
             return {
-                strengths: strengths.length > 0 ? strengths.map(s => s.replace(/_/g, ' ')) : ['Dominio del vocabulario base'],
-                improvements: improvements.length > 0 ? improvements.map(s => s.replace(/_/g, ' ')) : ['Ninguna debilidad marcada'],
+                strengths: strengths.length > 0 ? strengths : ['basicVocab'],
+                improvements: improvements.length > 0 ? improvements : ['noWeaknesses'],
                 recommended_practice
             };
         } catch (error) {
             console.error('[MissionEvaluator] Error generating review:', error);
             return {
-                strengths: ['Dominio general'],
-                improvements: ['Sigue practicando'],
-                recommended_practice: '¡Sigue adelante con tu aprendizaje!'
+                strengths: ['general'],
+                improvements: ['keepPracticing'],
+                recommended_practice: 'keepPracticing'
             };
         }
     }

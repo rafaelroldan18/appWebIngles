@@ -138,6 +138,11 @@ export async function GET(request: NextRequest) {
             const attemptsUsed = missionSessions.length;
             const remainingAttempts = Math.max(0, (m.max_attempts || 0) - attemptsUsed);
 
+            // Calculate best score from all attempts
+            const bestScore = missionSessions.length > 0
+                ? Math.max(...missionSessions.map(s => s.score || 0))
+                : null;
+
             let status = 'bloqueada';
             const now = new Date();
             const start = m.available_from ? new Date(m.available_from) : null;
@@ -155,17 +160,64 @@ export async function GET(request: NextRequest) {
                 topic: topicMap.get(m.topic_id) || 'Desconocido',
                 missionTitle: m.mission_title,
                 status,
+                isCompleted,
+                bestScore,
+                attemptsUsed,
                 remainingAttempts,
                 createdAt: m.created_at,
                 activatedAt: m.activated_at
             };
         });
 
+        // E. Calculate Streak (consecutive days of activity)
+        let currentStreak = 0;
+        if (sessionsData.length > 0) {
+            const sortedDates = sessionsData
+                .map(s => new Date(s.played_at).toDateString())
+                .filter((date, index, self) => self.indexOf(date) === index) // unique dates
+                .sort((a, b) => new Date(b).getTime() - new Date(a).getTime()); // descending
+
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+            // Check if there's activity today or yesterday to start counting
+            if (sortedDates[0] === today || sortedDates[0] === yesterday) {
+                currentStreak = 1;
+                let expectedDate = new Date(sortedDates[0]);
+
+                for (let i = 1; i < sortedDates.length; i++) {
+                    expectedDate = new Date(expectedDate.getTime() - 86400000);
+                    if (sortedDates[i] === expectedDate.toDateString()) {
+                        currentStreak++;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // F. Count total and completed missions
+        const totalMissions = (missions || []).length;
+        const completedMissions = missionStatus.filter(m => m.status === 'completada').length;
+
+        // G. Calculate average accuracy
+        let averageAccuracy = 0;
+        if (sessionsData.length > 0) {
+            const totalCorrect = sessionsData.reduce((sum, s) => sum + (s.correct_count || 0), 0);
+            const totalWrong = sessionsData.reduce((sum, s) => sum + (s.wrong_count || 0), 0);
+            const total = totalCorrect + totalWrong;
+            averageAccuracy = total > 0 ? Math.round((totalCorrect / total) * 100) : 0;
+        }
+
         return NextResponse.json({
             summary: {
                 totalPoints: finalPoints,
                 completedActivities,
-                rank: finalPoints > 1000 ? 'Experto' : finalPoints > 500 ? 'Avanzado' : 'Iniciante'
+                rank: finalPoints > 1000 ? 'Experto' : finalPoints > 500 ? 'Avanzado' : 'Iniciante',
+                totalMissions,
+                completedMissions,
+                currentStreak,
+                averageAccuracy
             },
             history,
             topicPerformance,

@@ -26,7 +26,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       confirmPassword: '',
     },
     validationRules: {
-      currentPassword: commonValidations.password,
+      currentPassword: { required: true },
       newPassword: commonValidations.password,
       confirmPassword: {
         ...commonValidations.password,
@@ -67,9 +67,9 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
       const res = await fetch('/api/user/change-password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          currentPassword: validation.values.currentPassword, 
-          newPassword: validation.values.newPassword 
+        body: JSON.stringify({
+          currentPassword: validation.values.currentPassword,
+          newPassword: validation.values.newPassword
         }),
       });
 
@@ -111,11 +111,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 value={validation.values.currentPassword}
                 onChange={(e) => validation.handleChange('currentPassword', e.target.value)}
                 onBlur={() => validation.handleBlur('currentPassword')}
-                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
-                  validation.errors.currentPassword && validation.touched.currentPassword
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${validation.errors.currentPassword && validation.touched.currentPassword
                     ? 'border-red-500 focus:border-red-500'
                     : 'border-gray-200 focus:border-[#4DB6E8]'
-                }`}
+                  }`}
               />
               <button
                 type="button"
@@ -140,11 +139,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 value={validation.values.newPassword}
                 onChange={(e) => validation.handleChange('newPassword', e.target.value)}
                 onBlur={() => validation.handleBlur('newPassword')}
-                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
-                  validation.errors.newPassword && validation.touched.newPassword
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${validation.errors.newPassword && validation.touched.newPassword
                     ? 'border-red-500 focus:border-red-500'
                     : 'border-gray-200 focus:border-[#4DB6E8]'
-                }`}
+                  }`}
               />
               <button
                 type="button"
@@ -169,11 +167,10 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
                 value={validation.values.confirmPassword}
                 onChange={(e) => validation.handleChange('confirmPassword', e.target.value)}
                 onBlur={() => validation.handleBlur('confirmPassword')}
-                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${
-                  validation.errors.confirmPassword && validation.touched.confirmPassword
+                className={`w-full px-4 py-3 pr-12 bg-gray-50 border-2 rounded-lg focus:outline-none ${validation.errors.confirmPassword && validation.touched.confirmPassword
                     ? 'border-red-500 focus:border-red-500'
                     : 'border-gray-200 focus:border-[#4DB6E8]'
-                }`}
+                  }`}
               />
               <button
                 type="button"

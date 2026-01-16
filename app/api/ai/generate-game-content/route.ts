@@ -33,17 +33,8 @@ export async function POST(request: NextRequest) {
         const body: GenerateContentRequest = await request.json();
         const { topicId, topicTitle, gameTypeId, count, contextNote } = body;
 
-        console.log('📥 [AI Endpoint] Request recibido:', {
-            topicId,
-            topicTitle,
-            gameTypeId,
-            count,
-            contextNote
-        });
-
         // Validaciones
         if (!topicId || !topicTitle || !gameTypeId || !count) {
-            console.error('❌ [AI Endpoint] Faltan campos requeridos');
             return NextResponse.json(
                 { error: 'Faltan campos requeridos: topicId, topicTitle, gameTypeId, count' },
                 { status: 400 }
@@ -51,7 +42,6 @@ export async function POST(request: NextRequest) {
         }
 
         if (count < 1 || count > 20) {
-            console.error('❌ [AI Endpoint] Count fuera de rango:', count);
             return NextResponse.json(
                 { error: 'El count debe estar entre 1 y 20' },
                 { status: 400 }
@@ -60,21 +50,16 @@ export async function POST(request: NextRequest) {
 
         const contract = GAME_CONTENT_CONTRACTS[gameTypeId];
         if (!contract) {
-            console.error('❌ [AI Endpoint] Tipo de juego inválido:', gameTypeId);
             return NextResponse.json(
                 { error: `Tipo de juego inválido: ${gameTypeId}` },
                 { status: 400 }
             );
         }
 
-        console.log('✅ [AI Endpoint] Validaciones pasadas');
 
         // Construir el prompt específico para cada juego
         const prompt = buildPromptForGame(gameTypeId, topicTitle, count, contextNote, contract);
-        console.log('📝 [AI Endpoint] Prompt construido para:', contract.gameName);
 
-        // Llamar a Gemini
-        console.log('🤖 [AI Endpoint] Generando con Gemini 2.0 Flash (Modelo verificado)...');
 
         // Usamos el modelo que tienes disponible con alta cuota
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -83,19 +68,13 @@ export async function POST(request: NextRequest) {
         const response = await result.response;
         const text = response.text();
 
-        console.log('✅ [AI Endpoint] Respuesta recibida de Gemini');
-        console.log('📄 [AI Endpoint] Longitud de respuesta:', text.length, 'caracteres');
-
         // Parsear la respuesta JSON
         let generatedContent;
         try {
             // Limpiar el texto de posibles markdown code blocks
             const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             generatedContent = JSON.parse(cleanedText);
-            console.log('✅ [AI Endpoint] JSON parseado correctamente');
         } catch (parseError) {
-            console.error('❌ [AI Endpoint] Error parseando JSON:', parseError);
-            console.error('📄 [AI Endpoint] Respuesta de Gemini:', text.substring(0, 500));
             return NextResponse.json(
                 { error: 'La IA no devolvió un JSON válido', rawResponse: text },
                 { status: 500 }
@@ -104,29 +83,21 @@ export async function POST(request: NextRequest) {
 
         // Validar que la respuesta tenga el formato esperado
         if (!Array.isArray(generatedContent)) {
-            console.error('❌ [AI Endpoint] La respuesta no es un array');
             return NextResponse.json(
                 { error: 'La respuesta de la IA no es un array', rawResponse: generatedContent },
                 { status: 500 }
             );
         }
 
-        console.log('✅ [AI Endpoint] Contenido generado:', generatedContent.length, 'elementos');
-
         // ========================================
         // VALIDACIÓN DE CONTENIDO POR TIPO DE JUEGO
         // ========================================
-        console.log('🔍 [AI Endpoint] Validando contenido para:', contract.gameName);
 
         const validation = validateGeneratedContent(generatedContent, gameTypeId);
         const validationReport = formatValidationReport(validation);
 
-        console.log('📋 [AI Endpoint] Reporte de validación:');
-        console.log(validationReport);
-
         // Si hay errores críticos, rechazar el contenido
         if (!validation.isValid) {
-            console.error('❌ [AI Endpoint] Validación falló - contenido rechazado');
             return NextResponse.json({
                 error: 'El contenido generado no cumple con los requisitos del juego',
                 validationErrors: validation.errors,
@@ -138,11 +109,8 @@ export async function POST(request: NextRequest) {
         // Si solo hay advertencias, usar el contenido corregido
         let finalContent = generatedContent;
         if (validation.warnings.length > 0) {
-            console.log('⚠️  [AI Endpoint] Hay advertencias, usando contenido corregido automáticamente');
             finalContent = validation.correctedContent || generatedContent;
         }
-
-        console.log('✅ [AI Endpoint] Validación exitosa');
 
         // Agregar el topicId y target_game_type_id a cada item
         const enrichedContent = finalContent.map(item => ({
@@ -150,8 +118,6 @@ export async function POST(request: NextRequest) {
             topic_id: topicId,
             target_game_type_id: gameTypeId,
         }));
-
-        console.log('🎉 [AI Endpoint] Generación completada exitosamente');
 
         return NextResponse.json({
             success: true,
@@ -165,8 +131,6 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('❌ [AI Endpoint] Error crítico:', error);
-        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
         return NextResponse.json(
             { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
