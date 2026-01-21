@@ -209,8 +209,8 @@ export const en: TranslationKeys = {
     activeStudent: 'Active student',
     backToDashboard: 'Back to Dashboard',
     adminStats: {
-      title: 'General Statistics and Management',
-      subtitle: 'Reports and metrics of academic population',
+      title: 'General reports',
+      subtitle: 'Population metrics and system activity',
       loading: 'Syncing system metrics...',
       errorLoadMetrics: 'Error loading administrative metrics',
       noData: 'No data available',
@@ -1067,8 +1067,8 @@ export const en: TranslationKeys = {
     editTitle: 'Edit Invitation',
   },
   reports: {
-    title: 'Academic Tracking',
-    subtitle: 'Analysis and Reports Module',
+    title: 'General reports',
+    subtitle: 'Academic performance and participation analysis',
     tabs: {
       overview: 'Group Progress',
       students: 'Tracking',

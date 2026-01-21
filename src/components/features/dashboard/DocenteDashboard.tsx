@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ActivityService } from '@/services/activity.service';
 import { GameService } from '@/services/game.service';
 import { UserService } from '@/services/user.service';
 import { ParallelService } from '@/services/parallel.service';

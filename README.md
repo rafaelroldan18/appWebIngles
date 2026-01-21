@@ -1,4 +1,4 @@
-# 🎓 English27 - Sistema Educativo Gamificado
+w# 🎓 English27 - Sistema Educativo Gamificado
 
 > Plataforma web para el aprendizaje de inglés con gamificación, desarrollada con Next.js, TypeScript y Supabase.
 
@@ -78,7 +78,7 @@ Visualización de la interacción entre el cliente, la interfaz de comunicación
 ```mermaid
 graph LR
     subgraph "CLIENTE (Frontend)"
-        A[ Aplicación Web<br/>React + Phaser]
+        A[ Aplicación Web<br/>React/NextJS + PhaserJS]
     end
 
     subgraph "COMUNICACIÓN REST-API"

@@ -1,4 +1,4 @@
-import type { AccountStatus, DifficultyLevel, AssignmentStatus } from '@/types';
+import type { AccountStatus } from '@/types';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -23,35 +23,20 @@ export function Badge({ children, variant = 'default', className = '' }: BadgePr
   );
 }
 
-export function StatusBadge({ status }: { status: AccountStatus | AssignmentStatus }) {
+export function StatusBadge({ status }: { status: AccountStatus }) {
   const getVariant = () => {
-    if (status === 'activo' || status === 'completado') return 'success';
-    if (status === 'pendiente' || status === 'en_curso') return 'info';
+    if (status === 'activo') return 'success';
+    if (status === 'pendiente') return 'info';
     if (status === 'inactivo') return 'default';
     return 'default';
   };
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
-  const getLabel = () => {
-    if (status === 'en_curso') return 'En curso';
-    return capitalize(status);
-  };
-
-  return <Badge variant={getVariant()}>{getLabel()}</Badge>;
+  return <Badge variant={getVariant()}>{capitalize(status)}</Badge>;
 }
 
-export function DifficultyBadge({ level }: { level: DifficultyLevel }) {
-  const variants = {
-    bajo: 'success' as const,
-    medio: 'info' as const,
-    alto: 'danger' as const,
-  };
-
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-
-  return <Badge variant={variants[level]}>{capitalize(level)}</Badge>;
-}
+// DifficultyBadge removed - DifficultyLevel type no longer exists
 
 export function RoleBadge({ role }: { role: string }) {
   const getVariant = () => {

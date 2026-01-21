@@ -207,8 +207,8 @@ export const es = {
     activeStudent: 'Alumno activo',
     backToDashboard: 'Volver al Dashboard',
     adminStats: {
-      title: 'Estadísticas generales y gestión',
-      subtitle: 'Reportes y métricas de población académica',
+      title: 'Reportes generales',
+      subtitle: 'Métricas de población y actividad del sistema',
       loading: 'Sincronizando métricas de sistema...',
       errorLoadMetrics: 'Error al cargar métricas administrativas',
       noData: 'No hay datos disponibles',
@@ -1065,8 +1065,8 @@ export const es = {
     editTitle: 'Editar Invitación',
   },
   reports: {
-    title: 'Seguimiento Académico',
-    subtitle: 'Módulo de Análisis y Reportes',
+    title: 'Reportes generales',
+    subtitle: 'Análisis de rendimiento académico y participación',
     tabs: {
       overview: 'Progreso Grupal',
       students: 'Seguimiento',

@@ -217,14 +217,7 @@ export interface Topic {
     created_at: string;
 }
 
-export interface TopicAsset {
-    asset_id: string;
-    topic_id: string;
-    url: string;
-    asset_type: 'image' | 'icon' | 'file';
-    alt_text: string | null;
-    created_at: string;
-}
+
 
 export interface TopicRule {
     rule_id: string;

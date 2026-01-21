@@ -15,7 +15,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { colors, getCardClasses, getButtonPrimaryClasses } from '@/config/colors';
 import type { Parallel } from '@/types/parallel.types';
-import type { ReportDefinition, ReportRun } from '@/types';
 
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -25,9 +24,6 @@ interface AdvancedStatsProps {
     teacherName?: string;
     parallels?: Parallel[];
     onParallelChange?: (id: string) => void;
-    definitions?: ReportDefinition[];
-    history?: ReportRun[];
-    onRunReport?: (id: string) => void;
     onBack?: () => void;
 }
 
@@ -38,9 +34,6 @@ export default function AdvancedStats({
     teacherName,
     parallels = [],
     onParallelChange,
-    definitions = [],
-    history = [],
-    onRunReport,
     onBack
 }: AdvancedStatsProps) {
     const { theme } = useTheme();
@@ -89,19 +82,42 @@ export default function AdvancedStats({
         const doc = new jsPDF();
         const parallelName = parallels.find(p => p.parallel_id === parallelId)?.name || '';
 
-        doc.setFontSize(22);
-        doc.setTextColor(79, 70, 229);
-        doc.text(`${t.reports.title} - ${parallelName}`, 14, 22);
-        // Using translations for report header
+        // Add institutional header banner
+        try {
+            const headerImg = new Image();
+            headerImg.src = '/images/encabezado_reporte.png';
+            await new Promise((resolve, reject) => {
+                headerImg.onload = resolve;
+                headerImg.onerror = reject;
+            });
+            // Add full-width header banner (centered, 180mm wide, auto height)
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const headerWidth = pageWidth - 28; // 14mm margin on each side
+            const headerHeight = 25; // Adjust based on your image aspect ratio
+            doc.addImage(headerImg, 'PNG', 14, 10, headerWidth, headerHeight);
+        } catch (error) {
+            console.warn('Could not load header for PDF:', error);
+        }
 
+        // Title below header
+        doc.setFontSize(18);
+        doc.setTextColor(79, 70, 229);
+        doc.text(`${t.reports.title} - ${parallelName}`, 14, 42);
+
+        // Report details
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`${t.reports.export.teacher}: ${teacherName || 'No especificado'}`, 14, 28);
-        doc.text(`${t.reports.export.parallel}: ${parallelName} | ${t.reports.export.period}: ${timeRange}`, 14, 33);
-        doc.text(`${t.reports.export.generated}: ${new Date().toLocaleString()}`, 14, 38);
+        doc.text(`${t.reports.export.teacher}: ${teacherName || 'No especificado'}`, 14, 48);
+        doc.text(`${t.reports.export.parallel}: ${parallelName} | ${t.reports.export.period}: ${timeRange}`, 14, 53);
+        doc.text(`${t.reports.export.generated}: ${new Date().toLocaleString()}`, 14, 58);
+
+        // Separator line
+        doc.setDrawColor(79, 70, 229);
+        doc.setLineWidth(0.5);
+        doc.line(14, 61, 196, 61);
 
         autoTable(doc, {
-            startY: 45,
+            startY: 65,
             head: [[t.reports.export.indicator, t.reports.export.value]],
             body: [
                 [t.reports.export.score, data.summary.avgScore],
@@ -143,10 +159,11 @@ export default function AdvancedStats({
         doc.text(t.reports.export.studentList, 14, 22);
         autoTable(doc, {
             startY: 30,
-            head: [[t.reports.export.student, 'XP', t.reports.export.accuracy]],
-            body: data.studentPerformance.map((s: any) => [s.name, s.score, `${s.accuracy}%`]),
+            head: [[t.reports.export.student, t.loginIdCard || 'Cédula', t.loginEmail || 'Correo', 'XP', t.reports.export.accuracy]],
+            body: data.studentPerformance.map((s: any) => [s.name, s.idCard || '-', s.email || '-', s.score, `${s.accuracy}%`]),
             theme: 'grid',
-            headStyles: { fillColor: [79, 70, 229] }
+            headStyles: { fillColor: [79, 70, 229] },
+            styles: { fontSize: 8 }
         });
 
         doc.save(`Reporte_Academico_${parallelName.replace(/\s+/g, '_')}.pdf`);
@@ -157,11 +174,17 @@ export default function AdvancedStats({
         const wb = XLSX.utils.book_new();
 
         const summaryData = [
+            ['UNIDAD EDUCATIVA DEL MILENIO'],
+            ['GUARDIANA DE LA LENGUA "27 DE FEBRERO"'],
+            ['ENGLISH27'],
             [t.reports.export.reportTitle],
+            [],
             [t.reports.export.teacher, teacherName || 'N/A'],
             [t.reports.export.parallel, parallels.find(p => p.parallel_id === parallelId)?.name || 'N/A'],
             [t.reports.export.period, timeRange],
             [t.reports.export.date, new Date().toLocaleString()],
+            [],
+            ['═══════════════════════════════════════════'],
             [],
             [t.reports.export.metric, t.reports.export.value],
             [t.reports.metrics.avgScore, data.summary.avgScore],
@@ -170,12 +193,50 @@ export default function AdvancedStats({
             [t.reports.export.totalSessions, data.summary.totalSessions]
         ];
         const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+        // Style the headers
+        if (wsSummary['A1']) {
+            wsSummary['A1'].s = {
+                font: { bold: true, sz: 14, color: { rgb: "1E3A8A" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A2']) {
+            wsSummary['A2'].s = {
+                font: { bold: true, sz: 14, color: { rgb: "1E3A8A" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A3']) {
+            wsSummary['A3'].s = {
+                font: { bold: true, sz: 12, color: { rgb: "4F46E5" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A4']) {
+            wsSummary['A4'].s = {
+                font: { bold: true, sz: 12 },
+                alignment: { horizontal: 'center' }
+            };
+        }
+
+        // Merge cells for titles
+        wsSummary['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }, // Merge A1:B1 (Institución)
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } }, // Merge A2:B2 (Nombre)
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } }, // Merge A3:B3 (English27)
+            { s: { r: 3, c: 0 }, e: { r: 3, c: 1 } }  // Merge A4:B4 (Reporte)
+        ];
+
         XLSX.utils.book_append_sheet(wb, wsSummary, t.reports.export.distribution || 'Resumen');
 
         const studentData = data.studentPerformance.map((s: any) => ({
             [t.reports.export.student]: s.name,
+            [t.loginIdCard || 'Cédula']: s.idCard || '-',
+            [t.loginEmail || 'Correo']: s.email || '-',
             [t.reports.export.score]: s.score,
-            [t.reports.export.accuracy]: s.accuracy
+            [t.reports.export.accuracy]: `${s.accuracy}%`,
+            [t.reports.export.sessions]: s.completedCount
         }));
         const wsStudents = XLSX.utils.json_to_sheet(studentData);
         XLSX.utils.book_append_sheet(wb, wsStudents, t.reports.export.student || 'Estudiantes');
@@ -227,7 +288,7 @@ export default function AdvancedStats({
                     )}
                     <div>
                         <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{t.reports.title}</h1>
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider mt-1 uppercase">{t.reports.subtitle}</p>
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider mt-1">{t.reports.subtitle}</p>
                     </div>
                 </div>
 

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
             { data: allTeacherRels, error: relError },
             { count: totalSessions, error: countError }
         ] = await Promise.all([
-            supabase.from('users').select('user_id, first_name, last_name, role, account_status, email, parallel_id'),
+            supabase.from('users').select('user_id, first_name, last_name, role, account_status, email, parallel_id, id_card'),
             supabase.from('parallels').select('parallel_id, name, academic_year').order('name'),
             supabase.from('teacher_parallels').select('teacher_id, parallel_id'),
             supabase.from('game_sessions').select('*', { count: 'exact', head: true }).eq('completed', true)
@@ -73,12 +73,33 @@ export async function GET(request: NextRequest) {
                     id: s.user_id,
                     name: `${s.first_name} ${s.last_name}`,
                     email: s.email,
+                    idCard: s.id_card,
                     parallel: pName || 'Sin asignar',
                     teacher: (teachers || []).join(', ') || 'N/A',
                     status: s.account_status
                 };
             })
             .sort((a, b) => a.parallel.localeCompare(b.parallel));
+
+        // 5b. General Teacher Report
+        const teacherReport = (allUsers || [])
+            .filter(u => u.role === 'docente')
+            .map(t => {
+                const assignedParallels = (allTeacherRels || [])
+                    .filter(rel => rel.teacher_id === t.user_id)
+                    .map(rel => parallelsMap.get(rel.parallel_id))
+                    .filter(Boolean);
+
+                return {
+                    id: t.user_id,
+                    name: `${t.first_name} ${t.last_name}`,
+                    email: t.email,
+                    idCard: t.id_card,
+                    parallels: assignedParallels.join(', ') || 'Sin paralelos',
+                    status: t.account_status
+                };
+            })
+            .sort((a, b) => a.name.localeCompare(b.name));
 
         // 6. System Usage
         const thirtyDaysAgo = new Date();
@@ -112,26 +133,33 @@ export async function GET(request: NextRequest) {
         // 7. Fetch game sessions data for statistics
         const { data: gameSessions, error: sessionsError } = await supabase
             .from('game_sessions')
-            .select('student_id, score, accuracy, game_type_id, completed')
+            .select('student_id, score, correct_count, wrong_count, game_type_id, completed')
             .eq('completed', true);
 
         if (sessionsError) throw sessionsError;
 
         // Calculate total points and average accuracy
         const totalPoints = gameSessions?.reduce((sum, s) => sum + (s.score || 0), 0) || 0;
-        const avgAccuracy = gameSessions?.length
-            ? Math.round(gameSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / gameSessions.length)
+
+        // Calculate accuracy from correct_count and wrong_count
+        const sessionsWithAccuracy = gameSessions?.map(s => {
+            const total = (s.correct_count || 0) + (s.wrong_count || 0);
+            return total > 0 ? ((s.correct_count || 0) / total) * 100 : 0;
+        }) || [];
+
+        const avgAccuracy = sessionsWithAccuracy.length
+            ? Math.round(sessionsWithAccuracy.reduce((sum, acc) => sum + acc, 0) / sessionsWithAccuracy.length)
             : 0;
 
         // 8. Top Parallels by points
         const parallelStats = new Map<string, { points: number; sessions: number; accuracies: number[] }>();
-        gameSessions?.forEach(session => {
+        gameSessions?.forEach((session, idx) => {
             const student = allUsers?.find(u => u.user_id === session.student_id);
             if (student?.parallel_id) {
                 const current = parallelStats.get(student.parallel_id) || { points: 0, sessions: 0, accuracies: [] };
                 current.points += session.score || 0;
                 current.sessions += 1;
-                current.accuracies.push(session.accuracy || 0);
+                current.accuracies.push(sessionsWithAccuracy[idx] || 0);
                 parallelStats.set(student.parallel_id, current);
             }
         });
@@ -159,7 +187,7 @@ export async function GET(request: NextRequest) {
         // 9. Top Teachers by their students' sessions
         const teacherStats = new Map<string, { sessions: number; parallels: Set<string>; accuracies: number[] }>();
 
-        gameSessions?.forEach(session => {
+        gameSessions?.forEach((session, idx) => {
             const student = allUsers?.find(u => u.user_id === session.student_id);
             if (student?.parallel_id) {
                 const teacherIds = allTeacherRels?.filter(rel => rel.parallel_id === student.parallel_id).map(rel => rel.teacher_id) || [];
@@ -167,7 +195,7 @@ export async function GET(request: NextRequest) {
                     const current = teacherStats.get(teacherId) || { sessions: 0, parallels: new Set(), accuracies: [] };
                     current.sessions += 1;
                     current.parallels.add(student.parallel_id);
-                    current.accuracies.push(session.accuracy || 0);
+                    current.accuracies.push(sessionsWithAccuracy[idx] || 0);
                     teacherStats.set(teacherId, current);
                 });
             }
@@ -199,12 +227,12 @@ export async function GET(request: NextRequest) {
         if (gameTypesError) throw gameTypesError;
 
         const gameUsageMap = new Map<string, { sessions: number; scores: number[]; accuracies: number[] }>();
-        gameSessions?.forEach(session => {
+        gameSessions?.forEach((session, idx) => {
             if (session.game_type_id) {
                 const current = gameUsageMap.get(session.game_type_id) || { sessions: 0, scores: [], accuracies: [] };
                 current.sessions += 1;
                 current.scores.push(session.score || 0);
-                current.accuracies.push(session.accuracy || 0);
+                current.accuracies.push(sessionsWithAccuracy[idx] || 0);
                 gameUsageMap.set(session.game_type_id, current);
             }
         });
@@ -229,6 +257,12 @@ export async function GET(request: NextRequest) {
             .sort((a, b) => b.total_sessions - a.total_sessions);
 
         return NextResponse.json({
+            userMetrics,
+            parallelsList,
+            studentReport,
+            teacherReport,
+            systemUsage,
+            // Additional stats for potential future use
             global: {
                 total_teachers: userMetrics.byRole.teachers,
                 total_students: userMetrics.byRole.students,

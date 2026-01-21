@@ -91,7 +91,7 @@ export default function EstudianteDashboard({ onLogout, isPreviewMode = false }:
       ) : currentView === 'gamification' ? (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold">{t.student.dashboard.myGames}</h2>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t.student.dashboard.myGames}</h2>
             <button onClick={() => setCurrentView('dashboard')} className="px-4 py-2 bg-slate-200 dark:bg-gray-700 rounded-lg font-bold">{t.student.dashboard.back}</button>
           </div>
           <StudentGames studentId={usuario?.user_id || ''} parallelId={effectiveParallelId || ''} />

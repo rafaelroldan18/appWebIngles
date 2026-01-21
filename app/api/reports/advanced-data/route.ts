@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
             { data: topics, error: topicError },
             { data: gameTypes, error: gameTypeError }
         ] = await Promise.all([
-            supabase.from('users').select('user_id, first_name, last_name').eq('parallel_id', parallelId).eq('role', 'estudiante'),
+            supabase.from('users').select('user_id, first_name, last_name, id_card, email').eq('parallel_id', parallelId).eq('role', 'estudiante'),
             supabase.from('game_availability').select('*').eq('parallel_id', parallelId),
             supabase.from('topics').select('topic_id, title'),
             supabase.from('game_types').select('game_type_id, name')
@@ -91,6 +91,8 @@ export async function GET(request: NextRequest) {
             return {
                 id: s.user_id,
                 name: `${s.first_name} ${s.last_name}`,
+                idCard: s.id_card,
+                email: s.email,
                 score: sSessions.reduce((sum, ss) => sum + (ss.score || 0), 0),
                 completedCount: sSessions.length,
                 accuracy: totalItems > 0 ? Math.round((correct / totalItems) * 100) : 0,

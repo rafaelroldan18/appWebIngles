@@ -33,7 +33,32 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
             try {
                 setLoading(true);
                 const response = await fetch('/api/reports/admin-stats');
-                if (!response.ok) throw new Error(t.admin.adminStats.errorLoadMetrics);
+
+                if (!response.ok) {
+                    // Log detailed error information
+                    const errorText = await response.text();
+                    console.error('API Error Response:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        body: errorText
+                    });
+
+                    let errorMessage = t.admin.adminStats.errorLoadMetrics;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.details) {
+                            errorMessage += `: ${errorJson.details}`;
+                        }
+                    } catch {
+                        // If not JSON, use the text
+                        if (errorText) {
+                            errorMessage += `: ${errorText.substring(0, 100)}`;
+                        }
+                    }
+
+                    throw new Error(errorMessage);
+                }
+
                 const result = await response.json();
                 setData(result);
             } catch (err: any) {
@@ -51,22 +76,46 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
         const doc = new jsPDF();
         const now = new Date().toLocaleString();
 
-        doc.setFontSize(22);
-        doc.setTextColor(43, 107, 238);
-        doc.text(t.admin.adminStats.pdfTitle, 14, 22);
+        // Add institutional header banner
+        try {
+            const headerImg = new Image();
+            headerImg.src = '/images/encabezado_reporte.png';
+            await new Promise((resolve, reject) => {
+                headerImg.onload = resolve;
+                headerImg.onerror = reject;
+            });
+            // Add full-width header banner
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const headerWidth = pageWidth - 28;
+            const headerHeight = 25;
+            doc.addImage(headerImg, 'PNG', 14, 10, headerWidth, headerHeight);
+        } catch (error) {
+            console.warn('Could not load header for PDF:', error);
+        }
 
+        // Title below header
+        doc.setFontSize(18);
+        doc.setTextColor(43, 107, 238);
+        doc.text(t.admin.adminStats.pdfTitle, 14, 42);
+
+        // Report details
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`${t.admin.adminStats.pdfIssueDate}: ${now}`, 14, 30);
-        doc.text(t.admin.adminStats.pdfDescription, 14, 35);
+        doc.text(`${t.admin.adminStats.pdfIssueDate}: ${now}`, 14, 48);
+        doc.text(t.admin.adminStats.pdfDescription, 14, 53);
+
+        // Separator line
+        doc.setDrawColor(43, 107, 238);
+        doc.setLineWidth(0.5);
+        doc.line(14, 56, 196, 56);
 
         // 1. Resumen de Usuarios
         doc.setFontSize(14);
         doc.setTextColor(30);
-        doc.text(`1. ${t.admin.adminStats.pdfUserSummary}`, 14, 50);
+        doc.text(`1. ${t.admin.adminStats.pdfUserSummary}`, 14, 62);
 
         autoTable(doc, {
-            startY: 55,
+            startY: 67,
             head: [[t.admin.adminStats.pdfCategory, t.admin.adminStats.pdfQuantity, t.admin.adminStats.pdfStatus]],
             body: [
                 [t.admin.adminStats.pdfTotalUsers, data.userMetrics.total, t.admin.adminStats.pdfSynced],
@@ -105,18 +154,33 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
             }
         }
 
-        // 3. Estudiantes
+        // 3. Docentes
         doc.addPage();
         doc.setFontSize(14);
-        doc.text(`3. ${t.admin.adminStats.pdfConsolidatedStudents}`, 14, 22);
+        doc.setTextColor(30);
+        doc.text(`3. ${t.admin.teachers}`, 14, 22);
 
         autoTable(doc, {
             startY: 30,
-            head: [[t.admin.adminStats.student, t.admin.adminStats.email, t.admin.adminStats.parallel, t.admin.adminStats.status]],
-            body: data.studentReport.map((s: any) => [s.name, s.email, s.parallel, s.status.toUpperCase()]),
+            head: [[t.admin.adminStats.teacher, t.loginIdCard || 'Cédula', t.admin.adminStats.email, t.admin.parallels || 'Paralelos', t.admin.adminStats.status]],
+            body: data.teacherReport.map((s: any) => [s.name, s.idCard || '-', s.email || '-', s.parallels || '-', s.status.toUpperCase()]),
             theme: 'grid',
             headStyles: { fillColor: [43, 107, 238] },
-            styles: { fontSize: 8 }
+            styles: { fontSize: 7 }
+        });
+
+        // 4. Estudiantes
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text(`4. ${t.admin.adminStats.pdfConsolidatedStudents}`, 14, 22);
+
+        autoTable(doc, {
+            startY: 30,
+            head: [[t.admin.adminStats.student, t.loginIdCard || 'Cédula', t.admin.adminStats.email, t.admin.adminStats.parallel, t.admin.adminStats.status]],
+            body: data.studentReport.map((s: any) => [s.name, s.idCard || '-', s.email || '-', s.parallel, s.status.toUpperCase()]),
+            theme: 'grid',
+            headStyles: { fillColor: [43, 107, 238] },
+            styles: { fontSize: 7 }
         });
 
         doc.save(`Reporte_Administrativo_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -128,8 +192,14 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
 
         // Hoja 1: Resumen General
         const summaryData = [
+            ['UNIDAD EDUCATIVA DEL MILENIO'],
+            ['GUARDIANA DE LA LENGUA "27 DE FEBRERO"'],
+            ['ENGLISH27 - SISTEMA DE GAMIFICACIÓN EDUCATIVA'],
             [t.admin.adminStats.excelTitle],
+            [],
             [t.admin.adminStats.excelExportDate, new Date().toLocaleString()],
+            [],
+            ['═══════════════════════════════════════════'],
             [],
             [t.admin.adminStats.excelCategory, t.admin.adminStats.excelAmount],
             [t.admin.adminStats.excelTotalUsers, data.userMetrics.total],
@@ -140,11 +210,58 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
             [t.admin.adminStats.excelAdmins, data.userMetrics.byRole.admins]
         ];
         const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+        // Style headers
+        if (wsSummary['A1']) {
+            wsSummary['A1'].s = {
+                font: { bold: true, sz: 14, color: { rgb: "1E3A8A" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A2']) {
+            wsSummary['A2'].s = {
+                font: { bold: true, sz: 14, color: { rgb: "1E3A8A" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A3']) {
+            wsSummary['A3'].s = {
+                font: { bold: true, sz: 12, color: { rgb: "2B6BEE" } },
+                alignment: { horizontal: 'center' }
+            };
+        }
+        if (wsSummary['A4']) {
+            wsSummary['A4'].s = {
+                font: { bold: true, sz: 12 },
+                alignment: { horizontal: 'center' }
+            };
+        }
+
+        // Merge cells for title
+        wsSummary['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 1 } },
+            { s: { r: 3, c: 0 }, e: { r: 3, c: 1 } }
+        ];
+
         XLSX.utils.book_append_sheet(wb, wsSummary, t.admin.adminStats.excelSummary);
 
-        // Hoja 2: Listado Estudiantes
+        // Hoja 2: Listado Docentes
+        const teacherExcelData = data.teacherReport.map((tRec: any) => ({
+            [t.admin.adminStats.teacher]: tRec.name,
+            [t.loginIdCard || 'Cédula']: tRec.idCard || '-',
+            [t.admin.adminStats.email]: tRec.email,
+            [t.admin.parallels || 'Paralelos']: tRec.parallels,
+            [t.admin.adminStats.status]: tRec.status.toUpperCase()
+        }));
+        const wsTeachers = XLSX.utils.json_to_sheet(teacherExcelData);
+        XLSX.utils.book_append_sheet(wb, wsTeachers, t.admin.teachers || 'Docentes');
+
+        // Hoja 3: Listado Estudiantes
         const excelData = data.studentReport.map((s: any) => ({
             [t.admin.adminStats.excelFullName]: s.name,
+            [t.loginIdCard || 'Cédula']: s.idCard || '-',
             [t.admin.adminStats.excelEmail]: s.email,
             [t.admin.adminStats.excelAssignedParallel]: s.parallel,
             [t.admin.adminStats.excelResponsibleTeacher]: s.teacher,
@@ -160,7 +277,7 @@ export default function AdminStats({ onBack }: AdminStatsProps) {
         return (
             <div className={`flex flex-col items-center justify-center py-24 ${colors.background.card} rounded border ${colors.border.light}`}>
                 <div className="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-                        <p className={`${colors.text.secondary} font-bold text-xs tracking-widest`}>{t.admin.adminStats.loading}</p>
+                <p className={`${colors.text.secondary} font-bold text-xs tracking-widest`}>{t.admin.adminStats.loading}</p>
             </div>
         );
     }

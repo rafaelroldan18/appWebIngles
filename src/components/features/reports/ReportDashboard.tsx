@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ReportService } from '@/services/report.service';
 import { ParallelService } from '@/services/parallel.service';
-import type { ReportDefinition, ReportRun } from '@/types';
 import type { Parallel } from '@/types/parallel.types';
 import AdvancedStats from './AdvancedStats';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ReportDashboardProps {
     teacherId: string;
@@ -17,15 +16,13 @@ interface ReportDashboardProps {
 /**
  * ReportDashboard - Container for Smart Analytics
  * Manages data fetching and delegates all UI to AdvancedStats (Dashboard Pro)
+ * Note: This component was simplified after removing report_definitions and report_runs tables
+ * Reports are now generated in real-time via dedicated endpoints
  */
-import { useLanguage } from '@/contexts/LanguageContext';
-
 export default function ReportDashboard({ teacherId, teacherName, preSelectedParallel, onBack }: ReportDashboardProps) {
     const { t } = useLanguage();
     const [parallels, setParallels] = useState<Parallel[]>([]);
     const [selectedParallel, setSelectedParallel] = useState<string>(preSelectedParallel || '');
-    const [definitions, setDefinitions] = useState<ReportDefinition[]>([]);
-    const [history, setHistory] = useState<ReportRun[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -35,12 +32,8 @@ export default function ReportDashboard({ teacherId, teacherName, preSelectedPar
     const loadBaseData = async () => {
         try {
             setLoading(true);
-            const [parallelsData, defsData] = await Promise.all([
-                ParallelService.getTeacherParallels(teacherId),
-                ReportService.getDefinitions()
-            ]);
+            const parallelsData = await ParallelService.getTeacherParallels(teacherId);
             setParallels(parallelsData);
-            setDefinitions(defsData);
 
             // Auto-select first parallel if none selected
             if (parallelsData.length > 0 && !selectedParallel) {
@@ -50,19 +43,6 @@ export default function ReportDashboard({ teacherId, teacherName, preSelectedPar
             console.error('Error loading report dashboard data:', error);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleRunReport = async (reportId: string) => {
-        try {
-            await ReportService.runReport({
-                report_id: reportId,
-                parallel_id: selectedParallel,
-                requested_by: teacherId
-            });
-            // Optional: Reload history here if needed
-        } catch (error) {
-            console.error('Error initiating report generation:', error);
         }
     };
 
@@ -81,10 +61,8 @@ export default function ReportDashboard({ teacherId, teacherName, preSelectedPar
             teacherName={teacherName}
             parallels={parallels}
             onParallelChange={setSelectedParallel}
-            definitions={definitions}
-            history={history}
-            onRunReport={handleRunReport}
             onBack={onBack}
         />
     );
 }
+

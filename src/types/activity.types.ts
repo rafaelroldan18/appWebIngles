@@ -1,26 +1,4 @@
-export type ActivityType = 'lectura' | 'escritura' | 'escucha' | 'conversacion';
-export type DifficultyLevel = 'bajo' | 'medio' | 'alto';
-export type AssignmentStatus = 'pendiente' | 'en_curso' | 'completado';
-
-export interface Actividad {
-  id_actividad: string;
-  titulo: string;
-  tipo: ActivityType;
-  nivel_dificultad: DifficultyLevel;
-  fecha_creacion: string;
-  creado_por: string;
-}
-
-export interface Asignacion {
-  id_asignacion: string;
-  id_actividad: string;
-  id_estudiante: string;
-  estado: AssignmentStatus;
-  puntaje_obtenido: number;
-  fecha_limite: string;
-  actividades: Actividad;
-}
-
+// Student progress type (used by student_progress table)
 export interface Progreso {
   progress_id: string;
   student_id: string;
@@ -28,3 +6,4 @@ export interface Progreso {
   total_score: number;
   current_level: number;
 }
+
