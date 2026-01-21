@@ -11,6 +11,15 @@ export async function PUT(
         const body = await request.json();
         const supabase = await createSupabaseClient(request);
 
+        // Validate score constraint before updating
+        if (body.score !== undefined && body.score < 0) {
+            console.error('Score validation failed:', { sessionId, score: body.score });
+            return NextResponse.json({
+                error: 'Score must be greater than or equal to 0',
+                details: { score: body.score }
+            }, { status: 400 });
+        }
+
         // 1. Actualizar la sesión
         const { data: session, error: sessionError } = await supabase
             .from('game_sessions')
@@ -20,7 +29,19 @@ export async function PUT(
             .single();
 
         if (sessionError) {
-            return NextResponse.json({ error: sessionError.message }, { status: 400 });
+            console.error('Database error updating session:', {
+                sessionId,
+                error: sessionError.message,
+                code: sessionError.code,
+                details: sessionError.details,
+                hint: sessionError.hint
+            });
+            return NextResponse.json({
+                error: sessionError.message,
+                code: sessionError.code,
+                details: sessionError.details,
+                hint: sessionError.hint
+            }, { status: 400 });
         }
 
         // 2. Si la sesión se marcó como completada, actualizar student_progress

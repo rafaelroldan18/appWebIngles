@@ -229,7 +229,7 @@ export class MissionEvaluator {
         // Formula: (correct / total) * 10
         const totalItems = correctCount + wrongCount;
         const scoreFinal = totalItems > 0
-            ? Math.round((correctCount / totalItems) * 10 * 10) / 10  // Round to 1 decimal
+            ? Math.max(0, Math.round((correctCount / totalItems) * 10 * 10) / 10)  // Round to 1 decimal, ensure non-negative
             : 0;
 
         const review = this.generatePedagogicalReview(answers);

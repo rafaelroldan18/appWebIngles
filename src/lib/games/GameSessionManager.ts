@@ -145,26 +145,67 @@ export class GameSessionManager {
                 answers
             );
 
+            // Ensure score is non-negative and round to integer (database expects integer type)
+            const finalScore = Math.max(0, Math.round(details.summary.score_final));
+
+            const payload = {
+                score: finalScore,
+                completed: true,
+                duration_seconds: duration,
+                correct_count: this.sessionData.correctCount,
+                wrong_count: this.sessionData.wrongCount,
+                details: details,
+            };
+
+            // Log the payload for debugging
+            console.log('Ending session with payload:', {
+                sessionId: this.sessionId,
+                score: payload.score,
+                duration: payload.duration_seconds,
+                correct: payload.correct_count,
+                wrong: payload.wrong_count
+            });
+
             const response = await fetch(`/api/games/sessions/${this.sessionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    score: Math.max(0, details.summary.score_final), // Validar que no sea negativo para evitar error de constraint
-                    completed: true,
-                    duration_seconds: duration,
-                    correct_count: this.sessionData.correctCount,
-                    wrong_count: this.sessionData.wrongCount,
-                    details: details,
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('Failed to end session. Server response:', errorData);
-                throw new Error(`Failed to end game session: ${errorData.error || response.statusText}`);
+                let errorData: any = {};
+                const contentType = response.headers.get('content-type');
+
+                // Try to parse error response
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        errorData = await response.json();
+                    } catch (parseError) {
+                        console.error('Failed to parse error response:', parseError);
+                        errorData = { error: 'Failed to parse server response' };
+                    }
+                } else {
+                    // If not JSON, get text response
+                    const textResponse = await response.text();
+                    errorData = { error: textResponse || response.statusText };
+                }
+
+                console.error('Failed to end session:', {
+                    sessionId: this.sessionId,
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorData,
+                    sentPayload: payload
+                });
+
+                throw new Error(
+                    `Failed to end game session: ${errorData.error || response.statusText}` +
+                    (errorData.details ? ` (${JSON.stringify(errorData.details)})` : '')
+                );
             }
 
             this.isSessionActive = false;
+            console.log('Session ended successfully:', this.sessionId);
         } catch (error) {
             console.error('Error ending session:', error);
             throw error;
