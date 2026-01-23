@@ -6,6 +6,7 @@ import { AuthProvider } from '../src/contexts/AuthContext'
 import { LanguageProvider } from '../src/contexts/LanguageContext'
 import { ThemeProvider } from '../src/contexts/ThemeContext'
 import { ToastProvider } from '../src/contexts/ToastContext'
+import Footer from '../src/components/layout/Footer'
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -25,12 +26,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={nunito.className} suppressHydrationWarning>
+      <body className={`${nunito.className} flex flex-col min-h-screen`} suppressHydrationWarning>
         <AuthProvider>
           <LanguageProvider>
             <ThemeProvider>
               <ToastProvider>
-                {children}
+                <div className="flex-1 flex flex-col">
+                  {children}
+                </div>
+                <Footer />
               </ToastProvider>
             </ThemeProvider>
           </LanguageProvider>

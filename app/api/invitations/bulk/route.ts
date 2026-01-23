@@ -30,7 +30,11 @@ export async function POST(request: NextRequest) {
 
     // Obtener los datos del body
     const body = await request.json();
-    const { students } = body;
+    const { students, parallel_id } = body;
+
+    if (!parallel_id) {
+      return NextResponse.json({ error: 'Parallel ID is required' }, { status: 400 });
+    }
 
     if (!students || !Array.isArray(students) || students.length === 0) {
       return NextResponse.json({ error: 'No se proporcionaron estudiantes' }, { status: 400 });
@@ -40,49 +44,59 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
     const validStudents: any[] = [];
 
+    // Inicializar cliente admin para operaciones de BD que requieren bypass de RLS
+    // Es crucial usar este cliente para inserts en tablas como users/invitations donde el RLS podría bloquear al docente
+    const supabaseAdmin = createServiceRoleClient();
+
     students.forEach((student, index) => {
       const rowNumber = index + 2; // +2 porque la fila 1 es el header y empezamos en 0
 
+      // Convertir todos los campos a string para manejar valores numéricos de Excel
+      const firstName = student.first_name ? String(student.first_name).trim() : '';
+      const lastName = student.last_name ? String(student.last_name).trim() : '';
+      const idCard = student.id_card ? String(student.id_card).trim() : '';
+      const email = student.email ? String(student.email).trim() : '';
+
       // Validar campos requeridos
-      if (!student.first_name || student.first_name.trim() === '') {
+      if (!firstName) {
         errors.push(`Fila ${rowNumber}: El first_name es requerido`);
         return;
       }
 
-      if (!student.last_name || student.last_name.trim() === '') {
+      if (!lastName) {
         errors.push(`Fila ${rowNumber}: El last_name es requerido`);
         return;
       }
 
-      if (!student.id_card || student.id_card.trim() === '') {
+      if (!idCard) {
         errors.push(`Fila ${rowNumber}: La cédula es requerida`);
         return;
       }
 
-      if (!student.email || student.email.trim() === '') {
+      if (!email) {
         errors.push(`Fila ${rowNumber}: El correo electrónico es requerido`);
         return;
       }
 
       // Validar formato de email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(student.email)) {
+      if (!emailRegex.test(email)) {
         errors.push(`Fila ${rowNumber}: El correo electrónico no es válido`);
         return;
       }
 
       // Validar cédula (solo números y guiones)
       const cedulaRegex = /^[0-9-]+$/;
-      if (!cedulaRegex.test(student.id_card)) {
+      if (!cedulaRegex.test(idCard)) {
         errors.push(`Fila ${rowNumber}: La cédula solo debe contener números y guiones`);
         return;
       }
 
       validStudents.push({
-        first_name: student.first_name.trim(),
-        last_name: student.last_name.trim(),
-        id_card: student.id_card.trim(),
-        email: student.email.trim().toLowerCase(),
+        first_name: firstName,
+        last_name: lastName,
+        id_card: idCard,
+        email: email.toLowerCase(),
       });
     });
 
@@ -168,22 +182,25 @@ export async function POST(request: NextRequest) {
       invitation_code: generateInvitationCode(),
       created_by_user_id: currentUser.user_id,
       status: 'pendiente',
+      parallel_id: parallel_id,
       created_date: new Date().toISOString(),
       expiration_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 días
     }));
 
-    const { data: createdInvitations, error: createError } = await supabase
+    // USAR supabaseAdmin para evitar errores de permisos (RLS)
+    const { data: createdInvitations, error: createError } = await supabaseAdmin
       .from('invitations')
       .insert(invitationsToCreate)
       .select();
 
     if (createError) {
-      return NextResponse.json({ error: 'Error al crear invitaciones' }, { status: 500 });
+      console.error('Error creating invitations:', createError);
+      return NextResponse.json({ error: 'Error al crear invitaciones: ' + createError.message }, { status: 500 });
     }
 
     // Enviar correos de invitación usando Supabase Auth
-    const supabaseAdmin = createServiceRoleClient();
-    const origin = request.nextUrl.origin;
+    // Prioriza la variable de entorno para asegurar que el link sea correcto incluso si se llama desde otro origen
+    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
     if (createdInvitations) {
       // Usamos Promise.allSettled para procesar todas las invitaciones y capturar los IDs de Auth
@@ -205,7 +222,7 @@ export async function POST(request: NextRequest) {
       // Crear los registros de usuarios pendientes en la base de datos
       const usersToCreate = createdInvitations.map((invitation, index) => {
         const result = inviteResults[index];
-        const authUserId = result.status === 'fulfilled' ? result.value.data.user?.id : null;
+        const authUserId = result.status === 'fulfilled' ? (result.value.data.user?.id || null) : null;
 
         return {
           email: invitation.email,
@@ -214,15 +231,18 @@ export async function POST(request: NextRequest) {
           id_card: invitation.id_card,
           role: 'estudiante',
           account_status: 'pendiente',
+          parallel_id: parallel_id,
           auth_user_id: authUserId,
         };
       });
 
-      const { error: usersError } = await supabase
+      // USAR supabaseAdmin para evitar errores de permisos (RLS) al insertar usuarios pendientes
+      const { error: usersError } = await supabaseAdmin
         .from('users')
         .insert(usersToCreate);
 
       if (usersError) {
+        console.error('Error creating pending users:', usersError);
         // Continuamos de todos modos porque las invitaciones ya fueron enviadas
       }
     }
@@ -235,8 +255,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    console.error('Bulk upload error:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }

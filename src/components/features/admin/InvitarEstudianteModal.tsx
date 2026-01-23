@@ -7,6 +7,7 @@ import { InvitationService } from '@/services/invitation.service';
 import { ParallelService } from '@/services/parallel.service';
 import type { Parallel } from '@/types/parallel.types';
 import { UserPlus, X, Mail, CheckCircle, Users, Upload, Download, FileText, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface InvitarEstudianteModalProps {
   onClose: () => void;
@@ -158,7 +159,44 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
     return students;
   };
 
+
+
+  const readExcel = (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+          // Normalize keys to lowercase for consistency
+          const normalizedData = jsonData.map((row: any) => {
+            const newRow: any = {};
+            Object.keys(row).forEach(key => {
+              newRow[key.trim().toLowerCase()] = row[key];
+            });
+            return newRow;
+          });
+
+          resolve(normalizedData);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = (error) => reject(error);
+      reader.readAsBinaryString(file);
+    });
+  };
+
   const handleBulkUpload = async () => {
+    if (!selectedParallel) {
+      alert('Por favor selecciona un paralelo para los estudiantes');
+      return;
+    }
+
     if (!selectedFile) {
       alert('Por favor selecciona un archivo');
       return;
@@ -168,10 +206,17 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
       setLoading(true);
       setUploadProgress(10);
 
-      const text = await selectedFile.text();
-      setUploadProgress(30);
+      let students: any[] = [];
 
-      const students = parseCSV(text);
+      if (selectedFile.name.endsWith('.csv')) {
+        const text = await selectedFile.text();
+        setUploadProgress(30);
+        students = parseCSV(text);
+      } else {
+        // Excel files
+        students = await readExcel(selectedFile);
+        setUploadProgress(30);
+      }
 
       if (students.length === 0) {
         alert('El archivo no contiene datos válidos');
@@ -186,7 +231,10 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ students }),
+        body: JSON.stringify({
+          students,
+          parallel_id: selectedParallel
+        }),
       });
 
       setUploadProgress(80);
@@ -466,8 +514,31 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                     </div>
                   </div>
 
+                  {/* Parallel Selection for Bulk */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
+                      {t.invitations.form.parallel} <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={selectedParallel}
+                      onChange={(e) => setSelectedParallel(e.target.value)}
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${!selectedParallel && uploadErrors.length > 0
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-orange-500 focus:ring-orange-500/20'
+                        }`}
+                    >
+                      <option value="">{t.invitations.form.selectParallel}</option>
+                      {parallels.map((parallel) => (
+                        <option key={parallel.parallel_id} value={parallel.parallel_id}>
+                          {parallel.name} - {parallel.academic_year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <div className="flex items-start gap-2">
+
                       <Download className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                       <div className="text-xs text-blue-800 dark:text-blue-300">
                         <p className="font-semibold mb-1">{t.invitations.form.instructions}</p>

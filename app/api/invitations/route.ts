@@ -218,7 +218,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Enviar invitación automática por correo usando Supabase Auth
-    const origin = request.nextUrl.origin;
+    // Prioriza la variable de entorno para asegurar que el link sea correcto incluso si se llama desde otro origen
+    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
     const { data: inviteData, error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${origin}/activate?invite_code=${invitation.invitation_code}`,
