@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/sessions POST:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

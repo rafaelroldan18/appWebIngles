@@ -30,13 +30,11 @@ export async function GET(
             .single();
 
         if (error) {
-            console.error('Error fetching parallel:', error);
             return NextResponse.json({ error: 'Paralelo no encontrado' }, { status: 404 });
         }
 
         return NextResponse.json(parallel);
     } catch (error) {
-        console.error('Error in GET /api/parallels/[id]:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }
@@ -85,13 +83,11 @@ export async function PATCH(
             .single();
 
         if (error) {
-            console.error('Error updating parallel:', error);
             return NextResponse.json({ error: 'Error al actualizar paralelo' }, { status: 500 });
         }
 
         return NextResponse.json(parallel);
     } catch (error) {
-        console.error('Error in PATCH /api/parallels/[id]:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }
@@ -154,13 +150,11 @@ export async function DELETE(
             .eq('parallel_id', id);
 
         if (error) {
-            console.error('Error deleting parallel:', error);
             return NextResponse.json({ error: 'Error al eliminar paralelo' }, { status: 500 });
         }
 
         return NextResponse.json({ message: 'Paralelo eliminado exitosamente' });
     } catch (error) {
-        console.error('Error in DELETE /api/parallels/[id]:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }

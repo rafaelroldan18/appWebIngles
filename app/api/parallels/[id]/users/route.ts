@@ -48,7 +48,6 @@ export async function GET(
         });
 
     } catch (error: any) {
-        console.error('Error fetching parallel users:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor', details: error.message },
             { status: 500 }

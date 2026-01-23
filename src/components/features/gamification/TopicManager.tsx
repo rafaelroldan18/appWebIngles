@@ -7,9 +7,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, Trash2, Edit2, Save, X, BookOpen, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, BookOpen, FileText, HelpCircle } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import HelpModal from './HelpModal';
 
 // Loading component for the visual editor
 const EditorLoading = () => {
@@ -67,6 +68,9 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
 
     // Separate state for the editor's initial content to prevent re-renders on every keystroke
     const [loadedContent, setLoadedContent] = useState<any>(null);
+
+    // Help modal state
+    const [showHelpModal, setShowHelpModal] = useState(false);
 
     // Load topics and parallels
     useEffect(() => {
@@ -230,19 +234,28 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                     <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{t.gamification.topic.libraryTitle}</h2>
                     <p className="text-slate-500 text-sm">{t.gamification.topic.librarySubtitle}</p>
                 </div>
-                <button
-                    onClick={() => {
-                        if (isAdding) resetForm(); // Reset when closing
-                        else setIsAdding(true);
-                    }}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black transition-all shadow-sm active:scale-95 ${isAdding
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
-                        }`}
-                >
-                    {isAdding ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                    {isAdding ? t.gamification.topic.closeEditor : t.gamification.topic.newTopic}
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowHelpModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black transition-all shadow-sm active:scale-95 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-800"
+                        title="Ayuda"
+                    >
+                        <HelpCircle className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (isAdding) resetForm(); // Reset when closing
+                            else setIsAdding(true);
+                        }}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl font-black transition-all shadow-sm active:scale-95 ${isAdding
+                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                            }`}
+                    >
+                        {isAdding ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                        {isAdding ? t.gamification.topic.closeEditor : t.gamification.topic.newTopic}
+                    </button>
+                </div>
             </div>
 
             {/* Add/Edit Form */}
@@ -470,6 +483,16 @@ export default function TopicManager({ teacherId }: TopicManagerProps) {
                     </div>
                 )}
             </div>
+
+            {/* Help Modal */}
+            <HelpModal
+                isOpen={showHelpModal}
+                onClose={() => setShowHelpModal(false)}
+                title={t.gamification.topicHelp.title}
+                description={t.gamification.topicHelp.description}
+                sections={t.gamification.topicHelp.sections}
+                example={t.gamification.topicHelp.example}
+            />
         </div >
     );
 }

@@ -448,6 +448,10 @@ export const es = {
         verbs: 'Verbos',
         pronunciation: 'Pronunciación',
         listening: 'Comprensión auditiva',
+        // Mensajes del sistema de estrellas
+        starsExcellent: '¡Rendimiento Excelente!',
+        starsGood: 'Buen Rendimiento',
+        starsPractice: 'Sigue Practicando',
       },
       correct: 'Correcto',
       incorrect: 'Incorrecto',
@@ -463,8 +467,7 @@ export const es = {
       prepareChallenge: 'Prepárate para el desafío. Lee las instrucciones cuidadosamente antes de comenzar.',
       missionInstructions: 'Instrucciones de la Misión',
       completeExercises: 'Completa los ejercicios correctamente para ganar puntos y mejorar tu rango.',
-      timeLimit: 'Tiempo Límite',
-      secondsAvailable: 'segundos disponibles.',
+
       objective: 'Objetivo',
       hitItems: 'Acierta {items} elementos.',
       missionStatus: 'Estado de Misión',
@@ -619,6 +622,9 @@ export const es = {
 
   gamification: {
     general: {
+      guide: 'Guía de uso',
+      example: 'Ejemplo',
+      gotIt: 'Entendido',
       fullscreenTitle: 'PANTALLA COMPLETA',
       fullscreenPrompt: '¿Activar pantalla completa para una mejor experiencia?',
       fullscreenStart: '¡EMPEZAR!',
@@ -716,7 +722,7 @@ export const es = {
         easy: 'Fácil',
         medium: 'Medio',
         hard: 'Difícil',
-        time: 'Tiempo (seg)',
+
         items: 'Cant. Ítems',
         assetPack: 'Asset Pack',
         allowTheory: 'Permitir acceso a teoría',
@@ -874,6 +880,144 @@ export const es = {
           image_url: { label: 'Imagen del lugar', help: 'Imagen representativa del lugar (opcional)' }
         }
       }
+    },
+    contentHelp: {
+      title: 'Guía de Contenido',
+      word_catcher: {
+        title: '¿Qué contenido crear para Word Catcher?',
+        description: 'Este juego ayuda a los estudiantes a reconocer vocabulario rápidamente mientras caen palabras del cielo.',
+        whatToCreate: '¿Qué debo crear?',
+        items: [
+          ' Palabras individuales en inglés (sustantivos, verbos, adjetivos)',
+          ' Marca las palabras correctas que el estudiante DEBE capturar',
+          ' Desmarca las palabras incorrectas (distractores) que NO debe capturar',
+          ' Opcionalmente, agrega imágenes para reforzar el significado',
+          ' Agrega traducciones para ayudar a la comprensión'
+        ],
+        example: 'Ejemplo: Si el tema es "Animals", crea palabras como: cat ✅, dog ✅, bird ✅, car ❌ (distractor)'
+      },
+      grammar_run: {
+        title: '¿Qué contenido crear para Grammar Run?',
+        description: 'Los estudiantes completan oraciones mientras corren, practicando gramática en contexto.',
+        whatToCreate: '¿Qué debo crear?',
+        items: [
+          ' Oraciones con un espacio en blanco marcado con ___',
+          ' Una opción correcta que completa la oración',
+          ' Dos opciones incorrectas (distractores) plausibles',
+          ' Enfócate en una regla gramatical específica por oración'
+        ],
+        example: 'Ejemplo: "She ___ to school every day" → Correcta: goes, Incorrectas: go, going'
+      },
+      sentence_builder: {
+        title: '¿Qué contenido crear para Sentence Builder?',
+        description: 'Los estudiantes ordenan palabras desordenadas para construir oraciones correctas.',
+        whatToCreate: '¿Qué debo crear?',
+        items: [
+          ' Oraciones completas y gramaticalmente correctas',
+          ' Selecciona la dificultad según la longitud (fácil: 3-5 palabras, difícil: 9+)',
+          ' Agrega traducción para que entiendan el significado',
+          '💡 Varía la estructura: afirmativas, negativas, preguntas'
+        ],
+        example: 'Ejemplo: "The cat is sleeping on the sofa" (el juego la desordenará automáticamente)'
+      },
+      image_match: {
+        title: '¿Qué contenido crear para Image Match?',
+        description: 'Los estudiantes emparejan imágenes con sus palabras correspondientes, tipo memoria.',
+        whatToCreate: '¿Qué debo crear?',
+        items: [
+          ' Palabras o frases cortas en inglés',
+          ' UNA imagen por cada palabra (OBLIGATORIO)',
+          ' Traducción opcional para reforzar comprensión',
+          ' Usa imágenes claras y representativas'
+        ],
+        example: 'Ejemplo: Palabra "apple" + imagen de una manzana roja'
+      },
+      city_explorer: {
+        title: '¿Qué contenido crear para City Explorer?',
+        description: 'Los estudiantes exploran una ciudad virtual y aprenden frases en diferentes contextos.',
+        whatToCreate: '¿Qué debo crear?',
+        items: [
+          ' Nombre del lugar (Restaurant, Park, Hospital, etc.)',
+          ' Diálogo o frase útil en ese contexto',
+          ' Traducción de la frase',
+          ' Opcionalmente, imagen del lugar'
+        ],
+        example: 'Ejemplo: Lugar "Restaurant" → Frase "Can I have the menu, please?"'
+      },
+      close: 'Entendido'
+    },
+    topicHelp: {
+      title: '¿Cómo usar la Biblioteca de Temas?',
+      description: 'Los temas son unidades de aprendizaje que contienen teoría y contenido para los juegos.',
+      sections: [
+        {
+          title: '¿Qué es un Tema?',
+          items: [
+            'Un tema es una unidad de aprendizaje (ej: "Adjectives", "Present Simple")',
+            'Cada tema tiene un título, descripción y contenido teórico visual',
+            'Los temas se asocian a un paralelo específico',
+            'El contenido teórico se muestra a los estudiantes antes de jugar'
+          ]
+        },
+        {
+          title: 'Pasos para crear un Tema',
+          items: [
+            'Click en "Nuevo Tema" para abrir el formulario',
+            'Ingresa un título descriptivo (ej: "Adjectives")',
+            'Selecciona el paralelo al que pertenece',
+            'Escribe un resumen breve del tema',
+            'Usa el editor visual para crear el contenido teórico',
+            'Guarda el tema para que esté disponible'
+          ]
+        },
+        {
+          title: 'Editor Visual de Teoría',
+          items: [
+            'Usa bloques de texto, imágenes, listas y tablas',
+            'Arrastra y suelta para reorganizar bloques',
+            'Previsualiza cómo se verá para los estudiantes',
+            'Recuerda hacer click en "Confirmar Diseño" para guardar'
+          ]
+        }
+      ],
+      example: 'Ejemplo: Crea un tema "Adjectives" con teoría sobre adjetivos comunes, luego crea contenido de juego con palabras como "happy", "sad", "big", "small".'
+    },
+    missionHelp: {
+      title: '¿Cómo programar Misiones?',
+      description: 'Las misiones son asignaciones de juegos educativos para tus estudiantes.',
+      sections: [
+        {
+          title: '¿Qué es una Misión?',
+          items: [
+            'Una misión asigna un juego específico a un paralelo',
+            'Combina un juego + un tema + configuración',
+            'Tiene fechas de inicio y fin (opcional)',
+            'Los estudiantes la ven en su panel de juegos'
+          ]
+        },
+        {
+          title: 'Pasos para crear una Misión',
+          items: [
+            'Selecciona el paralelo en el selector superior',
+            'Click en "Activar Nueva Misión"',
+            'Elige el tipo de juego (Word Catcher, Grammar Run, etc.)',
+            'Selecciona el tema que contiene el contenido',
+            'Configura fechas, intentos y dificultad',
+            'Escribe instrucciones claras para los estudiantes',
+            'Activa la misión para que sea visible'
+          ]
+        },
+        {
+          title: 'Configuración Importante',
+          items: [
+            'Dificultad: Controla velocidad y complejidad del juego',
+            'Cantidad de ítems: Cuántas preguntas/palabras aparecerán',
+            'Intentos máximos: Cuántas veces pueden jugar',
+            'Mostrar teoría: Si ven el contenido teórico antes de jugar'
+          ]
+        }
+      ],
+      example: 'Ejemplo: Crea una misión "Word Catcher - Adjectives" para el paralelo "1ro BGU A", activa del 20 al 27 de enero, con 3 intentos máximos.'
     },
     topic: {
       libraryTitle: 'Biblioteca de Temas',

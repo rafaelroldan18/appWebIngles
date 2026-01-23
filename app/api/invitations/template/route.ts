@@ -74,7 +74,6 @@ ${parallelsReference}`;
         });
 
     } catch (error) {
-        console.error('Error generating template:', error);
         return NextResponse.json(
             { error: 'Error al generar plantilla' },
             { status: 500 }

@@ -207,11 +207,6 @@ export async function POST(request: NextRequest) {
       })
       .eq('invitation_id', invitation.invitation_id);
 
-    if (inviteUpdateError) {
-      console.error('⚠️ [Activate] Error updating invitation status:', inviteUpdateError);
-    } else {
-      console.log('✅ [Activate] Invitation marked as activated');
-    }
 
     return NextResponse.json({
       success: true,

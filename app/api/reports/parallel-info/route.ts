@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
             .single();
 
         if (parallelError || !parallel) {
-            console.error('Parallel error or not found:', parallelError);
+          //  console.error('Parallel error or not found:', parallelError);
             return NextResponse.json(
                 { error: 'Parallel not found' },
                 { status: 404 }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
             .order('last_name', { ascending: true });
 
         if (studentsError) {
-            console.error('Error fetching students:', studentsError);
+          //  console.error('Error fetching students:', studentsError);
         }
 
         // 3. Get topics - for now fetch all topics as there is no direct level link in parallels table
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             .order('title', { ascending: true });
 
         if (topicsError) {
-            console.error('Error fetching topics:', topicsError);
+          //  console.error('Error fetching topics:', topicsError);
         }
 
         // 4. Get active missions for this parallel
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
             .order('available_from', { ascending: false });
 
         if (missionsError) {
-            console.error('Error fetching missions:', missionsError);
+          //  console.error('Error fetching missions:', missionsError);
         }
 
         const getRelationData = (data: any, field: string) => {
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error in GET /api/reports/parallel-info:', error);
+      //  console.error('Error in GET /api/reports/parallel-info:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

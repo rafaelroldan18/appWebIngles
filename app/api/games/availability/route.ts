@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/availability:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
@@ -140,7 +139,6 @@ export async function POST(request: NextRequest) {
 
         // Si falla porque la columna 'activated_at' no existe (error común de caché o migración pendiente)
         if (error && (error.message.includes('activated_at') || error.code === '42703')) {
-            console.warn('[API] activated_at column missing, retrying without it...');
             const { activated_at, ...fallbackData } = insertData;
             const retry = await supabase
                 .from('game_availability')
@@ -157,7 +155,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/availability POST:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

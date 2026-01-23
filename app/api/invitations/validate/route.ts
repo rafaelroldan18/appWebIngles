@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
       invitation,
     });
   } catch (error) {
-    console.error('Error validating invitation:', error);
     return NextResponse.json(
       { success: false, error: 'Error al validar invitación' },
       { status: 500 }

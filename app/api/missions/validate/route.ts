@@ -72,13 +72,21 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        if (availableUntil && now > availableUntil) {
-            return NextResponse.json({
-                isValid: true,
-                canPlay: false,
-                reason: `Esta misión expiró el ${availableUntil.toLocaleDateString()}`,
-                availabilityData: availability,
-            });
+        if (availableUntil) {
+            // Adjust until to the end of the day if it only has a date part
+            const endOfDay = new Date(availableUntil);
+            if (endOfDay.getUTCHours() === 0 && endOfDay.getUTCMinutes() === 0) {
+                endOfDay.setUTCHours(23, 59, 59, 999);
+            }
+
+            if (now > endOfDay) {
+                return NextResponse.json({
+                    isValid: true,
+                    canPlay: false,
+                    reason: `Esta misión expiró el ${endOfDay.toLocaleDateString()}`,
+                    availabilityData: availability,
+                });
+            }
         }
 
         // 3. Count student's attempts for this specific mission
@@ -92,7 +100,6 @@ export async function GET(request: NextRequest) {
             .gte('played_at', availability.created_at);
 
         if (sessionsError) {
-            console.error('Error fetching sessions:', sessionsError);
             return NextResponse.json({
                 isValid: true,
                 canPlay: true,
@@ -129,7 +136,6 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error in /api/missions/validate:', error);
         return NextResponse.json(
             {
                 isValid: false,

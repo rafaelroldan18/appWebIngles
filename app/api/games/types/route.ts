@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/types:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

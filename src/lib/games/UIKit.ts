@@ -329,6 +329,172 @@ export interface ModalOptions {
 }
 
 /**
+ * Interface for game instruction options
+ */
+export interface InstructionOptions {
+    title: string;
+    instructions: string;
+    controls: string;
+    buttonLabel?: string;
+    iconFrame?: string; // Icono representativo del objetivo (ej: una medalla o item del juego)
+    controlIcons?: string[]; // Lista de iconos de controles (ej: ['mouse', 'arrows'])
+    requestFullscreen?: boolean; // Si debe pedir pantalla completa al iniciar
+    onStart: () => void;
+}
+
+/**
+ * Muestra una pantalla de instrucciones/tutorial antes de empezar el juego.
+ * @param scene - La escena de Phaser
+ * @param options - Opciones de la instrucción
+ * @returns El contenedor del tutorial
+ */
+export function showGameInstructions(
+    scene: Phaser.Scene,
+    options: InstructionOptions
+): Phaser.GameObjects.Container {
+    const {
+        title,
+        instructions,
+        controls,
+        buttonLabel = 'READY!',
+        iconFrame,
+        controlIcons = [],
+        requestFullscreen = false,
+        onStart
+    } = options;
+
+    const { width, height } = scene.cameras.main;
+    const container = scene.add.container(width / 2, height / 2).setDepth(40000);
+
+    // Fondo oscuro total (Dimmer)
+    const backdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.9)
+        .setInteractive()
+        .setScrollFactor(0);
+
+    // Panel central usando nineslice para fondo y borde del atlas de modales
+    const panelW = Math.min(600, width * 0.90);
+    const panelH = Math.min(450, height * 0.80);
+
+    // Background Panel (glass effect with tint)
+    const panelBg = scene.add.nineslice(
+        0, 0,
+        'modals_atlas',
+        'Default/Panel/panel-001.png',
+        panelW, panelH,
+        20, 20, 20, 20
+    ).setTint(0x0a1a2e).setAlpha(0.85);
+
+    // Border Frame
+    const panelBorder = scene.add.nineslice(
+        0, 0,
+        'modals_atlas',
+        'Default/Border/panel-border-001.png',
+        panelW, panelH,
+        20, 20, 20, 20
+    ).setTint(0x3b82f6);
+
+    // Título principal
+    const titleText = scene.add.text(0, -panelH * 0.36, title.toUpperCase(), {
+        fontSize: '36px',
+        fontFamily: 'Fredoka',
+        color: '#fbbf24',
+        stroke: '#000000',
+        strokeThickness: 7,
+        align: 'center'
+    }).setOrigin(0.5);
+
+    // --- SECCIÓN: HOW TO PLAY ---
+    const sectionControls = scene.add.text(0, -panelH * 0.18, 'HOW TO PLAY', {
+        fontSize: '24px',
+        fontFamily: 'Fredoka',
+        color: '#FFFFFF',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 4
+    }).setOrigin(0.5);
+
+    // Texto de instrucciones (objetivo del juego)
+    const instructText = scene.add.text(0, -panelH * 0.04, instructions, {
+        fontSize: '18px',
+        fontFamily: 'Fredoka',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: panelW - 80 },
+        lineSpacing: 3
+    }).setOrigin(0.5);
+
+    // Texto de controles (botones y teclas) - DENTRO del panel
+    const controlsText = scene.add.text(0, panelH * 0.14, controls, {
+        fontSize: '16px',
+        fontFamily: 'Fredoka',
+        color: '#ffffff',
+        align: 'center',
+        wordWrap: { width: panelW - 80 },
+        lineSpacing: 2
+    }).setOrigin(0.5);
+
+    // Botón de inicio - DENTRO del panel
+    const startBtn = createButton(
+        scene,
+        'common-ui/buttons/btn_primary',
+        0,
+        panelH * 0.36,
+        buttonLabel,
+        () => {
+            if (requestFullscreen && !scene.scale.isFullscreen) {
+                try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
+            }
+            cleanup();
+            onStart();
+        },
+        { width: 220, height: 60, fontSize: '24px' }
+    );
+
+    // Hint: Space to start - FUERA del panel, debajo
+    const spaceHint = scene.add.text(0, panelH * 0.50 + 20, 'or press SPACE to start', {
+        fontSize: '13px',
+        fontFamily: 'Fredoka',
+        color: '#94a3b8',
+        fontStyle: 'italic'
+    }).setOrigin(0.5);
+
+    // Agregar todos los elementos al contenedor
+    container.add([backdrop, panelBg, panelBorder, titleText, sectionControls, instructText, controlsText, startBtn, spaceHint]);
+
+    // Cleanup function
+    const cleanup = () => {
+        scene.input.keyboard?.off('keydown-SPACE', spaceHandler);
+        container.destroy();
+    };
+
+    const spaceHandler = (event: KeyboardEvent) => {
+        if (event.code === 'Space') {
+            if (requestFullscreen && !scene.scale.isFullscreen) {
+                try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
+            }
+            cleanup();
+            onStart();
+        }
+    };
+
+    // Keyboard listener
+    scene.input.keyboard?.on('keydown-SPACE', spaceHandler);
+
+    // Animación de entrada con rebote
+    container.setScale(0.7);
+    container.setAlpha(0);
+    scene.tweens.add({
+        targets: container,
+        scale: 1,
+        alpha: 1,
+        duration: 500,
+        ease: 'Back.easeOut'
+    });
+
+    return container;
+}
+
+/**
  * Muestra un modal con mensaje y botones
  * @param scene - La escena de Phaser
  * @param options - Opciones del modal
@@ -349,7 +515,7 @@ export function showModal(
 
     const cam = scene.cameras.main;
     const container = scene.add.container(cam.worldView.centerX, cam.worldView.centerY);
-    container.setDepth(3000);
+    container.setDepth(40000);
 
     // Fondo oscuro (backdrop) - Covers viewport
     const backdrop = scene.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.7)
@@ -367,51 +533,61 @@ export function showModal(
         });
     }
 
-    // Panel del modal - Centered in container (which is screen center)
-    const panel = createPanel(
-        scene,
-        'common-ui/panels/panel_modal',
+    // Panel del modal usando nineslice de modals_atlas (glass effect)
+    const panelBg = scene.add.nineslice(
         0, 0,
-        width,
-        height
-    );
+        'modals_atlas',
+        'Default/Panel/panel-001.png',
+        width, height,
+        20, 20, 20, 20
+    ).setTint(0x0a1a2e).setAlpha(0.85);
 
-    // Layout inside modal (Relative to container center 0,0)
-    let currentY = -height / 2 + 60;
+    const panelBorder = scene.add.nineslice(
+        0, 0,
+        'modals_atlas',
+        'Default/Border/panel-border-001.png',
+        width, height,
+        20, 20, 20, 20
+    ).setTint(0x3b82f6);
+
+    // Layout inside modal
+    let currentY = -height * 0.35;
+    const modalContent: Phaser.GameObjects.GameObject[] = [backdrop, panelBg, panelBorder];
 
     // Título (si existe)
     if (title) {
         const titleText = scene.add.text(0, currentY, title, {
-            fontSize: '32px',
+            fontSize: '36px',
             fontFamily: 'Fredoka',
             color: '#fbbf24',
             stroke: '#000000',
             strokeThickness: 6,
             align: 'center'
         }).setOrigin(0.5);
-        container.add(titleText);
-        currentY += 70;
+        modalContent.push(titleText);
+        currentY += 80;
     }
 
     // Mensaje
     const messageText = scene.add.text(0, currentY, message, {
-        fontSize: '22px',
+        fontSize: '24px',
         fontFamily: 'Fredoka',
         color: '#FFFFFF',
         stroke: '#000000',
         strokeThickness: 3,
         align: 'center',
-        wordWrap: { width: width - 80 }
+        wordWrap: { width: width - 80 },
+        lineSpacing: 4
     }).setOrigin(0.5);
-    container.add(messageText);
+    modalContent.push(messageText);
 
-    // Botones
+    // Botones - DENTRO del panel
     const buttonSpacing = 160;
     const totalButtonWidth = (buttons.length - 1) * buttonSpacing;
     const startX = -totalButtonWidth / 2;
-    const buttonY = height / 2 - 70;
+    const buttonY = height * 0.32; // Cambiado para estar dentro del panel
 
-    const buttonContainers = buttons.map((btn, index) => {
+    buttons.forEach((btn, index) => {
         const buttonFrame = btn.isPrimary
             ? 'common-ui/buttons/btn_primary'
             : 'common-ui/buttons/btn_secondary';
@@ -432,10 +608,10 @@ export function showModal(
                 fontSize: '20px'
             }
         );
-        return btnObj;
+        modalContent.push(btnObj);
     });
 
-    container.add([backdrop, panel, messageText, ...buttonContainers]);
+    container.add(modalContent);
 
     // Animación de entrada
     container.setAlpha(0);
@@ -470,12 +646,11 @@ export function showToast(
 
     // Panel de fondo
     const bg = scene.add.rectangle(0, 0, 400, 60, isSuccess ? 0x10B981 : 0xEF4444, 0.95);
-    bg.setStrokeStyle(3, 0xFFFFFF, 0.8);
 
     // Texto
     const text = scene.add.text(0, 0, message, {
         fontSize: '18px',
-        fontFamily: 'Arial Black',
+        fontFamily: 'Fredoka',
         color: '#FFFFFF',
         stroke: '#000000',
         strokeThickness: 3,

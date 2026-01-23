@@ -7,7 +7,7 @@ import * as Phaser from 'phaser';
 import { GRAMMAR_RUN_CONFIG, resolveGrammarRunConfig } from './grammarRun.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createPanel, createButton, showFeedback, showGlow, showBurst, showToast, showFullscreenRequest } from './UIKit';
+import { createPanel, createButton, showFeedback, showGlow, showBurst, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
 import type { GameContent, MissionConfig, GrammarQuestion, GrammarOption } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 import { loadGrammarRunContent, validateGrammarRunContent } from './gameLoader.utils';
@@ -46,7 +46,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
     // Game state
     private score: number = 0;
-    private timeRemaining: number = 0;
+    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
     private distance: number = 0;
     private currentLane: number = 1; // 0=left, 1=center, 2=right
     private isGameOver: boolean = false;
@@ -77,7 +77,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
     preload() {
         this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
-        this.load.atlas('gr_atlas', '/assets/atlases/grammar-run/texture.png', '/assets/atlases/grammar-run/texture.json');
+        loadGameAtlases(this, 'gr');
         this.load.image('bg_grammar', '/assets/backgrounds/grammar-run/bg_trees.png');
     }
 
@@ -116,7 +116,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
         // Initialize game state from resolved config
         this.score = 0;
-        this.timeRemaining = this.resolvedConfig.time_limit_seconds;
+        this.timeElapsed = 0; // Start at 0 and count UP
         this.distance = 0;
         this.currentLane = 1;
         this.isGameOver = false;
@@ -148,13 +148,19 @@ export class GrammarRunScene extends Phaser.Scene {
         try {
             // Petición de pantalla completa ANTES de iniciar los sistemas de juego
             this.isPaused = true;
-            showFullscreenRequest(this, () => {
-                this.isPaused = false;
-                // Iniciar lógica después de confirmar
-            }, {
-                title: this.translations?.fullscreenTitle,
-                message: this.translations?.fullscreenPrompt,
-                buttonLabel: this.translations?.fullscreenStart
+            // Combine Fullscreen + Instructions
+            this.isPaused = true;
+            showGameInstructions(this, {
+                title: 'Grammar Run',
+                instructions: this.missionInstructions || 'Run and pass through the correct grammar gates! Avoid obstacles and build your path.',
+                controls: 'Use Arrow Keys (← →) or A/D to change lanes.\n\n• PAUSE (⏸): Pause the game\n• HELP (?): View instructions',
+                controlIcons: ['arrows'],
+                requestFullscreen: true,
+                buttonLabel: 'START RUNNING',
+                onStart: () => {
+                    this.isPaused = false;
+                    this.startCountdown();
+                }
             });
 
             const { width, height } = this.cameras.main;
@@ -176,8 +182,8 @@ export class GrammarRunScene extends Phaser.Scene {
             // Setup controls
             this.setupControls();
 
-            // Start Countdown
-            this.startCountdown();
+            // Start Countdown - Now handled by showGameInstructions callback
+            // this.startCountdown();
 
             // Enable physics
             this.physics.world.setBounds(0, 0, width, height);
@@ -207,7 +213,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
         this.hud.update({
             score: this.score,
-            timeRemaining: this.timeRemaining
+            timeRemaining: this.timeElapsed
         });
 
         this.createPromptPanel();
@@ -269,7 +275,15 @@ export class GrammarRunScene extends Phaser.Scene {
         this.pauseOverlay = this.add.container(0, 0).setDepth(10000).setScrollFactor(0);
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 500, 400);
+
+        // Background & Border from modals_atlas (glass effect)
+        const pW = 520;
+        const pH = 420;
+        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
 
         const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
             fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
@@ -285,7 +299,7 @@ export class GrammarRunScene extends Phaser.Scene {
             this.game.events.emit('GAME_EXIT');
         }, { width: 200, height: 60 });
 
-        this.pauseOverlay.add([dim, panel, title, resumeBtn, exitBtn]);
+        this.pauseOverlay.add([dim, panelBg, panelBorder, title, resumeBtn, exitBtn]);
     }
 
     private hidePauseOverlay() {
@@ -303,8 +317,15 @@ export class GrammarRunScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
         const panelContainer = this.add.container(0, 0).setDepth(10001).setScrollFactor(0);
 
-        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
-        const bg = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 550, 400);
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
+
+        // New standard modal style
+        const pW = 550;
+        const pH = 400;
+        const bg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const border = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
             fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
@@ -319,7 +340,7 @@ export class GrammarRunScene extends Phaser.Scene {
             if (!wasPaused) this.togglePause();
         }, { width: 200, height: 60 });
 
-        panelContainer.add([dim, bg, title, instructions, closeBtn]);
+        panelContainer.add([dim, bg, border, title, instructions, closeBtn]);
     }
 
     private startCountdown() {
@@ -490,16 +511,10 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private updateTimer() {
-        if (this.timeRemaining > 0) {
-            this.timeRemaining--;
-            if (this.hud) {
-                this.hud.update({ timeRemaining: this.timeRemaining });
-            }
-        } else {
-            if (this.hud) {
-                this.hud.update({ timeRemaining: 0 });
-            }
-            if (this.gameTimer) this.gameTimer.remove();
+        // Count UP instead of down - timer no longer ends the game
+        this.timeElapsed++;
+        if (this.hud) {
+            this.hud.update({ timeRemaining: this.timeElapsed });
         }
     }
 
@@ -544,7 +559,19 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private spawnGate() {
-        if (this.isGameOver || this.contentIndex >= this.questions.length) return;
+        // Check if all questions completed - END THE GAME
+        if (this.contentIndex >= this.questions.length) {
+            console.log('[GrammarRun] All questions completed! Ending game.');
+            if (!this.isGameOver) {
+                // Delay to allow final gate animation
+                this.time.delayedCall(2000, () => {
+                    this.endGame('all_questions');
+                });
+            }
+            return;
+        }
+
+        if (this.isGameOver) return;
         if (this.isWaitingForNextQuestion) return;
 
         const { width } = this.scale;
@@ -911,7 +938,7 @@ export class GrammarRunScene extends Phaser.Scene {
         if (this.hud) {
             this.hud.update({
                 score: Math.max(0, this.score),
-                timeRemaining: this.timeRemaining
+                timeRemaining: this.timeElapsed
             });
         }
     }
@@ -1052,8 +1079,12 @@ export class GrammarRunScene extends Phaser.Scene {
         };
 
         // Event Payload
+        // Calcular score normalizado sobre 10 basado en precisión
+        const normalizedScore = Math.round((accuracy / 100) * 10 * 10) / 10;
+
         const gameOverPayload = {
-            scoreRaw: this.score,
+            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
+            scoreRaw: this.score,             // Puntos brutos para estadísticas
             correctCount: sessionData?.correctCount || 0,
             wrongCount: sessionData?.wrongCount || 0,
             durationSeconds: duration,
@@ -1081,31 +1112,36 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private createMissionCompleteModal(stats: any) {
+        console.log('[GrammarRun] Creating Mission Complete Modal', stats);
         const { width, height } = this.cameras.main;
 
         const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-            .setDepth(6000).setInteractive().setScrollFactor(0);
+            .setDepth(19999).setInteractive().setScrollFactor(0);
 
-        const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
+        const container = this.add.container(width / 2, height / 2).setDepth(20000).setScrollFactor(0);
 
-        // Reduced dimensions
-        const bgWidth = 520;
-        const bgHeight = 420;
-        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
-        container.add(bg);
+        // Background & Border from modals_atlas (glass effect)
+        const bgWidth = 540;
+        const bgHeight = 440;
+        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
+        container.add([panelBg, panelBorder]);
 
         // TITLE - Reduced and repositioned
-        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
-            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        const title = this.add.text(0, -155, 'MISSION COMPLETE', {
+            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
         // MAIN STATS (Centered) - Reduced and repositioned
-        const sText = this.add.text(0, -40, `Sentences: ${stats.correct}/${stats.total}`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
+        const sText = this.add.text(0, -30, `Sentences: ${stats.correct}/${stats.total}`, {
+            fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
+            fontSize: '26px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         // RANK
@@ -1115,12 +1151,12 @@ export class GrammarRunScene extends Phaser.Scene {
         else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
         else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
 
-        const rText = this.add.text(0, 85, `RANK: ${rankIcon} ${rankLabel}`, {
-            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
+        const rText = this.add.text(0, 75, `RANK: ${rankIcon} ${rankLabel}`, {
+            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
 
         // BUTTONS - smaller
-        const btnY = 155;
+        const btnY = 135;
 
         // RESULTS
         const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
@@ -1162,7 +1198,7 @@ export class GrammarRunScene extends Phaser.Scene {
             });
         }, { width: 220, height: 70 });
 
-        container.add([bg, title, sText, aText, exitBtn, replayBtn]);
+        container.add([title, sText, aText, rText, exitBtn, replayBtn]);
 
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });

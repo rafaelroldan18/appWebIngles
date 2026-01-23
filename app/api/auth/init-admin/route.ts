@@ -21,7 +21,6 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (checkError) {
-      console.error('Error checking admins:', checkError);
       return NextResponse.json(
         { success: false, error: 'Error al verificar administradores existentes' },
         { status: 500 }
@@ -50,7 +49,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (signUpError || !authData.user) {
-      console.error('SignUp error:', signUpError);
       return NextResponse.json(
         { success: false, error: signUpError?.message || 'Error al crear cuenta' },
         { status: 500 }
@@ -70,7 +68,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (insertError) {
-      console.error('Insert error:', insertError);
       await supabase.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json(
         { success: false, error: `Error al crear usuario administrador: ${insertError.message}` },
@@ -89,7 +86,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error creating initial admin:', error);
     return NextResponse.json(
       { success: false, error: 'Error al crear administrador inicial' },
       { status: 500 }

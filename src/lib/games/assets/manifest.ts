@@ -16,6 +16,11 @@ export const ASSET_MANIFEST: AssetManifest = {
                 png: "/assets/atlases/common-ui/texture.png",
                 json: "/assets/atlases/common-ui/texture.json",
             },
+            {
+                key: "modals_atlas",
+                png: "/assets/atlases/modals/texture.png",
+                json: "/assets/atlases/modals/texture.json",
+            },
         ],
     },
 

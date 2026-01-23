@@ -25,6 +25,11 @@ export const ATLAS_CONFIG = {
         textureURL: '/assets/atlases/common-ui/texture.png',
         atlasURL: '/assets/atlases/common-ui/texture.json'
     },
+    modals: {
+        key: 'modals_atlas',
+        textureURL: '/assets/atlases/modals/texture.png',
+        atlasURL: '/assets/atlases/modals/texture.json'
+    },
     games: {
         wc: {
             key: 'wc_atlas',
@@ -76,6 +81,13 @@ export function loadGameAtlases(scene: Phaser.Scene, gameKey: GameKey): void {
         ATLAS_CONFIG.common.atlasURL
     );
 
+    // Cargar atlas de modales (necesario para UIKit)
+    scene.load.atlas(
+        ATLAS_CONFIG.modals.key,
+        ATLAS_CONFIG.modals.textureURL,
+        ATLAS_CONFIG.modals.atlasURL
+    );
+
     // Cargar atlas específico del juego
     const gameAtlas = ATLAS_CONFIG.games[gameKey];
     scene.load.atlas(
@@ -84,7 +96,7 @@ export function loadGameAtlases(scene: Phaser.Scene, gameKey: GameKey): void {
         gameAtlas.atlasURL
     );
 
-    console.log(`[AtlasLoader] Cargando atlas: ${ATLAS_CONFIG.common.key} + ${gameAtlas.key}`);
+    console.log(`[AtlasLoader] Cargando atlas: ${ATLAS_CONFIG.common.key} + ${ATLAS_CONFIG.modals.key} + ${gameAtlas.key}`);
 }
 
 /**

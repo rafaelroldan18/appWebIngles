@@ -38,13 +38,11 @@ export async function GET(request: NextRequest) {
         const { count, error } = await query;
 
         if (error) {
-            console.error('Error counting sessions:', error);
             return NextResponse.json({ error: error.message }, { status: 400 });
         }
 
         return NextResponse.json({ count: count || 0 });
     } catch (error) {
-        console.error('Error in /api/games/sessions/count:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }

@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
       invitations: formattedInvitations,
     });
   } catch (error) {
-    console.error('Error fetching invitations:', error);
     return NextResponse.json(
       { success: false, error: 'Error al obtener invitaciones' },
       { status: 500 }
@@ -149,12 +148,6 @@ export async function POST(request: NextRequest) {
       const currentStatus = (existingUser.account_status || '').toString().toLowerCase().trim();
       const isActive = currentStatus === 'activo';
 
-      console.log('DEBUG: Detalle del conflicto:', {
-        email: existingUser.email,
-        statusEnBD: existingUser.account_status,
-        isActive
-      });
-
       let errorMessage = '';
       if (isEmailConflict) {
         errorMessage = isActive
@@ -224,11 +217,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('DEBUG: Invitación creada en BD:', invitation.invitation_code);
-
     // Enviar invitación automática por correo usando Supabase Auth
     const origin = request.nextUrl.origin;
-    console.log('DEBUG: Enviando invitación a Supabase Auth con código:', invitation.invitation_code);
 
     const { data: inviteData, error: inviteEmailError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${origin}/activate?invite_code=${invitation.invitation_code}`,
@@ -241,11 +231,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (inviteEmailError) {
-      console.error('Error sending invitation email:', inviteEmailError);
-    } else {
-      console.log('DEBUG: Email de invitación enviado exitosamente');
-    }
 
     // Create pending user with parallel_id for students
     const userData: any = {
@@ -270,7 +255,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userCreateError) {
-      console.error('Error creating pending user:', userCreateError);
       await supabaseAdmin
         .from('invitations')
         .delete()
@@ -294,7 +278,6 @@ export async function POST(request: NextRequest) {
         .insert(teacherParallelsData);
 
       if (teacherParallelsError) {
-        console.error('Error creating teacher_parallels:', teacherParallelsError);
         // Don't fail the whole operation, just log the error
       }
     }
@@ -305,7 +288,6 @@ export async function POST(request: NextRequest) {
       invitation,
     });
   } catch (error) {
-    console.error('Error creating invitation:', error);
     return NextResponse.json(
       { success: false, error: 'Error al crear invitación' },
       { status: 500 }

@@ -75,7 +75,7 @@ export class AuthService {
         usuario: result.usuario,
       };
     } catch (error) {
-      console.error('Error getting current user:', error);
+      //console.error('Error getting current user:', error);
       return null;
     }
   }

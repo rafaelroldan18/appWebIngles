@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
             .select();
 
         if (error) {
-            console.error('Error seeding game types:', error);
             return NextResponse.json(
                 { error: error.message },
                 { status: 500 }
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest) {
             data
         });
     } catch (error) {
-        console.error('Error in /api/games/types/seed:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

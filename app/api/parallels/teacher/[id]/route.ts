@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseClient } from '@/lib/supabase-api';
-import { createServiceRoleClient } from '@/lib/supabase-server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +20,7 @@ export async function GET(
             return NextResponse.json([]);
         }
 
-        const supabase = await createSupabaseClient(request);
+        const supabase = await createClient();
 
         // Authenticate user
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -42,19 +41,19 @@ export async function GET(
             `)
             .eq('teacher_id', teacherId);
 
-        if (error) {
-            console.error('❌ [Teacher Parallels API] Supabase Query Error:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
-            return NextResponse.json({
-                error: 'Error al obtener paralelos del docente',
-                details: error.message,
-                code: error.code
-            }, { status: 500 });
-        }
+        // if (error) {
+        //     console.error('❌ [Teacher Parallels API] Supabase Query Error:', {
+        //         message: error.message,
+        //         details: error.details,
+        //         hint: error.hint,
+        //         code: error.code
+        //     });
+        //     return NextResponse.json({
+        //         error: 'Error al obtener paralelos del docente',
+        //         details: error.message,
+        //         code: error.code
+        //     }, { status: 500 });
+        // }
 
 
         // Flatten the response and filter out any null cases
@@ -64,7 +63,7 @@ export async function GET(
 
         return NextResponse.json(parallels);
     } catch (error: any) {
-        console.error('❌ [Teacher Parallels API] Critical error:', error);
+        // console.error('❌ [Teacher Parallels API] Critical error:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor', details: error.message },
             { status: 500 }

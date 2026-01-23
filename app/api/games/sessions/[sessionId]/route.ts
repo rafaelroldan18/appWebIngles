@@ -13,7 +13,6 @@ export async function PUT(
 
         // Validate score constraint before updating
         if (body.score !== undefined && body.score < 0) {
-            console.error('Score validation failed:', { sessionId, score: body.score });
             return NextResponse.json({
                 error: 'Score must be greater than or equal to 0',
                 details: { score: body.score }
@@ -83,7 +82,6 @@ export async function PUT(
 
         return NextResponse.json(session);
     } catch (error) {
-        console.error('Error in /api/games/sessions/[sessionId]:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }

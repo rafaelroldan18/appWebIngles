@@ -171,7 +171,7 @@ export default function UniversalGameCanvas({
                         : 0);
 
                 const gameEndData = {
-                    score: data.scoreRaw !== undefined ? data.scoreRaw : (data.score || sessionData.score),
+                    score: data.score !== undefined ? data.score : sessionData.score,
                     correctCount: data.correctCount !== undefined ? data.correctCount : sessionData.correctCount,
                     wrongCount: data.wrongCount !== undefined ? data.wrongCount : sessionData.wrongCount,
                     duration: data.durationSeconds !== undefined ? data.durationSeconds : duration,

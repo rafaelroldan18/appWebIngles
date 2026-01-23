@@ -58,7 +58,6 @@ export async function GET(request: NextRequest) {
       usuario: formattedUsuario,
     });
   } catch (error) {
-    console.error('Get current user error:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

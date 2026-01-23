@@ -7,7 +7,7 @@ import * as Phaser from 'phaser';
 import { SENTENCE_BUILDER_CONFIG } from './sentenceBuilder.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createButton, createPanel, showFeedback, showModal, showToast, showFullscreenRequest } from './UIKit';
+import { createButton, createPanel, showFeedback, showModal, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
 import type { GameContent, MissionConfig } from '@/types';
 import { loadSentenceBuilderContent, type SentenceBuilderItem, type SentenceBuilderToken } from './gameLoader.utils';
 import type { GameSessionManager } from './GameSessionManager';
@@ -27,7 +27,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
     // Game state
     private currentSentenceIndex: number = 0;
     private score: number = 0;
-    private timeRemaining: number = 0;
+    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
     private missionTitle: string = '';
     private missionInstructions: string = '';
     private missionConfig: MissionConfig | null = null;
@@ -108,7 +108,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
         this.currentSentenceIndex = 0;
         this.score = 0;
         const limitConfig = this.missionConfig?.time_limit_seconds;
-        this.timeRemaining = limitConfig !== undefined ? limitConfig : 120;
+        this.timeElapsed = 0; // Start at 0 and count UP
 
         this.maxItemAttempts = (this.missionConfig as any)?.attempts_per_item || 2;
 
@@ -150,14 +150,19 @@ export class SentenceBuilderScene extends Phaser.Scene {
             return;
         }
 
+        // Combined Fullscreen + Instructions Flow
         this.isPaused = true;
-        showFullscreenRequest(this, () => {
-            this.isPaused = false;
-            this.startCountdown();
-        }, {
-            title: this.translations?.fullscreenTitle,
-            message: this.translations?.fullscreenPrompt,
-            buttonLabel: this.translations?.fullscreenStart
+        showGameInstructions(this, {
+            title: 'Sentence Builder',
+            instructions: this.missionInstructions || 'Arrange the words in the correct order to build a perfect sentence! Each sentence completed earns points.',
+            controls: 'Click words in the bank to add them to your sentence.\n\n• UNDO: Remove last word\n• CLEAR: Remove all words\n• HINT: Get a clue\n• SUBMIT: Check your answer',
+            controlIcons: ['mouse'],
+            requestFullscreen: true,
+            buttonLabel: 'START BUILDING',
+            onStart: () => {
+                this.isPaused = false;
+                this.startCountdown();
+            }
         });
 
         this.events.emit('scene-ready');
@@ -382,18 +387,12 @@ export class SentenceBuilderScene extends Phaser.Scene {
     }
 
     private startGameTimer() {
-        // 0 means practice mode (infinite)
-        if (this.timeRemaining <= 0) {
-            this.gameHUD.update({ timeRemaining: 999 }); // Visual representative of ∞
-            return;
-        }
-
         this.gameTimer = this.time.addEvent({
             delay: 1000,
             callback: () => {
-                this.timeRemaining--;
-                this.gameHUD.update({ timeRemaining: this.timeRemaining });
-                if (this.timeRemaining <= 0) this.endGame();
+                this.timeElapsed++; // Count UP instead of down
+                this.gameHUD.update({ timeRemaining: this.timeElapsed });
+                // Timer no longer ends the game - only completing all sentences does
             },
             loop: true
         });
@@ -813,12 +812,13 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         showFeedback(this, width / 2, height / 2, true, 600);
         showToast(this, 'CORRECT!', 1000, true);
-        this.score += 100; // Config score
+        const points = SENTENCE_BUILDER_CONFIG.scoring.points_correct;
+        this.score += points;
         this.gameHUD.update({ score: this.score });
 
         // Record Item (Standardized)
         if (this.sessionManager) {
-            this.sessionManager.updateScore(100, true);
+            this.sessionManager.updateScore(points, true);
             this.sessionManager.recordItem({
                 id: this.currentItem!.id,
                 text: this.currentItem!.prompt || 'Construct sentence',
@@ -893,7 +893,10 @@ export class SentenceBuilderScene extends Phaser.Scene {
             }
 
             // We should record fail
-            this.sessionManager?.updateScore(0, false);
+            const penalty = SENTENCE_BUILDER_CONFIG.scoring.points_wrong;
+            this.sessionManager?.updateScore(penalty, false);
+            this.score = Math.max(0, this.score + penalty);
+            this.gameHUD.update({ score: this.score });
             this.checkButton.setVisible(false); // Can't submit again
             this.nextButton.setVisible(true); // Must move on
         }
@@ -931,9 +934,13 @@ export class SentenceBuilderScene extends Phaser.Scene {
         // Speed Builder Bonus: 100% accuracy and at least 3 sentences
         const speedBonus = accuracy === 100 && correct >= 3;
 
+        // Calcular score normalizado sobre 10 basado en precisión
+        const normalizedScore = Math.round((accuracy / 100) * 10 * 10) / 10;
+
         // Payload
         const gameOverPayload = {
-            scoreRaw: this.score + (speedBonus ? 500 : 0),
+            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
+            scoreRaw: this.score + (speedBonus ? 500 : 0),  // Puntos brutos para estadísticas
             correctCount: correct,
             wrongCount: sessionData?.wrongCount || 0,
             durationSeconds: duration,
@@ -966,24 +973,28 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
 
-        // Reduced dimensions
-        const bgWidth = 520;
-        const bgHeight = 420;
-        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
-        container.add(bg);
+        // Background & Border from modals_atlas (glass effect)
+        const bgWidth = 540;
+        const bgHeight = 440;
+        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
+        container.add([panelBg, panelBorder]);
 
         // TITLE - Reduced and repositioned
-        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
-            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        const title = this.add.text(0, -155, 'MISSION COMPLETE', {
+            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
         // MAIN STATS (Centered) - Reduced and repositioned
-        const sText = this.add.text(0, -40, `Sentences: ${stats.sentences}/${stats.totalSentences}`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
+        const sText = this.add.text(0, -30, `Sentences: ${stats.sentences}/${stats.totalSentences}`, {
+            fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
+            fontSize: '26px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         // RANK - Added Rank for consistency
@@ -993,12 +1004,12 @@ export class SentenceBuilderScene extends Phaser.Scene {
         else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
         else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
 
-        const rText = this.add.text(0, 85, `RANK: ${rankIcon} ${rankLabel}`, {
-            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
+        const rText = this.add.text(0, 75, `RANK: ${rankIcon} ${rankLabel}`, {
+            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
 
         // BUTTONS - Smaller and repositioned
-        const btnY = 155;
+        const btnY = 135;
 
         // RESULTS (Left)
         const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
@@ -1053,11 +1064,18 @@ export class SentenceBuilderScene extends Phaser.Scene {
             this.pauseOverlay = this.add.container(0, 0).setDepth(40000).setScrollFactor(0);
 
             const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-            const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 600, 480);
+
+            // Background & Border from modals_atlas (glass effect)
+            const pW = 600;
+            const pH = 480;
+            const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
+                .setTint(0x0a1a2e).setAlpha(0.85);
+            const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
+                .setTint(0x3b82f6);
 
             const pTitle = this.add.text(width / 2, height / 2 - 120, 'GAME PAUSED', {
                 fontSize: '54px',
-                fontFamily: 'Arial Black',
+                fontFamily: 'Fredoka',
                 color: '#fbbf24',
                 stroke: '#000000',
                 strokeThickness: 10
@@ -1086,7 +1104,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
                 this.game.events.emit('exit', payload);
             }, { width: 280, height: 75, fontSize: '26px', textOffsetY: -5 });
 
-            this.pauseOverlay.add([backdrop, panel, pTitle, rBtn, eBtn]);
+            this.pauseOverlay.add([backdrop, panelBg, panelBorder, pTitle, rBtn, eBtn]);
 
 
             // Force visibility immediately - no tween for debug reliability
@@ -1120,25 +1138,33 @@ export class SentenceBuilderScene extends Phaser.Scene {
         const helpOverlay = this.add.container(0, 0).setDepth(45000).setScrollFactor(0);
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 600, 480);
 
-        const title = this.add.text(width / 2, height / 2 - 180, 'INSTRUCTIONS', {
-            fontSize: '44px',
-            fontFamily: 'Arial Black',
+        // New standard modal style
+        const pW = 600;
+        const pH = 480;
+        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
+        const title = this.add.text(width / 2, height / 2 - 180, 'INSTRUCCIONES', {
+            fontSize: '40px',
+            fontFamily: 'Fredoka',
             color: '#fbbf24',
             stroke: '#000000',
-            strokeThickness: 8
+            strokeThickness: 6
         }).setOrigin(0.5);
 
         const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions || 'Build the correct sentence by selecting the words in order.', {
-            fontSize: '24px',
-            fontFamily: 'Arial',
+            fontSize: '22px',
+            fontFamily: 'Fredoka',
             color: '#ffffff',
             align: 'center',
-            wordWrap: { width: 520 }
+            wordWrap: { width: 520 },
+            lineSpacing: 4
         }).setOrigin(0.5);
 
-        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 160, 'CLOSE', () => {
+        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 160, 'ENTENDIDO', () => {
             helpOverlay.destroy();
             // Resume only if it wasn't paused before
             if (!wasPreviouslyPaused) {
@@ -1149,7 +1175,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
             }
         }, { width: 220, height: 75, fontSize: '26px', textOffsetY: -5 });
 
-        helpOverlay.add([dim, panel, title, instructions, closeBtn]);
+        helpOverlay.add([dim, panelBg, panelBorder, title, instructions, closeBtn]);
     }
 
     update(time: number, delta: number) {

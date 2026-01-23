@@ -46,7 +46,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      console.error('Auth error:', authError);
       return Response.json({ error: authError.message }, { status: 400 });
     }
 
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (dbError) {
-      console.error('Database error:', dbError);
       return Response.json({ error: 'Error al guardar usuario en base de datos' }, { status: 400 });
     }
 
@@ -98,7 +96,6 @@ export async function POST(request: NextRequest) {
         : 'Cuenta creada exitosamente. Espera la aprobación del administrador.',
     });
   } catch (error) {
-    console.error('Register error:', error);
     return Response.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

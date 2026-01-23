@@ -131,12 +131,10 @@ export async function PATCH(
         });
 
         if (inviteEmailError) {
-          console.error('Error re-sending invitation email:', inviteEmailError);
         } else if (inviteData?.user) {
           userUpdateData.auth_user_id = inviteData.user.id;
         }
       } catch (authError) {
-        console.error('Error handling auth re-invitation:', authError);
       }
     }
 
@@ -157,7 +155,6 @@ export async function PATCH(
       .eq('account_status', 'pendiente');
 
     if (updateUserError) {
-      console.error('Error updating associated user:', updateUserError);
     }
 
     return NextResponse.json({
@@ -165,7 +162,6 @@ export async function PATCH(
       message: emailChanged ? 'Invitación actualizada y correo reenviado exitosamente' : 'Invitación actualizada exitosamente'
     });
   } catch (error) {
-    console.error('Error updating invitation:', error);
     return NextResponse.json({ success: false, error: 'Error interno' }, { status: 500 });
   }
 }
@@ -250,7 +246,6 @@ export async function DELETE(
       if (pendingUser.auth_user_id) {
         const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(pendingUser.auth_user_id);
         if (authDeleteError) {
-          console.error('Error deleting user from Auth:', authDeleteError);
         }
       } else {
         const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
@@ -266,7 +261,6 @@ export async function DELETE(
         .eq('user_id', pendingUser.user_id);
 
       if (userTableDeleteError) {
-        console.error('Error deleting user from table:', userTableDeleteError);
         return NextResponse.json(
           { success: false, error: 'Error al eliminar usuario pendiente' },
           { status: 500 }
@@ -280,7 +274,6 @@ export async function DELETE(
       .eq('invitation_id', id);
 
     if (deleteError) {
-      console.error('Error deleting invitation row:', deleteError);
       return NextResponse.json(
         { success: false, error: 'Error al eliminar invitación en la base de datos' },
         { status: 500 }
@@ -292,7 +285,6 @@ export async function DELETE(
       message: 'Invitación eliminada exitosamente',
     });
   } catch (error) {
-    console.error('Error deleting invitation:', error);
     return NextResponse.json(
       { success: false, error: 'Error al eliminar invitación' },
       { status: 500 }

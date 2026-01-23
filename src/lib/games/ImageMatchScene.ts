@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { showFeedback, showGlow, showBurst, createButton, createPanel, showFullscreenRequest } from './UIKit';
+import { showFeedback, showGlow, showBurst, createButton, createPanel, showFullscreenRequest, showGameInstructions } from './UIKit';
 import { AnswerTracker } from './answerTracker';
 import type { ImageMatchCard } from './gameLoader.utils';
 import type { GameContent, MissionConfig } from '@/types/game.types';
@@ -38,7 +38,7 @@ export class ImageMatchScene extends Phaser.Scene {
     private streak: number = 0;
     private bestStreak: number = 0;
     private score: number = 0;
-    private timeRemaining: number = 0;
+    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
     private isGameOver: boolean = false;
     private isPaused: boolean = false;
     private gameStartTime: number = 0;
@@ -102,7 +102,7 @@ export class ImageMatchScene extends Phaser.Scene {
         this.answerTracker = new AnswerTracker();
 
         this.score = 0;
-        this.timeRemaining = this.resolvedConfig.time_limit_seconds || 90;
+        this.timeElapsed = 0; // Start at 0 and count UP
         this.moves = 0;
         this.matches = 0;
         this.streak = 0;
@@ -116,8 +116,8 @@ export class ImageMatchScene extends Phaser.Scene {
 
     preload() {
         // Cargar atlas común (UI) + atlas específico de Image Match
-        this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
-        this.load.atlas('im_atlas', '/assets/atlases/image-match/texture.png', '/assets/atlases/image-match/texture.json');
+        // Cargar atlas común (UI) + Modales + atlas específico de Image Match
+        loadGameAtlases(this, 'im');
         this.load.image('im_bg_table', '/assets/backgrounds/image-match/bg_table.png');
 
         // Preload content images
@@ -135,15 +135,20 @@ export class ImageMatchScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
 
         // Petición de pantalla completa ANTES de iniciar los sistemas de juego
+        // Combined Fullscreen + Instructions Flow
         this.isPaused = true;
-        showFullscreenRequest(this, () => {
-            this.isProcessing = false;
-            this.isPaused = false;
-            this.startCountdown();
-        }, {
-            title: this.translations?.fullscreenTitle,
-            message: this.translations?.fullscreenPrompt,
-            buttonLabel: this.translations?.fullscreenStart
+        showGameInstructions(this, {
+            title: 'Image Match',
+            instructions: this.missionInstructions || 'Find all the matching pairs of images and words as fast as you can to earn a high rank!',
+            controls: 'Click on cards to flip them and find matches.\n\n• PAUSE (⏸): Pause the game\n• HELP (?): View instructions',
+            controlIcons: ['mouse'],
+            requestFullscreen: true,
+            buttonLabel: 'START MATCHING',
+            onStart: () => {
+                this.isProcessing = false;
+                this.isPaused = false;
+                this.startCountdown();
+            }
         });
 
         // 1. Fondo de mesa
@@ -166,8 +171,8 @@ export class ImageMatchScene extends Phaser.Scene {
         // 5. Inputs
         this.input.keyboard?.on('keydown-P', () => this.togglePause());
 
-        // 6. Countdown
-        this.startCountdown();
+        // 6. Countdown - Now handled by showGameInstructions callback
+        // this.startCountdown();
 
         this.events.emit('scene-ready');
     }
@@ -192,7 +197,7 @@ export class ImageMatchScene extends Phaser.Scene {
         // Inicializar con valores actuales
         this.gameHUD.update({
             score: this.score,
-            timeRemaining: this.timeRemaining
+            timeRemaining: this.timeElapsed
         });
 
         // Textos adicionales específicos de Image Match
@@ -424,7 +429,7 @@ export class ImageMatchScene extends Phaser.Scene {
         this.streak++;
         if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
-        const points = IMAGE_MATCH_CONFIG.scoring.matchFound;
+        const points = IMAGE_MATCH_CONFIG.scoring.points_correct;
         this.score = Math.max(0, this.score + points);
         this.sessionManager?.updateScore(points, true);
 
@@ -503,7 +508,7 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private handleMismatch(p1: CardObject, p2: CardObject) {
         this.streak = 0;
-        const penalty = IMAGE_MATCH_CONFIG.scoring.wrongMatch;
+        const penalty = IMAGE_MATCH_CONFIG.scoring.points_wrong;
         this.score = Math.max(0, this.score + penalty);
         this.sessionManager?.updateScore(penalty, false);
         this.gameHUD.update({ score: Math.max(0, this.score) });
@@ -576,7 +581,14 @@ export class ImageMatchScene extends Phaser.Scene {
         this.pauseOverlay = this.add.container(0, 0).setDepth(2000).setVisible(false).setScrollFactor(0);
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 500, 400);
+
+        // Background & Border from modals_atlas (glass effect)
+        const pW = 520;
+        const pH = 420;
+        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
             fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
@@ -620,7 +632,7 @@ export class ImageMatchScene extends Phaser.Scene {
             this.game.events.emit('GAME_EXIT', gameExitPayload);
         }, { width: 200, height: 60 });
 
-        this.pauseOverlay.add([dim, panel, title, resumeBtn, exitBtn]);
+        this.pauseOverlay.add([dim, panelBg, panelBorder, title, resumeBtn, exitBtn]);
     }
 
     private togglePause() {
@@ -652,23 +664,32 @@ export class ImageMatchScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
         const helpOverlay = this.add.container(0, 0).setDepth(3000).setScrollFactor(0);
 
-        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', width / 2, height / 2, 550, 400);
+        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
 
-        const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
-            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
+        const panelW = Math.min(560, Math.round(width * 0.90));
+        const panelH = Math.min(460, Math.round(height * 0.78));
+
+        // Use modals_atlas with glass effect
+        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', panelW, panelH, 32, 32, 32, 32)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', panelW, panelH, 32, 32, 32, 32)
+            .setTint(0x3b82f6);
+
+        const title = this.add.text(width / 2, height / 2 - panelH * 0.35, 'INSTRUCCIONES', {
+            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
-        const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions, {
-            fontSize: '20px', fontFamily: 'Fredoka', color: '#e2e8f0', align: 'center', wordWrap: { width: 450 }
+        const instructions = this.add.text(width / 2, height / 2, this.missionInstructions, {
+            fontSize: '20px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', wordWrap: { width: Math.min(420, panelW - 80) },
+            stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
-        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 120, 'ENTENDIDO', () => {
+        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + panelH * 0.34, 'ENTENDIDO', () => {
             helpOverlay.destroy();
             if (!wasPaused) this.togglePause();
-        }, { width: 200, height: 60 });
+        }, { width: 180, height: 50 });
 
-        helpOverlay.add([dim, panel, title, instructions, closeBtn]);
+        helpOverlay.add([dim, panelBg, panelBorder, title, instructions, closeBtn]);
     }
 
     private startCountdown() {
@@ -697,9 +718,9 @@ export class ImageMatchScene extends Phaser.Scene {
         this.gameTimer = this.time.addEvent({
             delay: 1000, loop: true,
             callback: () => {
-                this.timeRemaining--;
-                this.gameHUD.update({ timeRemaining: this.timeRemaining });
-                if (this.timeRemaining <= 0) this.endGame();
+                this.timeElapsed++; // Count UP instead of down
+                this.gameHUD.update({ timeRemaining: this.timeElapsed });
+                // Timer no longer ends the game - only finding all pairs does
             }
         });
     }
@@ -719,9 +740,13 @@ export class ImageMatchScene extends Phaser.Scene {
         const accuracy = attempts > 0 ? Math.round((matches / attempts) * 100) : 0;
         const perfectMatch = matches > 0 && matches === attempts;
 
+        // Calcular score normalizado sobre 10 basado en precisión
+        const normalizedScore = Math.round((accuracy / 100) * 10 * 10) / 10;
+
         // Event Payload
         const gameOverPayload = {
-            scoreRaw: this.score + (perfectMatch ? 500 : 0),
+            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
+            scoreRaw: this.score + (perfectMatch ? 500 : 0),  // Puntos brutos para estadísticas
             correctCount: matches,
             wrongCount: attempts - matches,
             durationSeconds: duration,
@@ -754,26 +779,30 @@ export class ImageMatchScene extends Phaser.Scene {
 
         const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
 
-        // Reduced dimensions
-        const bgWidth = 520;
-        const bgHeight = 420;
-        const bg = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, bgWidth, bgHeight);
-        container.add(bg);
+        // Background & Border from modals_atlas (glass effect)
+        const bgWidth = 540;
+        const bgHeight = 440;
+        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
+        container.add([panelBg, panelBorder]);
 
         // TITLE - Reduced and repositioned
-        const title = this.add.text(0, -165, 'MISSION COMPLETE', {
-            fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+        const title = this.add.text(0, -155, 'MISSION COMPLETE', {
+            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5);
 
         // STATS - Reduced and repositioned
-        const pairsText = this.add.text(0, -40, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
-            fontSize: '24px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
+        const pairsText = this.add.text(0, -30, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
+            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         const bonusStatus = stats.perfectMatch ? 'ACTIVE' : 'INACTIVE';
         const bonusColor = stats.perfectMatch ? '#10b981' : '#94a3b8';
         const bonusText = this.add.text(0, 5, `MEMORY MASTER: ${bonusStatus}`, {
-            fontSize: '20px', fontFamily: 'Fredoka', color: bonusColor, stroke: '#000000', strokeThickness: 3
+            fontSize: '18px', fontFamily: 'Fredoka', color: bonusColor, stroke: '#000000', strokeThickness: 3
         }).setOrigin(0.5);
 
         let rank = 'NOVICE';
@@ -782,12 +811,12 @@ export class ImageMatchScene extends Phaser.Scene {
         else if (stats.accuracy >= 70) { rank = 'EXPERT'; icon = '🎓'; }
         else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
 
-        const rankText = this.add.text(0, 60, `RANK: ${icon} ${rank}`, {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
+        const rankText = this.add.text(0, 50, `RANK: ${icon} ${rank}`, {
+            fontSize: '26px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 4
         }).setOrigin(0.5);
 
         // BUTTONS - smaller
-        const btnY = 155;
+        const btnY = 135;
 
         const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) {
@@ -828,9 +857,9 @@ export class ImageMatchScene extends Phaser.Scene {
 
     private createModalButton(x: number, y: number, text: string, color: number, callback: () => void) {
         const width = 180, height = 60;
-        const bg = this.add.rectangle(x, y, width, height, color).setInteractive({ useHandCursor: true }).setStrokeStyle(3, 0xffffff);
+        const bg = this.add.rectangle(x, y, width, height, color).setInteractive({ useHandCursor: true });
         const shadow = this.add.rectangle(x + 5, y + 5, width, height, 0x000000, 0.3);
-        const label = this.add.text(x, y, text, { fontSize: '24px', fontFamily: 'Arial', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
+        const label = this.add.text(x, y, text, { fontSize: '24px', fontFamily: 'Fredoka', fontStyle: 'bold', color: '#ffffff' }).setOrigin(0.5);
 
         bg.on('pointerdown', () => {
             this.tweens.add({ targets: [bg, label, shadow], scaleX: 0.95, scaleY: 0.95, duration: 50, yoyo: true, onComplete: callback });

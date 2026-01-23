@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         const { data, error } = await query;
 
         if (error) {
-            console.error('Error fetching topics:', error);
+            //console.error('Error fetching topics:', error);
             return NextResponse.json(
                 { error: 'Failed to fetch topics' },
                 { status: 500 }
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in GET /api/topics:', error);
+        //console.error('Error in GET /api/topics:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

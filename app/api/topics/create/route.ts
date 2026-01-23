@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
             .single();
 
         if (error) {
-            console.error('Error creating topic:', error);
+           // console.error('Error creating topic:', error);
             return NextResponse.json(
                 { error: 'Failed to create topic' },
                 { status: 500 }
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data, { status: 201 });
     } catch (error) {
-        console.error('Error in POST /api/topics/create:', error);
+        //console.error('Error in POST /api/topics/create:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

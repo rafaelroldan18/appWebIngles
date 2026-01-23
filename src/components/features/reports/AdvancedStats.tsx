@@ -157,10 +157,18 @@ export default function AdvancedStats({
         doc.addPage();
         doc.setFontSize(14);
         doc.text(t.reports.export.studentList, 14, 22);
+        // Dynamic headers for missions
+        const missionHeaders = (data.studentPerformance[0]?.missions || []).map((m: any) => m.missionTitle || m.name);
+
         autoTable(doc, {
             startY: 30,
-            head: [[t.reports.export.student, t.loginIdCard || 'Cédula', t.loginEmail || 'Correo', 'XP', t.reports.export.accuracy]],
-            body: data.studentPerformance.map((s: any) => [s.name, s.idCard || '-', s.email || '-', s.score, `${s.accuracy}%`]),
+            head: [[t.reports.export.student, t.loginIdCard || 'Cédula', ...missionHeaders, t.reports.export.score]],
+            body: data.studentPerformance.map((s: any) => [
+                s.name,
+                s.idCard || '-',
+                ...s.missions.map((m: any) => m.score || 0),
+                s.score
+            ]),
             theme: 'grid',
             headStyles: { fillColor: [79, 70, 229] },
             styles: { fontSize: 8 }
@@ -230,14 +238,22 @@ export default function AdvancedStats({
 
         XLSX.utils.book_append_sheet(wb, wsSummary, t.reports.export.distribution || 'Resumen');
 
-        const studentData = data.studentPerformance.map((s: any) => ({
-            [t.reports.export.student]: s.name,
-            [t.loginIdCard || 'Cédula']: s.idCard || '-',
-            [t.loginEmail || 'Correo']: s.email || '-',
-            [t.reports.export.score]: s.score,
-            [t.reports.export.accuracy]: `${s.accuracy}%`,
-            [t.reports.export.sessions]: s.completedCount
-        }));
+        const studentData = data.studentPerformance.map((s: any) => {
+            const row: any = {
+                [t.reports.export.student]: s.name,
+                [t.loginIdCard || 'Cédula']: s.idCard || '-'
+            };
+
+            // Add points per mission
+            s.missions.forEach((m: any) => {
+                row[m.missionTitle || m.name] = m.score || 0;
+            });
+
+            // Add total at the end
+            row[t.reports.export.score] = s.score;
+
+            return row;
+        });
         const wsStudents = XLSX.utils.json_to_sheet(studentData);
         XLSX.utils.book_append_sheet(wb, wsStudents, t.reports.export.student || 'Estudiantes');
 

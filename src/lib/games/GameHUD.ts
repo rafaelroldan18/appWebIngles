@@ -124,12 +124,12 @@ export class GameHUD {
             xOffset += (this.config.maxLives * 35) + 20;
         }
 
-        // Progress bar (centro-derecha)
+        // Progress bar (derecha, antes de los botones)
         if (this.config.showProgress) {
             const barWidth = 200;
             const barHeight = 20;
-            const barX = width / 2 - barWidth / 2;
-            const barY = 30;
+            const barX = width - 380; // Movido más a la izquierda para dejar sitio a los botones
+            const barY = 20; // Centrado en panel de 60px
 
             // Background
             this.progressBarBg = this.scene.add.graphics();
@@ -203,14 +203,7 @@ export class GameHUD {
             const seconds = data.timeRemaining % 60;
             this.timerText.setText(`${minutes}:${seconds.toString().padStart(2, '0')}`);
 
-            // Cambiar color si queda poco tiempo
-            if (data.timeRemaining <= 10) {
-                this.timerText.setColor('#FF0000');
-            } else if (data.timeRemaining <= 30) {
-                this.timerText.setColor('#FFA500');
-            } else {
-                this.timerText.setColor('#FFFFFF');
-            }
+            this.timerText.setColor('#FFFFFF');
         }
 
         if (data.lives !== undefined && this.livesContainer) {
@@ -237,8 +230,8 @@ export class GameHUD {
         const { width } = this.scene.cameras.main;
         const barWidth = 200;
         const barHeight = 20;
-        const barX = width / 2 - barWidth / 2;
-        const barY = 30;
+        const barX = width - 380; // Misma posición corregida
+        const barY = 20;
 
         // Calcular porcentaje
         const percentage = this.config.totalItems > 0

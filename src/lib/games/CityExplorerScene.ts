@@ -1,9 +1,11 @@
 import * as Phaser from 'phaser';
+import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createButton, createPanel, showModal, showFeedback, showGlow, showFullscreenRequest } from './UIKit';
+import { createButton, createPanel, showModal, showFeedback, showGlow, showFullscreenRequest, showGameInstructions } from './UIKit';
 import { AnswerTracker } from './answerTracker';
 import type { GameSessionManager } from './GameSessionManager';
 import { CityExplorerLocationItem, CityExplorerMapData } from './gameLoader.utils';
+import { CITY_EXPLORER_CONFIG } from './cityExplorer.config';
 
 interface Checkpoint {
     sprite: Phaser.GameObjects.Image;
@@ -38,7 +40,7 @@ export class CityExplorerScene extends Phaser.Scene {
     private score: number = 0;
     private locationsFound: number = 0;
     private failures: number = 0;
-    private timeRemaining: number = 0;
+    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
 
     // Objects
     private player!: Phaser.GameObjects.Image;
@@ -69,7 +71,7 @@ export class CityExplorerScene extends Phaser.Scene {
         this.score = 0;
         this.locationsFound = 0;
         this.failures = 0;
-        this.timeRemaining = this.missionConfig?.time_limit_seconds || 300;
+        this.timeElapsed = 0; // Start at 0 and count UP
 
         this.isGameOver = false;
         this.isAnswering = false;
@@ -82,8 +84,7 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
-        this.load.atlas('ce_atlas', '/assets/atlases/city-explorer/texture.png', '/assets/atlases/city-explorer/texture.json');
+        loadGameAtlases(this, 'ce');
         this.load.image('bg_city', '/assets/backgrounds/city-explorer/bg_lolium.png');
     }
 
@@ -119,8 +120,8 @@ export class CityExplorerScene extends Phaser.Scene {
             // 7. Camera follow
             this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-            // 8. Start Game
-            this.startGame();
+            // 8. Start Game - Now handled by showInitialFullscreen -> showGameInstructions
+            // this.startGame();
 
             // 9. Fullscreen Request
             this.showInitialFullscreen();
@@ -132,8 +133,18 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private showInitialFullscreen() {
-        showFullscreenRequest(this, () => {
-            console.log('[CityExplorer] Fullscreen activated');
+        this.isPaused = true;
+        showGameInstructions(this, {
+            title: 'City Explorer',
+            instructions: this.missionInstructions || 'Explore the map to find all the required locations. Complete the challenges at each stop!',
+            controls: 'Use Arrow Keys (↑ ↓ ← →) or W-A-S-D to navigate.\n\n• PAUSE (⏸): Pause the game\n• HELP (?): View instructions',
+            controlIcons: ['arrows'],
+            requestFullscreen: true,
+            buttonLabel: 'START EXPLORING',
+            onStart: () => {
+                this.isPaused = false;
+                this.startGame();
+            }
         });
     }
 
@@ -224,18 +235,18 @@ export class CityExplorerScene extends Phaser.Scene {
             showHelpButton: true,
             showPauseButton: true
         });
-        this.gameHUD.getContainer().setScrollFactor(1).setDepth(5000);
+        this.gameHUD.getContainer().setScrollFactor(0).setDepth(5000);
 
-        this.progressText = this.add.text(width / 2, 45, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
+        this.progressText = this.add.text(width / 2, 78, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
             fontSize: '18px',
             fontFamily: 'Fredoka',
             color: '#ffffff',
             stroke: '#000000',
             strokeThickness: 3
-        }).setOrigin(0.5).setScrollFactor(1).setDepth(5001);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
         this.missionPanel = createPanel(this, 'common-ui/panels/panel_dark', width / 2, 115, 600, 50)
-            .setScrollFactor(1).setDepth(4999).setAlpha(0.9);
+            .setScrollFactor(0).setDepth(4999).setAlpha(0.9);
 
         this.objectiveText = this.add.text(width / 2, 115, 'initializing...', {
             fontSize: '17px',
@@ -243,7 +254,7 @@ export class CityExplorerScene extends Phaser.Scene {
             color: '#fbbf24',
             align: 'center',
             wordWrap: { width: 580 }
-        }).setOrigin(0.5).setScrollFactor(1).setDepth(5000);
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(5000);
 
         this.gameHUD.onPause(() => this.togglePause());
         this.gameHUD.onHelp(() => {
@@ -264,9 +275,9 @@ export class CityExplorerScene extends Phaser.Scene {
             loop: true,
             callback: () => {
                 if (this.isPaused || this.isGameOver) return;
-                this.timeRemaining--;
+                this.timeElapsed++; // Count UP instead of down
                 this.updateHud();
-                if (this.timeRemaining <= 0) this.endGame();
+                // Timer no longer ends the game - only finding all checkpoints does
             }
         });
 
@@ -291,12 +302,7 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     update(time: number, delta: number) {
-        // Sync UI Positions manually with camera scroll to avoid scrollFactor(0) input bugs in panning scenes
-        const cam = this.cameras.main;
-        if (this.gameHUD) this.gameHUD.getContainer().setPosition(cam.scrollX, cam.scrollY);
-        if (this.progressText) this.progressText.setPosition(cam.scrollX + cam.width / 2, cam.scrollY + 45);
-        if (this.missionPanel) this.missionPanel.setPosition(cam.scrollX + cam.width / 2, cam.scrollY + 115);
-        if (this.objectiveText) this.objectiveText.setPosition(cam.scrollX + cam.width / 2, cam.scrollY + 115);
+        // Position sync removed as we now use ScrollFactor(0) for UI logic
 
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         if (!body || this.isGameOver || this.isAnswering || this.isPaused) {
@@ -356,15 +362,19 @@ export class CityExplorerScene extends Phaser.Scene {
     private submitAnswer(cp: Checkpoint, isCorrect: boolean) {
         showFeedback(this, 0, 0, isCorrect, 800);
         if (isCorrect) {
-            this.score += 200;
+            const points = CITY_EXPLORER_CONFIG.scoring.points_correct;
+            this.score += points;
             this.locationsFound++;
             showGlow(this, 0, 0, 0x10b981, 600);
             this.answerTracker.recordCorrectCatch(cp.data.id, cp.data.challenge?.prompt || cp.data.name, { x: cp.data.x, y: cp.data.y }, cp.data.challenge?.ruleTag ? [cp.data.challenge.ruleTag] : []);
+            this.sessionManager?.updateScore(points, true);
         } else {
-            this.score = Math.max(0, this.score - 50);
+            const penalty = CITY_EXPLORER_CONFIG.scoring.points_wrong;
+            this.score = Math.max(0, this.score + penalty);
             this.failures++;
             this.cameras.main.shake(200, 0.005);
             this.answerTracker.recordDistractorCatch(cp.data.id, cp.data.challenge?.prompt || cp.data.name, { x: cp.data.x, y: cp.data.y }, cp.data.challenge?.ruleTag ? [cp.data.challenge.ruleTag] : []);
+            this.sessionManager?.updateScore(penalty, false);
         }
         this.updateHud();
         this.time.delayedCall(800, () => this.handleChallengeComplete(cp, isCorrect));
@@ -395,7 +405,7 @@ export class CityExplorerScene extends Phaser.Scene {
     private updateHud() {
         this.gameHUD.update({
             score: this.score,
-            timeRemaining: this.timeRemaining,
+            timeRemaining: this.timeElapsed,
             progress: this.locationsFound / this.requiredCheckpoints
         });
         if (this.progressText) this.progressText.setText(`CHECKPOINTS: ${this.locationsFound}/${this.requiredCheckpoints}`);
@@ -404,17 +414,23 @@ export class CityExplorerScene extends Phaser.Scene {
     private buildGamePayload() {
         const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
         const accuracy = (this.locationsFound + this.failures) > 0 ? Math.round((this.locationsFound / (this.locationsFound + this.failures)) * 100) : 0;
-        const maxScorePossible = this.requiredCheckpoints * 200;
-        const scoreRatio = maxScorePossible > 0 ? this.score / maxScorePossible : 0;
-        const scoreFinal = scoreRatio * 10;
+
+        // Calculate score based on performance metrics to avoid "clamping at zero" loopholes
+        // Points: +200 per correct, -50 per failure
+        const effectiveScore = (this.locationsFound * 200) - (this.failures * 50);
+        const maxScorePossible = this.requiredCheckpoints * 200; // Based on goal
+
+        // Ensure strictly non-negative for the grade
+        const scoreRatio = maxScorePossible > 0 ? Math.max(0, effectiveScore) / maxScorePossible : 0;
+        const normalizedScore = Math.round(scoreRatio * 10 * 10) / 10;  // Score out of 10
 
         return {
-            scoreRaw: Math.max(0, this.score),
+            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
+            scoreRaw: Math.max(0, this.score),  // Puntos brutos para estadísticas
             correctCount: this.locationsFound,
             wrongCount: this.failures,
             durationSeconds: duration,
             accuracy: accuracy,
-            scoreFinal: scoreFinal,
             answers: this.answerTracker.getAnswers()
         };
     }
@@ -433,18 +449,32 @@ export class CityExplorerScene extends Phaser.Scene {
         const centerX = cam.worldView.centerX;
         const centerY = cam.worldView.centerY;
 
-        const container = this.add.container(centerX, centerY).setDepth(8000);
+        const container = this.add.container(centerX, centerY).setDepth(40000);
         // Dimmer covers the entire camera view
         const dim = this.add.rectangle(0, 0, cam.width, cam.height, 0x000000, 0.85).setInteractive(); // Re-enabled for modal blocking
-        const panel = createPanel(this, 'common-ui/panels/panel_modal', 0, 0, 520, 450);
-        const trophy = this.add.image(0, -70, 'ui_atlas', 'common-ui/rewards/trophy').setScale(1.4);
-        const title = this.add.text(0, -175, 'CITY EXPLORED!', { fontSize: '40px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8 }).setOrigin(0.5);
 
-        const statsContainer = this.add.container(0, 40);
+        // Background & Border from modals_atlas (glass effect)
+        const panelW = 540;
+        const panelH = 460;
+        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', panelW, panelH, 20, 20, 20, 20)
+            .setTint(0x0a1a2e).setAlpha(0.85);
+        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', panelW, panelH, 20, 20, 20, 20)
+            .setTint(0x3b82f6);
+
+        const trophy = this.add.image(0, -60, 'ui_atlas', 'common-ui/rewards/trophy').setScale(1.2);
+        const title = this.add.text(0, -160, 'CITY EXPLORED!', {
+            fontSize: '38px',
+            fontFamily: 'Fredoka',
+            color: '#fbbf24',
+            stroke: '#000000',
+            strokeThickness: 8
+        }).setOrigin(0.5);
+
+        const statsContainer = this.add.container(0, 30);
         const stats = [
             { label: 'CHECKPOINTS', value: `${payload.correctCount}/${this.requiredCheckpoints}` },
             { label: 'ACCURACY', value: `${payload.accuracy}%` },
-            { label: 'SCORE', value: `${payload.scoreFinal.toFixed(1)}/10` }
+            { label: 'SCORE', value: `${payload.score.toFixed(1)}/10` }
         ];
 
         stats.forEach((item, idx) => {
@@ -454,7 +484,7 @@ export class CityExplorerScene extends Phaser.Scene {
             ]);
         });
 
-        const btnY = 165;
+        const btnY = 175;
         const resultsBtn = createButton(this, 'common-ui/buttons/btn_secondary', -125, btnY, 'RESULTS', () => {
             if (this.scale.isFullscreen) this.scale.stopFullscreen();
             this.events.emit('exit', payload);
@@ -465,7 +495,7 @@ export class CityExplorerScene extends Phaser.Scene {
             this.scene.restart(this.initData);
         }, { width: 190, height: 60 });
 
-        container.add([dim, panel, trophy, title, statsContainer, resultsBtn, replayBtn]);
+        container.add([dim, panelBg, panelBorder, trophy, title, statsContainer, resultsBtn, replayBtn]);
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
     }

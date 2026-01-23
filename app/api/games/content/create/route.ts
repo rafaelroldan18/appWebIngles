@@ -83,7 +83,6 @@ export async function POST(request: NextRequest) {
             .select();
 
         if (error) {
-            console.error('Error creating game content:', error);
             return NextResponse.json(
                 { error: 'Failed to create game content' },
                 { status: 500 }
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data, { status: 201 });
     } catch (error) {
-        console.error('Error in POST /api/games/content:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

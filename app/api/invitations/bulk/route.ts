@@ -178,7 +178,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (createError) {
-      console.error('Error creating invitations:', createError);
       return NextResponse.json({ error: 'Error al crear invitaciones' }, { status: 500 });
     }
 
@@ -224,7 +223,6 @@ export async function POST(request: NextRequest) {
         .insert(usersToCreate);
 
       if (usersError) {
-        console.error('Error creating pending users in bulk:', usersError);
         // Continuamos de todos modos porque las invitaciones ya fueron enviadas
       }
     }
@@ -237,7 +235,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error in bulk invitations endpoint:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

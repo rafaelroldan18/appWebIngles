@@ -35,8 +35,8 @@ export default function RootLayout({
             </ThemeProvider>
           </LanguageProvider>
         </AuthProvider>
-        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" type="module" />
-        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" noModule />
+        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js" type="module" crossOrigin="anonymous" />
+        <Script src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js" noModule crossOrigin="anonymous" />
       </body>
     </html>
   )

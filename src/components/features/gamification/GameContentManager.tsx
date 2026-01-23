@@ -19,6 +19,7 @@ import { GAME_CONTENT_CONTRACTS, GameTypeId, getGameColor } from '@/lib/game-con
 import { generateGameContentWithAI } from '@/lib/ai-content-generator';
 import { validateFormRows, getValidationSummary, hasRowErrors, hasFieldError, FormValidationResult } from '@/lib/form-validator';
 import AIGenerationModal from './AIGenerationModal';
+import GameContentHelpModal from './GameContentHelpModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface GameContent {
@@ -74,6 +75,9 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
         errors: [],
         errorsByRow: new Map()
     });
+
+    // Estado para modal de ayuda
+    const [showHelpModal, setShowHelpModal] = useState(false);
 
     // Load topics
     useEffect(() => {
@@ -362,7 +366,6 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                 contextNote: aiConfig.contextNote || undefined
             });
 
-            console.log('✅ Contenido generado:', result);
 
             // Mostrar advertencias si las hay
             if (result.validation?.hasWarnings) {
@@ -478,34 +481,48 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                             const isActive = activeGameTab === gameId;
 
                             return (
-                                <button
-                                    key={gameId}
-                                    onClick={() => {
-                                        setActiveGameTab(gameId);
-                                        setIsAdding(false);
-                                        resetForm();
-                                    }}
-                                    className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all border-2 ${isActive
-                                        ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-105`
-                                        : 'bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-transparent hover:border-slate-200 dark:hover:border-gray-700'
-                                        }`}
-                                >
-                                    <div className="w-10 h-10 shrink-0">
-                                        <img
-                                            src={contract.icon}
-                                            alt={contract.gameName}
-                                            className="w-full h-full object-contain"
-                                        />
-                                    </div>
-                                    <div className="text-left">
-                                        <div className="font-black text-sm">
-                                            {t.gamification.games[gameId].title}
+                                <div key={gameId} className="relative group">
+                                    <button
+                                        onClick={() => {
+                                            setActiveGameTab(gameId);
+                                            setIsAdding(false);
+                                            resetForm();
+                                        }}
+                                        className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-bold transition-all border-2 ${isActive
+                                            ? `${colors.bg} ${colors.text} ${colors.border} shadow-sm scale-105`
+                                            : 'bg-slate-50 dark:bg-gray-800 text-slate-600 dark:text-gray-400 border-transparent hover:border-slate-200 dark:hover:border-gray-700'
+                                            }`}
+                                    >
+                                        <div className="w-10 h-10 shrink-0">
+                                            <img
+                                                src={contract.icon}
+                                                alt={contract.gameName}
+                                                className="w-full h-full object-contain"
+                                            />
                                         </div>
-                                        <div className="text-[10px] opacity-70">
-                                            {t.gamification.games[gameId].description}
+                                        <div className="text-left">
+                                            <div className="font-black text-sm">
+                                                {t.gamification.games[gameId].title}
+                                            </div>
+                                            <div className="text-[10px] opacity-70">
+                                                {t.gamification.games[gameId].description}
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
+                                    </button>
+
+                                    {/* Botón de ayuda flotante */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveGameTab(gameId);
+                                            setShowHelpModal(true);
+                                        }}
+                                        className="absolute -top-2 -right-2 w-7 h-7 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95"
+                                        title={`${t.gamification.contentHelp.title} - ${t.gamification.games[gameId].title}`}
+                                    >
+                                        <Info className="w-4 h-4" />
+                                    </button>
+                                </div>
                             );
                         })}
                     </div>
@@ -1131,6 +1148,14 @@ export default function GameContentManager({ teacherId }: GameContentManagerProp
                 gameName={activeContract.gameName}
                 config={aiConfig}
                 onConfigChange={setAiConfig}
+            />
+
+            {/* Modal de Ayuda de Contenido */}
+            <GameContentHelpModal
+                gameId={activeGameTab}
+                isOpen={showHelpModal}
+                onClose={() => setShowHelpModal(false)}
+                translations={t}
             />
         </div>
     );

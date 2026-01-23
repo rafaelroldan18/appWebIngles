@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
             .eq('teacher_id', teacher_id);
 
         if (deleteError) {
-            console.error('Error deleting teacher parallels:', deleteError);
+            //console.error('Error deleting teacher parallels:', deleteError);
             return NextResponse.json({ error: 'Error al eliminar asignaciones anteriores' }, { status: 500 });
         }
 
@@ -64,14 +64,14 @@ export async function POST(request: NextRequest) {
                 .insert(assignments);
 
             if (insertError) {
-                console.error('Error inserting teacher parallels:', insertError);
+               // console.error('Error inserting teacher parallels:', insertError);
                 return NextResponse.json({ error: 'Error al asignar paralelos' }, { status: 500 });
             }
         }
 
         return NextResponse.json({ message: 'Paralelos actualizados exitosamente' });
     } catch (error) {
-        console.error('Error in POST /api/parallels/update-teacher-parallels:', error);
+        //console.error('Error in POST /api/parallels/update-teacher-parallels:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }

@@ -5,7 +5,7 @@ import { GameService } from '@/services/game.service';
 import { ParallelService } from '@/services/parallel.service';
 import {
     PlusCircle, Gamepad2, Calendar, Settings,
-    BookOpen, Layers, LayoutDashboard, Database, X, Save, Trash2, Eraser, MapPin
+    BookOpen, Layers, LayoutDashboard, Database, X, Save, Trash2, Eraser, MapPin, HelpCircle
 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { colors, getCardClasses, getButtonPrimaryClasses, getButtonSecondaryClasses } from '@/config/colors';
@@ -24,6 +24,7 @@ import {
 // New Sub-components
 import TopicManager from './TopicManager';
 import GameContentManager from './GameContentManager';
+import HelpModal from './HelpModal';
 
 interface GameManagerProps {
     teacherId: string;
@@ -50,6 +51,9 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
 
     // Filter states
     const [topicFilter, setTopicFilter] = useState<string>(''); // For filtering missions by topic
+
+    // Help modal state
+    const [showHelpModal, setShowHelpModal] = useState(false);
 
     // Form state for new mission
     const [missionForm, setMissionForm] = useState<{
@@ -116,6 +120,20 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
             }
         } catch (error) {
             console.error('Error loading base data:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+
+            // Si es un error de autenticación, mostrar mensaje específico
+            if (errorMessage.includes('No autenticado') || errorMessage.includes('autenticación')) {
+                toastError(
+                    'Tu sesión ha expirado o no tienes permisos. Por favor, recarga la página e inicia sesión nuevamente.',
+                    'Error de Autenticación'
+                );
+            } else {
+                toastError(
+                    `Error al cargar datos: ${errorMessage}`,
+                    'Error'
+                );
+            }
         } finally {
             setLoading(false);
         }
@@ -340,6 +358,12 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                 };
             }
 
+            // Prepare dates with explicit times to avoid timezone shifts
+            // available_from should be the start of the day (local time)
+            // available_until should be the end of the day (local time)
+            const available_from = missionForm.available_from ? `${missionForm.available_from}T00:00:00` : new Date().toISOString().split('T')[0] + 'T00:00:00';
+            const available_until = missionForm.available_until ? `${missionForm.available_until}T23:59:59` : null;
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
@@ -347,7 +371,8 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                     ...missionForm,
                     mission_config: finalConfig,
                     parallel_id: selectedParallel,
-                    available_until: missionForm.available_until || null
+                    available_from,
+                    available_until
                 }),
             });
 
@@ -456,22 +481,31 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                 <h3 className="text-xl font-black text-slate-800 dark:text-white">{t.gamification.mission.programTitle}</h3>
                                 <p className="text-sm text-slate-500">{t.gamification.mission.programSubtitle}</p>
                             </div>
-                            <button
-                                onClick={() => {
-                                    setIsAssigning(!isAssigning);
-                                    if (isAssigning) setEditingMissionId(null);
-                                    if (!missionForm.game_type_id && gameTypes.length > 0) {
-                                        setMissionForm(prev => ({ ...prev, game_type_id: gameTypes[0].game_type_id }));
-                                    }
-                                }}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 ${isAssigning
-                                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
-                                    }`}
-                            >
-                                {isAssigning ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
-                                <span>{isAssigning ? t.gamification.mission.cancel : t.gamification.mission.activeMission}</span>
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setShowHelpModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-800"
+                                    title="Ayuda"
+                                >
+                                    <HelpCircle className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsAssigning(!isAssigning);
+                                        if (isAssigning) setEditingMissionId(null);
+                                        if (!missionForm.game_type_id && gameTypes.length > 0) {
+                                            setMissionForm(prev => ({ ...prev, game_type_id: gameTypes[0].game_type_id }));
+                                        }
+                                    }}
+                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-sm active:scale-95 ${isAssigning
+                                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                        : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                                        }`}
+                                >
+                                    {isAssigning ? <X className="w-5 h-5" /> : <PlusCircle className="w-5 h-5" />}
+                                    <span>{isAssigning ? t.gamification.mission.cancel : t.gamification.mission.activeMission}</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Assign Mission Form */}
@@ -603,18 +637,7 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                                                     <option value="difícil">{t.gamification.mission.form.hard}</option>
                                                 </select>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.gamification.mission.form.time}</label>
-                                                <input
-                                                    type="number"
-                                                    value={missionForm.mission_config?.time_limit_seconds ?? 60}
-                                                    onChange={(e) => setMissionForm({
-                                                        ...missionForm,
-                                                        mission_config: { ...missionForm.mission_config, time_limit_seconds: parseInt(e.target.value) || 60 }
-                                                    })}
-                                                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg text-sm"
-                                                />
-                                            </div>
+
                                             <div>
                                                 <label className="block text-sm font-bold text-slate-700 dark:text-gray-300 mb-1.5">{t.gamification.mission.form.items}</label>
                                                 <input
@@ -952,6 +975,18 @@ export default function GameManager({ teacherId, onViewReport }: GameManagerProp
                     <GameContentManager teacherId={teacherId} />
                 )}
             </div>
+
+            {/* Help Modal - Solo para tab de misiones */}
+            {activeTab === 'misiones' && (
+                <HelpModal
+                    isOpen={showHelpModal}
+                    onClose={() => setShowHelpModal(false)}
+                    title={t.gamification.missionHelp.title}
+                    description={t.gamification.missionHelp.description}
+                    sections={t.gamification.missionHelp.sections}
+                    example={t.gamification.missionHelp.example}
+                />
+            )}
         </div>
     );
 }

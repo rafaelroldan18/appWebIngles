@@ -8,12 +8,11 @@ export const CITY_EXPLORER_CONFIG = {
     width: 800,
     height: 600,
 
-    // Scoring
+    // Scoring (base values, pueden ser sobrescritos por mission_config)
     scoring: {
-        locationFound: 25,        // Points for finding a location
-        correctPreposition: 20,   // Points for correct preposition answer
-        wrongAnswer: -5,          // Penalty for wrong answer
-        speedBonus: 10,           // Bonus for fast completion
+        points_correct: 10,      // Points for finding location correctly
+        points_wrong: -5,        // Penalty for wrong answer
+        streak_bonus: true,      // Enable streak bonuses
     },
 
     // Gameplay

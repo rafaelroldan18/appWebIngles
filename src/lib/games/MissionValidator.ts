@@ -78,16 +78,25 @@ export class MissionValidator {
                 };
             }
 
-            if (availableUntil && now > availableUntil) {
-                return {
-                    isValid: false,
-                    canPlay: false,
-                    reason: `Esta misión expiró el ${availableUntil.toLocaleDateString()}`,
-                    availability,
-                    attemptsUsed: 0,
-                    attemptsRemaining: 0,
-                    showTheory: false
-                };
+            if (availableUntil) {
+                // Adjust until to the end of the day if it only has a date part 
+                // (though now GameManager should send T23:59:59)
+                const endOfDay = new Date(availableUntil);
+                if (endOfDay.getHours() === 0 && endOfDay.getMinutes() === 0) {
+                    endOfDay.setHours(23, 59, 59, 999);
+                }
+
+                if (now > endOfDay) {
+                    return {
+                        isValid: false,
+                        canPlay: false,
+                        reason: `Esta misión expiró el ${endOfDay.toLocaleDateString()}`,
+                        availability,
+                        attemptsUsed: 0,
+                        attemptsRemaining: 0,
+                        showTheory: false
+                    };
+                }
             }
 
             // 4. Contar intentos usados

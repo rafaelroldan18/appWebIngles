@@ -22,12 +22,11 @@ export const IMAGE_MATCH_CONFIG = {
     width: 800,
     height: 600,
 
-    // Scoring
+    // Scoring (base values, pueden ser sobrescritos por mission_config)
     scoring: {
-        matchFound: 10,        // Points for finding a correct pair
-        wrongMatch: -3,        // Penalty for wrong match
-        timeBonus: 2,          // Bonus per 10 seconds remaining
-        perfectGame: 50,       // Bonus for no mistakes
+        points_correct: 10,      // Points for finding a correct pair
+        points_wrong: -5,        // Penalty for wrong match
+        streak_bonus: true,      // Enable streak bonuses
     },
 
     // Defaults para mission_config.image_match (cuando no viene en la misión)
@@ -49,7 +48,7 @@ export const IMAGE_MATCH_CONFIG = {
         cardWrongColor: '#ef4444',
         cardHoverColor: '#2563eb',
         fontSize: 18,
-        fontFamily: 'Arial, sans-serif',
+        fontFamily: 'Fredoka',
     },
 
     // Default grids por dificultad

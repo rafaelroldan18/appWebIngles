@@ -8,13 +8,11 @@ export const SENTENCE_BUILDER_CONFIG = {
     width: 1280,
     height: 720,
 
-    // Scoring
+    // Scoring (base values, pueden ser sobrescritos por mission_config)
     scoring: {
-        perfectSentence: 25,      // All words in correct order
-        partialCorrect: 12,       // Some words correct
-        incorrect: 0,             // Wrong order
-        timeBonus: 5,             // Bonus per 5 seconds remaining
-        hintPenalty: -3,          // Penalty for using hint
+        points_correct: 10,      // Points for correct sentence
+        points_wrong: -5,        // Penalty for wrong sentence
+        streak_bonus: true,      // Enable streak bonuses
     },
 
     // Gameplay

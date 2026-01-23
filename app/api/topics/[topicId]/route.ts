@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             .single();
 
         if (error) {
-            console.error('Error updating topic:', error);
+            //console.error('Error updating topic:', error);
             return NextResponse.json(
                 { error: 'Failed to update topic' },
                 { status: 500 }
@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in PUT /api/topics/[topicId]:', error);
+        //console.error('Error in PUT /api/topics/[topicId]:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             .eq('topic_id', topicId);
 
         if (availabilityError) {
-            console.error('Error deleting topic availability:', availabilityError);
+            //console.error('Error deleting topic availability:', availabilityError);
             return NextResponse.json(
                 { error: 'Failed to delete topic missions' },
                 { status: 500 }
@@ -135,7 +135,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             .eq('topic_id', topicId);
 
         if (contentError) {
-            console.error('Error deleting topic content:', contentError);
+            //console.error('Error deleting topic content:', contentError);
             return NextResponse.json(
                 { error: 'Failed to delete topic content' },
                 { status: 500 }
@@ -149,7 +149,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             .eq('topic_id', topicId);
 
         if (sessionsError) {
-            console.error('Error deleting topic sessions:', sessionsError);
+            //console.error('Error deleting topic sessions:', sessionsError);
             return NextResponse.json(
                 { error: 'Failed to delete topic sessions' },
                 { status: 500 }
@@ -163,7 +163,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             .eq('topic_id', topicId);
 
         if (rulesError) {
-            console.error('Error deleting topic rules:', rulesError);
+            //console.error('Error deleting topic rules:', rulesError);
             return NextResponse.json(
                 { error: 'Failed to delete topic rules' },
                 { status: 500 }
@@ -177,7 +177,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
             .eq('topic_id', topicId);
 
         if (error) {
-            console.error('Error deleting topic:', error);
+            //console.error('Error deleting topic:', error);
             return NextResponse.json(
                 { error: 'Failed to delete topic' },
                 { status: 500 }
@@ -186,7 +186,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('Error in DELETE /api/topics/[topicId]:', error);
+        //console.error('Error in DELETE /api/topics/[topicId]:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

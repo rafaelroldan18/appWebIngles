@@ -450,6 +450,10 @@ export const en: TranslationKeys = {
         verbs: 'Verbs',
         pronunciation: 'Pronunciation',
         listening: 'Listening comprehension',
+        // Star rating system messages
+        starsExcellent: 'Excellent Performance!',
+        starsGood: 'Good Performance',
+        starsPractice: 'Keep Practicing',
       },
       correct: 'Correct',
       incorrect: 'Incorrect',
@@ -465,8 +469,7 @@ export const en: TranslationKeys = {
       prepareChallenge: 'Prepare for the challenge. Read the instructions carefully before starting.',
       missionInstructions: 'Mission Instructions',
       completeExercises: 'Complete the exercises correctly to earn points and improve your rank.',
-      timeLimit: 'Time Limit',
-      secondsAvailable: 'seconds available.',
+
       objective: 'Objective',
       hitItems: 'Hit {items} items.',
       missionStatus: 'Mission Status',
@@ -621,6 +624,9 @@ export const en: TranslationKeys = {
 
   gamification: {
     general: {
+      guide: 'User Guide',
+      example: 'Example',
+      gotIt: 'Got it',
       fullscreenTitle: 'FULLSCREEN',
       fullscreenPrompt: 'Enable fullscreen mode for a better experience?',
       fullscreenStart: 'START!',
@@ -718,7 +724,7 @@ export const en: TranslationKeys = {
         easy: 'Easy',
         medium: 'Medium',
         hard: 'Hard',
-        time: 'Time (sec)',
+
         items: 'Item Count',
         assetPack: 'Asset Pack',
         allowTheory: 'Allow access to theory',
@@ -876,6 +882,144 @@ export const en: TranslationKeys = {
           image_url: { label: 'Location Image', help: 'Representative image of the place (optional)' }
         }
       }
+    },
+    contentHelp: {
+      title: 'Content Guide',
+      word_catcher: {
+        title: 'What content to create for Word Catcher?',
+        description: 'This game helps students recognize vocabulary quickly as words fall from the sky.',
+        whatToCreate: 'What should I create?',
+        items: [
+          ' Individual English words (nouns, verbs, adjectives)',
+          ' Mark correct words that students SHOULD catch',
+          ' Unmark incorrect words (distractors) that should NOT be caught',
+          ' Optionally, add images to reinforce meaning',
+          ' Add translations to aid comprehension'
+        ],
+        example: 'Example: If the topic is "Animals", create words like: cat ✅, dog ✅, bird ✅, car ❌ (distractor)'
+      },
+      grammar_run: {
+        title: 'What content to create for Grammar Run?',
+        description: 'Students complete sentences while running, practicing grammar in context.',
+        whatToCreate: 'What should I create?',
+        items: [
+          ' Sentences with a blank space marked with ___',
+          ' One correct option that completes the sentence',
+          ' Two plausible incorrect options (distractors)',
+          ' Focus on one specific grammar rule per sentence'
+        ],
+        example: 'Example: "She ___ to school every day" → Correct: goes, Incorrect: go, going'
+      },
+      sentence_builder: {
+        title: 'What content to create for Sentence Builder?',
+        description: 'Students arrange scrambled words to build correct sentences.',
+        whatToCreate: 'What should I create?',
+        items: [
+          ' Complete and grammatically correct sentences',
+          ' Select difficulty based on length (easy: 3-5 words, hard: 9+)',
+          ' Add translation so they understand the meaning',
+          ' Vary structure: affirmative, negative, questions'
+        ],
+        example: 'Example: "The cat is sleeping on the sofa" (the game will scramble it automatically)'
+      },
+      image_match: {
+        title: 'What content to create for Image Match?',
+        description: 'Students match images with their corresponding words, memory-style.',
+        whatToCreate: 'What should I create?',
+        items: [
+          ' Words or short phrases in English',
+          ' ONE image per word (REQUIRED)',
+          ' Optional translation to reinforce comprehension',
+          ' Use clear and representative images'
+        ],
+        example: 'Example: Word "apple" + image of a red apple'
+      },
+      city_explorer: {
+        title: 'What content to create for City Explorer?',
+        description: 'Students explore a virtual city and learn phrases in different contexts.',
+        whatToCreate: 'What should I create?',
+        items: [
+          ' Location name (Restaurant, Park, Hospital, etc.)',
+          ' Useful dialogue or phrase in that context',
+          ' Phrase translation',
+          ' Optionally, location image'
+        ],
+        example: 'Example: Location "Restaurant" → Phrase "Can I have the menu, please?"'
+      },
+      close: 'Got it'
+    },
+    topicHelp: {
+      title: 'How to use the Topic Library?',
+      description: 'Topics are learning units that contain theory and content for games.',
+      sections: [
+        {
+          title: 'What is a Topic?',
+          items: [
+            'A topic is a learning unit (e.g., "Adjectives", "Present Simple")',
+            'Each topic has a title, description, and visual theory content',
+            'Topics are associated with a specific parallel',
+            'Theory content is shown to students before playing'
+          ]
+        },
+        {
+          title: 'Steps to create a Topic',
+          items: [
+            'Click "New Topic" to open the form',
+            'Enter a descriptive title (e.g., "Adjectives")',
+            'Select the parallel it belongs to',
+            'Write a brief summary of the topic',
+            'Use the visual editor to create theory content',
+            'Save the topic to make it available'
+          ]
+        },
+        {
+          title: 'Visual Theory Editor',
+          items: [
+            'Use text, image, list, and table blocks',
+            'Drag and drop to reorganize blocks',
+            'Preview how it will look for students',
+            'Remember to click "Confirm Design" to save'
+          ]
+        }
+      ],
+      example: 'Example: Create an "Adjectives" topic with theory about common adjectives, then create game content with words like "happy", "sad", "big", "small".'
+    },
+    missionHelp: {
+      title: 'How to schedule Missions?',
+      description: 'Missions are educational game assignments for your students.',
+      sections: [
+        {
+          title: 'What is a Mission?',
+          items: [
+            'A mission assigns a specific game to a parallel',
+            'Combines a game + a topic + configuration',
+            'Has start and end dates (optional)',
+            'Students see it in their games panel'
+          ]
+        },
+        {
+          title: 'Steps to create a Mission',
+          items: [
+            'Select the parallel in the top selector',
+            'Click "Activate New Mission"',
+            'Choose the game type (Word Catcher, Grammar Run, etc.)',
+            'Select the topic containing the content',
+            'Configure dates, attempts, and difficulty',
+            'Write clear instructions for students',
+            'Activate the mission to make it visible'
+          ]
+        },
+        {
+          title: 'Important Configuration',
+          items: [
+            'Difficulty: Controls game speed and complexity',
+            'Item count: How many questions/words will appear',
+            'Max attempts: How many times they can play',
+            'Show theory: Whether they see theory content before playing'
+          ]
+        }
+      ],
+      example: 'Example: Create a "Word Catcher - Adjectives" mission for parallel "1st BGU A", active from Jan 20-27, with 3 max attempts.'
     },
     topic: {
       libraryTitle: 'Topic Library',

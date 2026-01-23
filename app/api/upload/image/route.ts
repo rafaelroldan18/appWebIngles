@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             url: publicUrlData.data.publicUrl,
         });
     } catch (error) {
-        console.error('Error in POST /api/upload/image:', error);
+        //console.error('Error in POST /api/upload/image:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

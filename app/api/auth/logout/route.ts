@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       console.error('Logout error:', error);
       return NextResponse.json({ error: 'Error al cerrar sesión' }, { status: 500 });
     }
- 
+
     const response = NextResponse.json({ success: true });
 
     // Establecer cookies
@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Logout error:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

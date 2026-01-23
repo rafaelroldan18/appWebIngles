@@ -32,7 +32,6 @@ export async function GET(
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/availability/[availabilityId] GET:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
@@ -177,7 +176,6 @@ export async function PUT(
 
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Error in /api/games/availability/[availabilityId] PUT:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }
 }
@@ -204,11 +202,8 @@ export async function DELETE(
             .single();
 
         if (getError || !mission) {
-            console.error('[DELETE Mission] Mission not found or error:', getError);
             return NextResponse.json({ error: 'Misión no encontrada o ya eliminada' }, { status: 404 });
         }
-
-        console.log(`[DELETE Mission] Cleaning up sessions for Topic: ${mission.topic_id}, Game: ${mission.game_type_id}, Parallel: ${mission.parallel_id}`);
 
         // 2. Obtener IDs de los estudiantes en ese paralelo
         const { data: students, error: studentsError } = await supabase
@@ -218,7 +213,6 @@ export async function DELETE(
             .eq('role', 'estudiante');
 
         if (studentsError) {
-            console.error('[DELETE Mission] Error fetching students:', studentsError);
         }
         let sessionsDeleted = 0;
         if (students && students.length > 0) {
@@ -281,10 +275,8 @@ export async function DELETE(
                 .in('student_id', studentIds);
 
             if (sessionsError) {
-                console.error('[DELETE Mission] Error clearing sessions:', sessionsError);
             } else {
                 sessionsDeleted = count || 0;
-                console.log(`[DELETE Mission] Cleared ${sessionsDeleted} student sessions.`);
             }
         }
 
@@ -296,7 +288,6 @@ export async function DELETE(
             .select('availability_id');
 
         if (deleteError) {
-            console.error('[DELETE Mission] Final delete error:', deleteError);
             return NextResponse.json({
                 error: 'No se pudo eliminar la misión principal.',
                 message: deleteError.message,
@@ -305,14 +296,12 @@ export async function DELETE(
         }
 
         if (!deletedData || deletedData.length === 0) {
-            console.warn('[DELETE Mission] No rows were deleted. Possible RLS issue or record already gone.');
             return NextResponse.json({
                 error: 'La misión no existe o no tiene permisos para eliminarla.',
                 details: 'Zero rows affected'
             }, { status: 404 });
         }
 
-        console.log(`[DELETE Mission] Successfully deleted mission: ${availabilityId}`);
 
         return NextResponse.json({
             success: true,
@@ -324,7 +313,6 @@ export async function DELETE(
             }
         });
     } catch (error: any) {
-        console.error('Error in /api/games/availability/[availabilityId] DELETE:', error);
         return NextResponse.json({
             error: 'Error interno del servidor',
             details: error.message

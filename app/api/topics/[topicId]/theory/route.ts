@@ -22,13 +22,13 @@ export async function GET(
             .order('order_index', { ascending: true });
 
         if (error) {
-            console.error('Error fetching theory:', error);
+           // console.error('Error fetching theory:', error);
             return NextResponse.json({ error: error.message }, { status: 400 });
         }
 
         return NextResponse.json(data || []);
     } catch (error) {
-        console.error('Error in /api/topics/[topicId]/theory:', error);
+        //console.error('Error in /api/topics/[topicId]/theory:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }

@@ -261,6 +261,59 @@ export default function GamePlay({
                         <h2 className="text-2xl font-black mb-1 text-slate-800 dark:text-white tracking-tighter uppercase">
                             {missionResult.success ? t.student.gameplay.missionAchieved : t.student.gameplay.missionCompleted}
                         </h2>
+
+                        {/* Sistema de Estrellas */}
+                        {(gameResult.correctCount > 0 || gameResult.wrongCount > 0) && (
+                            <>
+                                <div className="flex justify-center gap-2 my-4">
+                                    {[1, 2, 3].map((starNum) => {
+                                        // Calcular estrellas: 0 si accuracy es 0 o no hay respuestas
+                                        const totalAnswers = gameResult.correctCount + gameResult.wrongCount;
+                                        const starsEarned = totalAnswers === 0 ? 0 :
+                                            gameResult.accuracy >= 80 ? 3 :
+                                                gameResult.accuracy >= 60 ? 2 :
+                                                    gameResult.accuracy > 0 ? 1 : 0;
+                                        const isFilled = starNum <= starsEarned;
+
+                                        return (
+                                            <div
+                                                key={starNum}
+                                                className={`relative transition-all duration-500 ease-out ${isFilled ? 'scale-100 opacity-100' : 'scale-75 opacity-30'}`}
+                                                style={{
+                                                    animationDelay: `${starNum * 150}ms`,
+                                                    animation: isFilled ? 'starPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards' : 'none'
+                                                }}
+                                            >
+                                                <Star
+                                                    className={`w-12 h-12 ${isFilled
+                                                        ? 'text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]'
+                                                        : 'text-slate-300 dark:text-slate-700'
+                                                        }`}
+                                                    strokeWidth={isFilled ? 0 : 2}
+                                                />
+                                                {isFilled && (
+                                                    <div className="absolute inset-0 animate-ping opacity-75">
+                                                        <Star className="w-12 h-12 text-yellow-400 fill-yellow-400" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Texto descriptivo del rendimiento */}
+                                <p className={`text-sm font-bold mb-3 ${gameResult.accuracy >= 80 ? 'text-yellow-500' :
+                                    gameResult.accuracy >= 60 ? 'text-blue-500' :
+                                        'text-slate-500'
+                                    }`}>
+                                    {gameResult.accuracy >= 80 ? `⭐ ${t.student.gameplay.feedback.starsExcellent}` :
+                                        gameResult.accuracy >= 60 ? `⭐ ${t.student.gameplay.feedback.starsGood}` :
+                                            t.student.gameplay.feedback.starsPractice}
+                                </p>
+                            </>
+                        )}
+
+
                         <div className="flex flex-col items-center mb-4">
                             <h3 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 leading-tight">
                                 {validation?.availabilityData?.mission_title || topicTitle}
@@ -278,6 +331,22 @@ export default function GamePlay({
                             </span>
                         </div>
                     </div>
+
+                    <style jsx>{`
+                        @keyframes starPop {
+                            0% {
+                                transform: scale(0) rotate(0deg);
+                                opacity: 0;
+                            }
+                            50% {
+                                transform: scale(1.2) rotate(180deg);
+                            }
+                            100% {
+                                transform: scale(1) rotate(360deg);
+                                opacity: 1;
+                            }
+                        }
+                    `}</style>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
                         {[

@@ -79,12 +79,16 @@ export async function GET(request: NextRequest) {
 
             // Tracking completed missions for this specific student
             const completedMissions = (missions || []).map(m => {
-                const isDone = sSessions.some(ss => ss.topic_id === m.topic_id && ss.game_type_id === m.game_type_id);
+                const missionSessions = sSessions.filter(ss => ss.topic_id === m.topic_id && ss.game_type_id === m.game_type_id);
+                const isDone = missionSessions.length > 0;
+                const missionScore = missionSessions.reduce((sum, ss) => sum + (ss.score || 0), 0);
+
                 return {
                     id: m.availability_id,
                     name: `${gameTypeMap.get(m.game_type_id)}: ${topicMap.get(m.topic_id)}`,
                     missionTitle: m.mission_title,
-                    completed: isDone
+                    completed: isDone,
+                    score: missionScore
                 };
             });
 

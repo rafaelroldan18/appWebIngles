@@ -27,11 +27,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // 3. Select client based on role
-    // Service role for admins, standard for others (RLS applies)
-    const db = currentUser.role === 'administrador' ? createServiceRoleClient() : supabase;
+    // 3. Select client based on role
+    // Service role for admins and teachers, standard for others (RLS applies)
+    const db = (currentUser.role === 'administrador' || currentUser.role === 'docente') ? createServiceRoleClient() : supabase;
 
-    // Prevent non-admins from editing others (extra safety layer on top of RLS)
-    if (currentUser.role !== 'administrador' && currentUser.user_id !== id) {
+    // Prevent non-privileged users from editing others (extra safety layer on top of RLS)
+    if (currentUser.role !== 'administrador' && currentUser.role !== 'docente' && currentUser.user_id !== id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
@@ -91,7 +92,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     return NextResponse.json({ message: 'Usuario actualizado' });
   } catch (error) {
-    console.error('Error updating user:', error);
+    //console.error('Error updating user:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }
@@ -160,7 +161,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ message: 'Usuario eliminado exitosamente' });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    //console.error('Error deleting user:', error);
     return NextResponse.json({ error: 'Error en el servidor' }, { status: 500 });
   }
 }

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         const topicId = searchParams.get('topicId');
         const studentId = searchParams.get('studentId');
 
-        console.log('[Stats API] Request params:', { parallelId, topicId, studentId });
+       // console.log('[Stats API] Request params:', { parallelId, topicId, studentId });
 
         if (!parallelId && !studentId) {
             return NextResponse.json(
@@ -51,13 +51,13 @@ export async function GET(request: NextRequest) {
 
         const { data: sessions, error } = await query;
 
-        console.log('[Stats API] Total sessions found:', sessions?.length || 0);
+       // console.log('[Stats API] Total sessions found:', sessions?.length || 0);
         if (error) {
-            console.error('[Stats API] Error fetching sessions:', error);
+          //  console.error('[Stats API] Error fetching sessions:', error);
         }
 
         if (error) {
-            console.error('Error fetching dashboard stats:', error);
+            //console.error('Error fetching dashboard stats:', error);
             return NextResponse.json({
                 error: 'Failed to fetch statistics',
                 details: error.message
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
             filteredSessions = filteredSessions.filter(
                 s => s.users?.parallel_id === parallelId
             );
-            console.log('[Stats API] After parallel filter:', filteredSessions.length);
+           // console.log('[Stats API] After parallel filter:', filteredSessions.length);
         }
 
         // 2. Process Statistics in Memory
@@ -100,10 +100,10 @@ export async function GET(request: NextRequest) {
                 .eq('role', 'estudiante');
 
             if (studentsError) {
-                console.error('[Stats API] Error fetching parallel students:', studentsError);
+              //  console.error('[Stats API] Error fetching parallel students:', studentsError);
             }
 
-            console.log(`[Stats API] Found ${parallelStudents?.length || 0} students for parallel ${parallelId}`);
+            // console.log(`[Stats API] Found ${parallelStudents?.length || 0} students for parallel ${parallelId}`);
 
             parallelStudents?.forEach(student => {
                 studentStatsMap[student.user_id] = {
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error in GET /api/reports/stats:', error);
+        //console.error('Error in GET /api/reports/stats:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

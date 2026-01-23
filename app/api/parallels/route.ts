@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
                 .order('name');
 
             if (error) {
-                console.error('Error fetching parallels with stats:', error);
+               // console.error('Error fetching parallels with stats:', error);
                 return NextResponse.json({ error: 'Error al obtener paralelos' }, { status: 500 });
             }
 
@@ -56,14 +56,14 @@ export async function GET(request: NextRequest) {
                 .order('name');
 
             if (error) {
-                console.error('Error fetching parallels:', error);
+               // console.error('Error fetching parallels:', error);
                 return NextResponse.json({ error: 'Error al obtener paralelos' }, { status: 500 });
             }
 
             return NextResponse.json(parallels);
         }
     } catch (error) {
-        console.error('Error in GET /api/parallels:', error);
+      //  console.error('Error in GET /api/parallels:', error);
         return NextResponse.json(
             { error: 'Error interno del servidor' },
             { status: 500 }
