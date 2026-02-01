@@ -662,11 +662,7 @@ export default function AdvancedStats({
                 </div>
             </main>
 
-            <footer className="text-center pt-8">
-                <p className="text-[10px] text-slate-300 dark:text-slate-600 font-black tracking-widest uppercase">
-                    English27 • Analytics Module
-                </p>
-            </footer>
+
         </div>
     );
 }

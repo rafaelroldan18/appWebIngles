@@ -4,6 +4,7 @@
  */
 
 import * as Phaser from 'phaser';
+import { DEPTH_LAYERS } from './GameStyles';
 
 /**
  * Crea un panel usando un frame del atlas
@@ -93,7 +94,7 @@ export function createButton(
         fontFamily,
         color: fontColor,
         stroke: '#000000',
-        strokeThickness: 4
+        strokeThickness: 2 // Reducido de 4 a 2
     });
     text.setOrigin(0.5);
 
@@ -123,6 +124,12 @@ export function createButton(
             button.setScale((button.scale || scale) * clickScale);
         }
         text.setScale(clickScale);
+
+        // Reproducir sonido de clic si existe
+        if (scene.cache.audio.exists('ui_click')) {
+            scene.sound.play('ui_click', { volume: 0.5 });
+        }
+
         onClick(); // Trigger immediately on down for responsiveness
     });
 
@@ -163,6 +170,7 @@ export function createIconButton(
         hoverScale?: number;
         clickScale?: number;
         iconOffsetY?: number;
+        iconAtlas?: string;
     } = {}
 ): Phaser.GameObjects.Container {
     const {
@@ -170,7 +178,8 @@ export function createIconButton(
         iconScale = 1,
         hoverScale = 1.1,
         clickScale = 0.9,
-        iconOffsetY = 0
+        iconOffsetY = 0,
+        iconAtlas = 'ui_atlas'
     } = options;
 
     const container = scene.add.container(x, y);
@@ -184,7 +193,7 @@ export function createIconButton(
     button.input.hitArea.setTo(-5, -5, button.width + 10, button.height + 10);
 
     // Icono
-    const icon = scene.add.image(0, iconOffsetY, 'ui_atlas', iconFrame);
+    const icon = scene.add.image(0, iconOffsetY, iconAtlas, iconFrame);
     icon.setScale(iconScale);
 
     // Efectos de hover
@@ -198,6 +207,12 @@ export function createIconButton(
 
     button.on('pointerdown', () => {
         container.setScale(clickScale);
+
+        // Reproducir sonido de clic si existe
+        if (scene.cache.audio.exists('ui_click')) {
+            scene.sound.play('ui_click', { volume: 0.5 });
+        }
+
         onClick(); // Trigger immediately
     });
 
@@ -280,36 +295,65 @@ export function showBurst(
 }
 
 /**
- * Muestra un efecto de glow (brillo)
- * @param scene - La escena de Phaser
- * @param x - Posición X
- * @param y - Posición Y
- * @param color - Color del glow (hex)
- * @param duration - Duración de la animación en ms
+ * Muestra un efecto de glow (brillo) más profesional (neón)
  */
 export function showGlow(
     scene: Phaser.Scene,
     x: number,
     y: number,
     color: number = 0xFFFFFF,
-    duration: number = 1000
+    duration: number = 600
 ): Phaser.GameObjects.Image {
     const glow = scene.add.image(x, y, 'ui_atlas', 'common-ui/fx/fx_glow');
-    glow.setScale(0.5);
+    glow.setScale(0.2);
     glow.setTint(color);
-    glow.setDepth(1998);
-    glow.setAlpha(0.6);
+    glow.setDepth(DEPTH_LAYERS.effects);
+    glow.setAlpha(0.8);
 
     scene.tweens.add({
         targets: glow,
-        scale: 1.2,
+        scale: 1.5,
         alpha: 0,
         duration,
-        ease: 'Sine.easeOut',
+        ease: 'Cubic.easeOut',
         onComplete: () => glow.destroy()
     });
 
     return glow;
+}
+
+/**
+ * Crea una explosión de partículas sutil para dar 'Juice' a la interacción
+ */
+export function showImpactParticles(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    color: number = 0xFFFFFF
+): void {
+    // Crear una textura simple circular para las partículas si no existe
+    if (!scene.textures.exists('impact-particle')) {
+        const graphics = scene.make.graphics({ x: 0, y: 0 });
+        graphics.fillStyle(0xffffff, 1);
+        graphics.fillCircle(4, 4, 4);
+        graphics.generateTexture('impact-particle', 8, 8);
+    }
+
+    const emitter = scene.add.particles(x, y, 'impact-particle', {
+        speed: { min: 50, max: 200 },
+        scale: { start: 1, end: 0 },
+        alpha: { start: 1, end: 0 },
+        lifespan: 400,
+        quantity: 12,
+        blendMode: 'ADD',
+        tint: color,
+        emitting: false
+    });
+
+    emitter.explode(12);
+
+    // Limpieza automática
+    scene.time.delayedCall(500, () => emitter.destroy());
 }
 
 /**
@@ -395,32 +439,33 @@ export function showGameInstructions(
 
     // Título principal
     const titleText = scene.add.text(0, -panelH * 0.36, title.toUpperCase(), {
-        fontSize: '36px',
-        fontFamily: 'Fredoka',
+        fontSize: '32px',
+        fontFamily: 'Nunito',
         color: '#fbbf24',
         stroke: '#000000',
-        strokeThickness: 7,
-        align: 'center'
+        strokeThickness: 2,
+        align: 'center',
+        letterSpacing: 2
     }).setOrigin(0.5);
 
     // --- SECCIÓN: HOW TO PLAY ---
-    const sectionControls = scene.add.text(0, -panelH * 0.18, 'HOW TO PLAY', {
-        fontSize: '24px',
-        fontFamily: 'Fredoka',
+    const sectionControls = scene.add.text(0, -panelH * 0.18, 'MISSION OBJECTIVE', {
+        fontSize: '20px',
+        fontFamily: 'Nunito',
         color: '#FFFFFF',
         fontStyle: 'bold',
         stroke: '#000000',
-        strokeThickness: 4
+        strokeThickness: 1
     }).setOrigin(0.5);
 
     // Texto de instrucciones (objetivo del juego)
     const instructText = scene.add.text(0, -panelH * 0.04, instructions, {
-        fontSize: '18px',
-        fontFamily: 'Fredoka',
-        color: '#ffffff',
+        fontSize: '17px',
+        fontFamily: 'Nunito',
+        color: '#cbd5e1', // Color más suave (slate-300)
         align: 'center',
         wordWrap: { width: panelW - 80 },
-        lineSpacing: 3
+        lineSpacing: 4
     }).setOrigin(0.5);
 
     // Texto de controles (botones y teclas) - DENTRO del panel

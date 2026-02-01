@@ -203,18 +203,32 @@ export class MissionValidator {
     }
 
     /**
-     * Obtiene el contenido de teoría del tema (topic_rules)
+     * Obtiene el contenido de teoría del tema. 
+     * Combina topic_rules (viejas) y theory_content (nuevas del diseñador visual)
      */
     private static async getTheoryContent(topicId: string): Promise<any> {
         try {
-            const response = await fetch(`/api/topics/${topicId}/theory`);
-
-            if (!response.ok) {
-                return null;
+            // 1. Obtener reglas estructuradas (topic_rules)
+            const theoryResponse = await fetch(`/api/topics/${topicId}/theory`);
+            let rules = [];
+            if (theoryResponse.ok) {
+                rules = await theoryResponse.json();
             }
 
-            const data = await response.json();
-            return data;
+            // 2. Obtener el diseño del docente (GrapesJS / theory_content)
+            const topicResponse = await fetch(`/api/topics?topicId=${topicId}`);
+            let visualDesign = null;
+            if (topicResponse.ok) {
+                const topicData = await topicResponse.json();
+                if (topicData && topicData.length > 0) {
+                    visualDesign = topicData[0].theory_content;
+                }
+            }
+
+            return {
+                rules,
+                visualDesign
+            };
         } catch (error) {
             console.error('[MissionValidator] Error fetching theory:', error);
             return null;

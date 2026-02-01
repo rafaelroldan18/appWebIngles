@@ -1,132 +1,98 @@
 /**
- * Sistema de Colores Centralizado - English27
- * Nueva paleta de colores consistente para modo claro y oscuro
+ * config/colors.ts
+ * Centralized color system and UI constants for the application
  */
 
 export const colors = {
-  // Colores Primarios
-  primary: {
-    light: '#6FA0FF',
-    main: '#2B6BEE',
-    dark: '#1E4BB5',
-    extraDark: '#132F73',
-    gradient: 'from-[#2B6BEE] to-[#1E4BB5]',
-    gradientDark: 'dark:from-[#6FA0FF] dark:to-[#2B6BEE]',
-    bg: 'bg-[#2B6BEE]/10 dark:bg-[#6FA0FF]/20',
-    border: 'border-[#2B6BEE] dark:border-[#6FA0FF]',
-  },
-
-  // Colores Secundarios
-  secondary: {
-    light: '#C8C9FF',
-    main: '#7C80FF',
-    dark: '#4B4FBA',
-    gradient: 'from-[#7C80FF] to-[#4B4FBA]',
-    gradientDark: 'dark:from-[#C8C9FF] dark:to-[#7C80FF]',
-    bg: 'bg-[#7C80FF]/10 dark:bg-[#C8C9FF]/20',
-    border: 'border-[#7C80FF] dark:border-[#C8C9FF]',
-  },
-
-  // Colores de Acento
-  accent: {
-    success: {
-      main: '#37C86F',
-      gradient: 'from-[#37C86F] to-[#2BA05A]',
-      gradientDark: 'dark:from-[#37C86F] dark:to-[#2BA05A]',
-      bg: 'bg-[#37C86F]/10 dark:bg-[#37C86F]/20',
+    primary: {
+        main: '#2B6BEE',
+        light: '#6FA0FF',
+        dark: '#1E4BB5',
+        extraDark: '#132F73',
+        gradient: 'from-blue-600 to-indigo-600',
+        gradientDark: 'dark:from-blue-500 dark:to-indigo-500',
     },
-
-    danger: {
-      main: '#E84855',
-      gradient: 'from-[#E84855] to-[#D63644]',
-      gradientDark: 'dark:from-[#E84855] dark:to-[#D63644]',
-      bg: 'bg-[#E84855]/10 dark:bg-[#E84855]/20',
+    secondary: {
+        main: '#7C80FF',
+        light: '#C8C9FF',
+        dark: '#4B4FBA',
+        bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+        gradient: 'from-purple-600 to-indigo-600',
+        gradientDark: 'dark:from-purple-500 dark:to-indigo-500',
     },
-    info: {
-      main: '#1BC6F2',
-      gradient: 'from-[#1BC6F2] to-[#16A8D1]',
-      gradientDark: 'dark:from-[#1BC6F2] dark:to-[#16A8D1]',
-      bg: 'bg-[#1BC6F2]/10 dark:bg-[#1BC6F2]/20',
+    accent: {
+        success: {
+            main: '#37C86F',
+            bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+            gradient: 'from-emerald-400 to-teal-500',
+        },
+        danger: {
+            main: '#E84855',
+            bg: 'bg-red-50 dark:bg-red-900/20',
+            gradient: 'from-red-400 to-pink-500',
+        },
+        info: {
+            main: '#1BC6F2',
+            bg: 'bg-blue-50 dark:bg-blue-900/20',
+            gradient: 'from-blue-400 to-cyan-500',
+        },
+        warning: {
+            main: '#F59E0B',
+            bg: 'bg-amber-50 dark:bg-amber-900/20',
+            gradient: 'from-amber-400 to-orange-500',
+        }
     },
-  },
-
-  // Colores Neutrales
-  neutral: {
-    100: '#F8FAFC',
-    200: '#E5E7EB',
-    300: '#D1D5DB',
-    400: '#9CA3AF',
-    500: '#6B7280',
-    700: '#374151',
-    900: '#111827',
-  },
-
-  // Backgrounds
-  background: {
-    base: 'bg-[#F8FAFC] dark:bg-[#0F172A]',
-    card: 'bg-white dark:bg-[#1E293B]',
-    hover: 'hover:bg-[#F8FAFC] dark:hover:bg-[#334155]',
-  },
-
-  // Borders
-  border: {
-    light: 'border-[#E5E7EB] dark:border-[#334155]',
-    medium: 'border-[#D1D5DB] dark:border-[#475569]',
-    focus: 'focus:border-[#2B6BEE] dark:focus:border-[#6FA0FF]',
-  },
-
-  // Text - Standardized Typography System
-  text: {
-    title: 'text-[#111827] dark:text-white',           // H1-H3 titles
-    primary: 'text-[#374151] dark:text-[#F8FAFC]',      // Main text (p)
-    secondary: 'text-[#6B7280] dark:text-[#E5E7EB]',    // Subtext/labels
-    disabled: 'text-[#9CA3AF] dark:text-[#9CA3AF]',     // Disabled (same both modes)
-    button: 'text-white',                                // Text on primary buttons
-  },
-
-  // Estados
-  status: {
-    success: {
-      bg: 'bg-[#37C86F]/10 dark:bg-[#37C86F]/20',
-      text: 'text-[#37C86F] dark:text-[#37C86F]',
-      border: 'border-[#37C86F] dark:border-[#37C86F]',
+    status: {
+        success: {
+            bg: 'bg-green-100 dark:bg-green-900/30',
+            text: 'text-green-700 dark:text-green-400',
+            border: 'border-green-200 dark:border-green-800',
+        },
+        error: {
+            bg: 'bg-red-100 dark:bg-red-900/30',
+            text: 'text-red-700 dark:text-red-400',
+            border: 'border-red-200 dark:border-red-800',
+        },
+        info: {
+            bg: 'bg-blue-100 dark:bg-blue-900/30',
+            text: 'text-blue-700 dark:text-blue-400',
+            border: 'border-blue-200 dark:border-blue-800',
+        },
+        neutral: {
+            bg: 'bg-gray-100 dark:bg-gray-800',
+            text: 'text-gray-700 dark:text-gray-400',
+            border: 'border-gray-200 dark:border-gray-700',
+        },
     },
-
-    error: {
-      bg: 'bg-[#E84855]/10 dark:bg-[#E84855]/20',
-      text: 'text-[#E84855] dark:text-[#E84855]',
-      border: 'border-[#E84855] dark:border-[#E84855]',
+    background: {
+        base: 'bg-slate-50 dark:bg-slate-950',
+        card: 'bg-white dark:bg-slate-900',
     },
-    info: {
-      bg: 'bg-[#1BC6F2]/10 dark:bg-[#1BC6F2]/20',
-      text: 'text-[#1BC6F2] dark:text-[#1BC6F2]',
-      border: 'border-[#1BC6F2] dark:border-[#1BC6F2]',
+    text: {
+        title: 'text-slate-900 dark:text-white',
+        primary: 'text-slate-800 dark:text-slate-200',
+        secondary: 'text-slate-500 dark:text-slate-400',
     },
+    border: {
+        light: 'border-slate-200 dark:border-slate-800',
+        focus: 'border-blue-500 dark:border-blue-400',
+    },
+    // Used in Landing and other components for indexed accessibility
     neutral: {
-      bg: 'bg-[#F8FAFC] dark:bg-[#1E293B]',
-      text: 'text-[#6B7280] dark:text-[#E5E7EB]',
-      border: 'border-[#D1D5DB] dark:border-[#334155]',
-    },
-  },
+        100: 'bg-slate-100 dark:bg-slate-800',
+        200: 'bg-slate-200 dark:bg-slate-700',
+        300: 'bg-slate-300 dark:bg-slate-600',
+    }
 };
 
-// Utilidades para clases combinadas
-export const getCardClasses = () => 
-  `${colors.background.card} rounded-lg shadow-sm ${colors.border.light} border`;
+export const getCardClasses = () =>
+    `bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm transition-all`;
 
 export const getButtonPrimaryClasses = () =>
-  `bg-gradient-to-r ${colors.primary.gradient} ${colors.primary.gradientDark} text-white`;
+    `bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95`;
 
 export const getButtonSecondaryClasses = () =>
-  `bg-gradient-to-r ${colors.secondary.gradient} ${colors.secondary.gradientDark} text-white`;
-
-
-
-export const getButtonSuccessClasses = () =>
-  `bg-gradient-to-r ${colors.accent.success.gradient} ${colors.accent.success.gradientDark} text-white`;
-
-export const getButtonDangerClasses = () =>
-  `bg-gradient-to-r ${colors.accent.danger.gradient} ${colors.accent.danger.gradientDark} text-white`;
+    `bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-sm hover:shadow-md transition-all active:scale-95`;
 
 export const getButtonInfoClasses = () =>
-  `bg-gradient-to-r from-info to-info text-white`;
+    `bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-700 transition-all active:scale-95`;

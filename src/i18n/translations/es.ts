@@ -574,9 +574,11 @@ export const es = {
   loginEmailPlaceholder: 'tu@email.com',
   loginPassword: 'Contraseña',
   loginForgotPassword: '¿Olvidaste tu contraseña?',
+  loginHaveCode: '¿Tienes un código?',
   loginProcessing: 'Procesando...',
   loginCreateAccount: 'Crear Cuenta',
-  loginFooter: 'Desarrollado para el aprendizaje de inglés',
+  loginFooter: '© 2026 English27 - Plataforma Educativa',
+
   loginSuccess: 'Cuenta creada exitosamente. Espera la aprobación para iniciar sesión.',
   loginAllFieldsRequired: 'Todos los campos son obligatorios',
   loginError: 'Error al procesar la solicitud',
@@ -1289,7 +1291,12 @@ export const es = {
       sync: 'Sincronizando registros académicos...',
       empty: 'No se encontraron datos para este periodo.',
     }
-  }
+  },
+
+  // Footer
+  footerCopyright: '© 2026 English27 – Desarrollado por',
+  footerDeveloper: 'Rafael Roldán',
+  footerProject: 'Proyecto de Titulación - ESPOCH',
 };
 
 export type TranslationKeys = typeof es;

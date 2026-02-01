@@ -110,8 +110,8 @@ export default function Login({ onBack }: LoginProps) {
                   onChange={(e) => validation.handleChange('email', e.target.value)}
                   onBlur={() => validation.handleBlur('email')}
                   className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${validation.errors.email && validation.touched.email
-                      ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
-                      : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                    ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                    : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
                     }`}
                   placeholder={t.loginEmailPlaceholder}
                 />
@@ -135,8 +135,8 @@ export default function Login({ onBack }: LoginProps) {
                   onChange={(e) => validation.handleChange('password', e.target.value)}
                   onBlur={() => validation.handleBlur('password')}
                   className={`w-full pl-10 pr-12 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all ${colors.background.card} ${colors.text.primary} ${validation.errors.password && validation.touched.password
-                      ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
-                      : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
+                    ? `border-red-500 focus:border-red-500 focus:ring-red-500/20`
+                    : `${colors.border.light} focus:${colors.border.focus} focus:ring-blue-500/20`
                     }`}
                   placeholder="••••••••"
                 />
@@ -161,7 +161,7 @@ export default function Login({ onBack }: LoginProps) {
                 onClick={() => window.location.href = '/activate'}
                 className={`text-sm ${colors.primary.main} hover:${colors.primary.dark} font-semibold transition-colors`}
               >
-                ¿Tienes un código?
+                {t.loginHaveCode}
               </button>
               <button
                 type="button"

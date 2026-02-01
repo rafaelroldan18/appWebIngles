@@ -8,6 +8,8 @@ import { SENTENCE_BUILDER_CONFIG } from './sentenceBuilder.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
 import { createButton, createPanel, showFeedback, showModal, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
+import { loadGameAudio } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 import type { GameContent, MissionConfig } from '@/types';
 import { loadSentenceBuilderContent, type SentenceBuilderItem, type SentenceBuilderToken } from './gameLoader.utils';
 import type { GameSessionManager } from './GameSessionManager';
@@ -67,6 +69,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
     private gameTimer!: Phaser.Time.TimerEvent;
 
     private isGameOver: boolean = false;
+    private soundManager!: SoundManager;
 
     constructor() {
         super({ key: 'SentenceBuilderScene' });
@@ -122,11 +125,13 @@ export class SentenceBuilderScene extends Phaser.Scene {
     preload() {
         // Cargar atlas común (UI) + atlas específico de Sentence Builder
         loadGameAtlases(this, 'sb');
+        loadGameAudio(this, 'sb');
         this.load.image('bg_sentence', '/assets/backgrounds/sentence-builder/bg_streets.png');
     }
 
     create() {
         const { width, height } = this.cameras.main;
+        this.soundManager = new SoundManager(this);
 
         // Background
         const bg = this.add.image(width / 2, height / 2, 'bg_sentence');
@@ -201,8 +206,8 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         // Texto con Fredoka encima del panel
         this.instructionText = this.add.text(width / 2, zoneAY, 'Construct the sentence...', {
-            fontSize: '24px',
-            fontFamily: 'Fredoka, Arial Black, sans-serif',
+            fontSize: '22px',
+            fontFamily: 'Nunito',
             color: '#1e293b',
             align: 'center',
             wordWrap: { width: promptPanelWidth - 60 }
@@ -269,7 +274,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
             totalItems: this.gameContent.length,
             showPauseButton: true,
             showHelpButton: true
-        });
+        }, this.soundManager);
 
         // Configurar callbacks
         this.gameHUD.onPause(() => {
@@ -383,6 +388,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
     private startCountdown() {
         // Simple start (enhance later if needed), just start logic
         this.startGameTimer();
+        this.soundManager.playMusic('bg_music', 0.4);
         this.loadNextSentence();
     }
 
@@ -480,10 +486,10 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
             // Texto con Fredoka encima del tile
             const txt = this.add.text(0, 0, token.text, {
-                fontSize: '20px',
+                fontSize: '18px',
                 color: '#0f172a',
                 fontStyle: 'bold',
-                fontFamily: 'Fredoka, Arial Black, sans-serif'
+                fontFamily: 'Nunito'
             }).setOrigin(0.5);
 
             // Tamaño del tile (adaptado al texto)
@@ -541,6 +547,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
                 yoyo: true,
                 onComplete: () => {
                     // Mover a construcción
+                    this.soundManager.playSfx('pick_word', 0.6);
                     this.bankTokens.splice(bankIdx, 1);
                     this.builtTokens.push(card);
                     this.updateLayouts();
@@ -560,6 +567,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
             card.sprite.setFrame('sentence-builder/tiles/tile_word');
             card.container.setScale(1);
 
+            this.soundManager.playSfx('place_word', 0.5);
             this.updateLayouts();
             return;
         }
@@ -570,6 +578,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
         if (this.builtTokens.length > 0) {
             const card = this.builtTokens.pop();
             if (card) {
+                this.soundManager.playSfx('place_word', 0.5);
                 this.bankTokens.push(card);
                 this.updateLayouts();
             }
@@ -626,8 +635,8 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
             // Texto encima del slot (inicialmente vacío)
             const slotText = this.add.text(slotX, slotY, '', {
-                fontSize: '20px',
-                fontFamily: 'Fredoka, Arial Black, sans-serif',
+                fontSize: '18px',
+                fontFamily: 'Nunito',
                 color: '#1e293b',
                 align: 'center',
                 wordWrap: { width: slotWidth - 20 }
@@ -812,6 +821,8 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         showFeedback(this, width / 2, height / 2, true, 600);
         showToast(this, 'CORRECT!', 1000, true);
+        this.soundManager.playSfx('sentence_ok', 0.8);
+        this.soundManager.playSfx('correct', 0.5);
         const points = SENTENCE_BUILDER_CONFIG.scoring.points_correct;
         this.score += points;
         this.gameHUD.update({ score: this.score });
@@ -850,6 +861,7 @@ export class SentenceBuilderScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
         showFeedback(this, width / 2, height / 2, false, 600);
         showToast(this, this.currentItemAttempts > 0 ? 'Try Again' : 'Incorrect', 1000, false);
+        this.soundManager.playSfx('wrong', 0.6);
 
         // Record Attempt (if configured to record every attempt, usually strictly only final or every? User said 'Cada Submit crea un registro')
         // So we record WRONG attempts too.
@@ -908,6 +920,8 @@ export class SentenceBuilderScene extends Phaser.Scene {
 
         // Stop timers
         if (this.gameTimer) this.gameTimer.remove();
+        this.soundManager.stopMusic();
+        this.soundManager.playSfx('game_win');
 
         // Submit Session Data
         if (this.sessionManager) {

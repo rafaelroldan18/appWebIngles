@@ -30,6 +30,11 @@ export const ATLAS_CONFIG = {
         textureURL: '/assets/atlases/modals/texture.png',
         atlasURL: '/assets/atlases/modals/texture.json'
     },
+    audioIcons: {
+        key: 'audio_settings_icons',
+        textureURL: '/assets/atlases/common-ui/icons/texture.png',
+        atlasURL: '/assets/atlases/common-ui/icons/texture.json'
+    },
     games: {
         wc: {
             key: 'wc_atlas',
@@ -94,6 +99,13 @@ export function loadGameAtlases(scene: Phaser.Scene, gameKey: GameKey): void {
         gameAtlas.key,
         gameAtlas.textureURL,
         gameAtlas.atlasURL
+    );
+
+    // Cargar atlas de iconos de audio
+    scene.load.atlas(
+        ATLAS_CONFIG.audioIcons.key,
+        ATLAS_CONFIG.audioIcons.textureURL,
+        ATLAS_CONFIG.audioIcons.atlasURL
     );
 
     console.log(`[AtlasLoader] Cargando atlas: ${ATLAS_CONFIG.common.key} + ${ATLAS_CONFIG.modals.key} + ${gameAtlas.key}`);

@@ -21,6 +21,11 @@ export const ASSET_MANIFEST: AssetManifest = {
                 png: "/assets/atlases/modals/texture.png",
                 json: "/assets/atlases/modals/texture.json",
             },
+            {
+                key: "audio_settings_icons",
+                png: "/assets/atlases/common-ui/icons/texture.png",
+                json: "/assets/atlases/common-ui/icons/texture.json",
+            },
         ],
     },
 

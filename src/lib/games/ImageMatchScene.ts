@@ -2,8 +2,10 @@ import * as Phaser from 'phaser';
 import { IMAGE_MATCH_CONFIG, resolveImageMatchConfig } from './imageMatch.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { showFeedback, showGlow, showBurst, createButton, createPanel, showFullscreenRequest, showGameInstructions } from './UIKit';
+import { showFeedback, showGlow, showImpactParticles, showBurst, createButton, createPanel, showFullscreenRequest, showGameInstructions } from './UIKit';
 import { AnswerTracker } from './answerTracker';
+import { loadGameAudio } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 import type { ImageMatchCard } from './gameLoader.utils';
 import type { GameContent, MissionConfig } from '@/types/game.types';
 import type { GameSessionManager } from './GameSessionManager';
@@ -26,6 +28,7 @@ export class ImageMatchScene extends Phaser.Scene {
     // Game data
     private cardsData: ImageMatchCard[] = [];
     private answerTracker!: AnswerTracker;
+    private soundManager!: SoundManager;
 
     // Game state
     private cards: CardObject[] = [];
@@ -118,6 +121,7 @@ export class ImageMatchScene extends Phaser.Scene {
         // Cargar atlas común (UI) + atlas específico de Image Match
         // Cargar atlas común (UI) + Modales + atlas específico de Image Match
         loadGameAtlases(this, 'im');
+        loadGameAudio(this, 'im');
         this.load.image('im_bg_table', '/assets/backgrounds/image-match/bg_table.png');
 
         // Preload content images
@@ -133,6 +137,7 @@ export class ImageMatchScene extends Phaser.Scene {
 
     create() {
         const { width, height } = this.cameras.main;
+        this.soundManager = new SoundManager(this);
 
         // Petición de pantalla completa ANTES de iniciar los sistemas de juego
         // Combined Fullscreen + Instructions Flow
@@ -188,7 +193,7 @@ export class ImageMatchScene extends Phaser.Scene {
             showProgress: false,
             showPauseButton: true,
             showHelpButton: this.resolvedConfig.hud_help_enabled
-        });
+        }, this.soundManager);
 
         // Configurar callbacks
         this.gameHUD.onPause(() => this.togglePause());
@@ -204,62 +209,59 @@ export class ImageMatchScene extends Phaser.Scene {
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
 
         this.pairsText = this.add.text(width - 40, 65, `PAIRS: 0/${totalPairs}`, {
-            fontSize: '20px',
-            fontFamily: 'Fredoka',
-            color: '#ffffff', // Blanco para máximo contraste
+            fontSize: '18px',
+            fontFamily: 'Nunito',
+            color: '#ffffff',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 2
         }).setDepth(1001).setScrollFactor(0).setOrigin(1, 0);
 
         this.movesText = this.add.text(40, 65, 'MOVES: 0', {
-            fontSize: '20px',
-            fontFamily: 'Fredoka',
-            color: '#fbbf24', // Mantener amarillo dorado
+            fontSize: '18px',
+            fontFamily: 'Nunito',
+            color: '#fbbf24',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 2
         }).setDepth(1001).setScrollFactor(0).setOrigin(0, 0);
     }
 
     private createBoard() {
-        const { width, height } = this.cameras.main;
-        let { rows, cols, cardWidth, cardHeight, cardSpacing } = this.resolvedConfig.grid;
+        const { width, height } = this.scale;
+        let { rows, cols, cardSpacing } = this.resolvedConfig.grid;
 
-        // Calcular espacio disponible (dejando margen seguro para HUD + Textos)
-        const availableWidth = width - 60; // 30px margen cada lado
-        const availableHeight = height - 200; // 100px arriba (HUD+Textos) + 100px abajo
+        // Márgenes mínimos para maximizar el espacio
+        const marginX = 20;
+        const marginTop = 95; // Justo debajo de HUD y textos de estado
+        const marginBottom = 20; // Pegado casi al borde inferior
 
-        // Calcular tamaño total del grid
-        let gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
-        let gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
+        const availableWidth = width - (marginX * 2);
+        const availableHeight = height - marginTop - marginBottom;
 
-        // Si no cabe, reducir escala de las cartas
-        let scale = 1;
-        if (gridWidth > availableWidth || gridHeight > availableHeight) {
-            const scaleX = availableWidth / gridWidth;
-            const scaleY = availableHeight / gridHeight;
-            scale = Math.min(scaleX, scaleY, 1); // Nunca agrandar, solo reducir
+        // Calcular el tamaño máximo de celda posible
+        const cellW = (availableWidth - (cols - 1) * cardSpacing) / cols;
+        const cellH = (availableHeight - (rows - 1) * cardSpacing) / rows;
 
-            // Aplicar escala a dimensiones
-            cardWidth *= scale;
-            cardHeight *= scale;
-            cardSpacing *= scale;
+        // Tarjetas cuadradas maximizadas
+        const cardSize = Math.min(cellW, cellH);
 
-            // Recalcular grid con nuevas dimensiones
-            gridWidth = cols * cardWidth + (cols - 1) * cardSpacing;
-            gridHeight = rows * cardHeight + (rows - 1) * cardSpacing;
-        }
+        const finalCardWidth = cardSize;
+        const finalCardHeight = cardSize;
 
-        // Centrar perfectamente en pantalla pero desplazado hacia abajo para respetar HUD
-        const startX = (width - gridWidth) / 2 + cardWidth / 2;
-        const startY = (height - gridHeight) / 2 + cardHeight / 2 + 40; // +40 para alejar de textos MOVES/PAIRS
+        // Tamaño total del grid para el centrado
+        const gridWidth = cols * finalCardWidth + (cols - 1) * cardSpacing;
+        const gridHeight = rows * finalCardHeight + (rows - 1) * cardSpacing;
+
+        // Centrado en el área disponible
+        const startX = (width - gridWidth) / 2 + finalCardWidth / 2;
+        const startY = marginTop + (availableHeight - gridHeight) / 2 + finalCardHeight / 2;
 
         this.cardsData.forEach((cardData, index) => {
             const row = Math.floor(index / cols);
             const col = index % cols;
-            const x = startX + col * (cardWidth + cardSpacing);
-            const y = startY + row * (cardHeight + cardSpacing);
+            const x = startX + col * (finalCardWidth + cardSpacing);
+            const y = startY + row * (finalCardHeight + cardSpacing);
 
-            this.createCard(x, y, cardData, cardWidth, cardHeight);
+            this.createCard(x, y, cardData, finalCardWidth, finalCardHeight);
         });
     }
 
@@ -290,15 +292,29 @@ export class ImageMatchScene extends Phaser.Scene {
                 }).setOrigin(0.5).setVisible(false);
             }
         } else {
-            frontContent = this.add.text(0, 0, cardData.prompt.toUpperCase(), {
-                fontSize: '20px',
-                fontFamily: 'Fredoka',
-                color: '#ffffff',  // Blanco para mejor contraste
+            const text = cardData.prompt.toUpperCase();
+            // Fuente proporcional al alto de la tarjeta
+            let baseFontSize = Math.floor(cardHeight * 0.18);
+            baseFontSize = Phaser.Math.Clamp(baseFontSize, 14, 26);
+
+            frontContent = this.add.text(0, 0, text, {
+                fontSize: `${baseFontSize}px`,
+                fontFamily: 'Nunito',
+                color: '#ffffff',
                 align: 'center',
-                wordWrap: { width: cardWidth - 20 },
-                stroke: '#000000',  // Stroke negro fuerte
-                strokeThickness: 4  // Más grueso para mejor visibilidad
+                wordWrap: { width: cardWidth - 10 },
+                stroke: '#000000',
+                strokeThickness: 1
             }).setOrigin(0.5).setVisible(false);
+
+            // Forzar actualización para obtener el ancho real inmediatamente
+            (frontContent as any).updateText();
+
+            // Ajuste agresivo de escala para palabras extra-largas
+            const maxWidth = cardWidth - 12;
+            if (frontContent.width > maxWidth) {
+                frontContent.setScale(maxWidth / frontContent.width);
+            }
         }
 
         // LAYER 4: Frame (border, goes before content so content is visible)
@@ -348,6 +364,7 @@ export class ImageMatchScene extends Phaser.Scene {
     private handleCardClick(card: CardObject) {
         if (this.isProcessing || this.isPaused || this.isGameOver || card.isFlipped || card.isMatched) return;
 
+        this.soundManager.playSfx('card_flip');
         this.flipCard(card, true);
 
         if (!this.firstPick) {
@@ -429,6 +446,9 @@ export class ImageMatchScene extends Phaser.Scene {
         this.streak++;
         if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
+        this.soundManager.playSfx('match', 0.8);
+        this.soundManager.playSfx('correct', 0.5);
+
         const points = IMAGE_MATCH_CONFIG.scoring.points_correct;
         this.score = Math.max(0, this.score + points);
         this.sessionManager?.updateScore(points, true);
@@ -477,8 +497,8 @@ export class ImageMatchScene extends Phaser.Scene {
 
         // 4. Partículas de celebración
         this.time.delayedCall(200, () => {
-            this.createParticles(x1, y1, 0x10b981);
-            this.createParticles(x2, y2, 0x10b981);
+            showImpactParticles(this, x1, y1, 0x10b981);
+            showImpactParticles(this, x2, y2, 0x10b981);
         });
 
         // 5. Marcar las cartas emparejadas con tinte verde suave (en lugar de oscurecerlas)
@@ -518,6 +538,8 @@ export class ImageMatchScene extends Phaser.Scene {
         const x2 = p2.container.x;
         const y2 = p2.container.y;
 
+        this.soundManager.playSfx('wrong', 0.6);
+
         // 1. Mostrar íconos de cruz (error)
         const cross1 = this.add.image(x1, y1, 'ui_atlas', 'common-ui/fx/fx_cross')
             .setScale(0)
@@ -537,6 +559,9 @@ export class ImageMatchScene extends Phaser.Scene {
                 cross2.destroy();
             }
         });
+
+        showImpactParticles(this, x1, y1, 0xEF4444);
+        showImpactParticles(this, x2, y2, 0xEF4444);
 
         // 2. Shake suave de las cartas (vibración educativa)
         const p1OriginalX = p1.container.x;
@@ -591,7 +616,7 @@ export class ImageMatchScene extends Phaser.Scene {
             .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
-            fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+            fontSize: '48px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
         const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'CONTINUAR', () => this.togglePause(), { width: 200, height: 60 });
@@ -676,12 +701,12 @@ export class ImageMatchScene extends Phaser.Scene {
             .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - panelH * 0.35, 'INSTRUCCIONES', {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
+            fontSize: '28px', fontFamily: 'Nunito', color: '#ffffff', stroke: '#000000', strokeThickness: 1
         }).setOrigin(0.5);
 
         const instructions = this.add.text(width / 2, height / 2, this.missionInstructions, {
-            fontSize: '20px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', wordWrap: { width: Math.min(420, panelW - 80) },
-            stroke: '#000000', strokeThickness: 2
+            fontSize: '18px', fontFamily: 'Nunito', color: '#ffffff', align: 'center', wordWrap: { width: Math.min(420, panelW - 80) },
+            stroke: '#000000', strokeThickness: 1
         }).setOrigin(0.5);
 
         const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + panelH * 0.34, 'ENTENDIDO', () => {
@@ -696,7 +721,7 @@ export class ImageMatchScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
         let count = 3;
         const txt = this.add.text(width / 2, height / 2, '3', {
-            fontSize: '120px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 10
+            fontSize: '120px', fontFamily: 'Nunito', color: '#ffffff', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5).setDepth(1500).setScrollFactor(0);
 
         this.time.addEvent({
@@ -704,7 +729,10 @@ export class ImageMatchScene extends Phaser.Scene {
             callback: () => {
                 count--;
                 if (count > 0) txt.setText(count.toString());
-                else if (count === 0) txt.setText('GO!').setColor('#10b981');
+                else if (count === 0) {
+                    txt.setText('GO!').setColor('#10b981');
+                    this.soundManager.playSfx('game_start');
+                }
                 else {
                     txt.destroy();
                     this.startGameplay();
@@ -723,6 +751,8 @@ export class ImageMatchScene extends Phaser.Scene {
                 // Timer no longer ends the game - only finding all pairs does
             }
         });
+
+        this.soundManager.playMusic('bg_music', 0.4);
     }
 
     private endGame() {
@@ -730,6 +760,8 @@ export class ImageMatchScene extends Phaser.Scene {
         this.isGameOver = true;
         this.isPaused = true;
         this.gameTimer?.remove();
+        this.soundManager.stopMusic();
+        this.soundManager.playSfx('game_win');
 
         const duration = Math.floor((Date.now() - this.gameStartTime) / 1000);
         const totalPairs = new Set(this.cardsData.map(c => c.pairId)).size;
@@ -791,12 +823,12 @@ export class ImageMatchScene extends Phaser.Scene {
 
         // TITLE - Reduced and repositioned
         const title = this.add.text(0, -155, 'MISSION COMPLETE', {
-            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+            fontSize: '36px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
         // STATS - Reduced and repositioned
         const pairsText = this.add.text(0, -30, `PAIRS FOUND: ${stats.pairs}/${stats.totalPairs}`, {
-            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', stroke: '#000000', strokeThickness: 4
+            fontSize: '22px', fontFamily: 'Nunito', color: '#ffffff', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
         const bonusStatus = stats.perfectMatch ? 'ACTIVE' : 'INACTIVE';

@@ -7,10 +7,12 @@ import * as Phaser from 'phaser';
 import { GRAMMAR_RUN_CONFIG, resolveGrammarRunConfig } from './grammarRun.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createPanel, createButton, showFeedback, showGlow, showBurst, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
+import { createPanel, createButton, showFeedback, showGlow, showImpactParticles, showBurst, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
 import type { GameContent, MissionConfig, GrammarQuestion, GrammarOption } from '@/types';
 import type { GameSessionManager } from './GameSessionManager';
 import { loadGrammarRunContent, validateGrammarRunContent } from './gameLoader.utils';
+import { loadGameAudio } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 
 interface Gate {
     container: Phaser.GameObjects.Container;
@@ -43,6 +45,8 @@ export class GrammarRunScene extends Phaser.Scene {
     private promptContainer!: Phaser.GameObjects.Container;
     private promptBg!: Phaser.GameObjects.Image;
     private promptText!: Phaser.GameObjects.Text;
+    private ghostGroup!: Phaser.GameObjects.Group;
+    private trailParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
     // Game state
     private score: number = 0;
@@ -56,6 +60,7 @@ export class GrammarRunScene extends Phaser.Scene {
     private bestStreak: number = 0;
     private correctCount: number = 0;
     private wrongCount: number = 0;
+    private soundManager!: SoundManager;
 
     // Timers
     private gameTimer!: Phaser.Time.TimerEvent;
@@ -78,6 +83,7 @@ export class GrammarRunScene extends Phaser.Scene {
     preload() {
         this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
         loadGameAtlases(this, 'gr');
+        loadGameAudio(this, 'gr');
         this.load.image('bg_grammar', '/assets/backgrounds/grammar-run/bg_trees.png');
     }
 
@@ -163,15 +169,21 @@ export class GrammarRunScene extends Phaser.Scene {
                 }
             });
 
+            this.soundManager = new SoundManager(this);
+
             const { width, height } = this.cameras.main;
 
-            // Set background (Using tiled sprite for scrolling)
+            // Set background (Single clean background image)
             this.bg = this.add.tileSprite(width / 2, height / 2, width, height, 'bg_grammar');
             this.bg.setScrollFactor(0);
             this.bg.setDepth(-100);
 
-            // Create ground
-            this.createGround();
+            // Improved background: Scale it even larger (3x screen) to minimize visible repetition
+            const baseScale = Math.max(width / this.textures.get('bg_grammar').getSourceImage().width, height / this.textures.get('bg_grammar').getSourceImage().height);
+            this.bg.setTileScale(baseScale * 3);
+            this.bg.setAlpha(0.95);
+
+            // Removed createGround() to have only one main background image as requested
 
             // Create player
             this.createPlayer();
@@ -204,7 +216,7 @@ export class GrammarRunScene extends Phaser.Scene {
             showProgress: false,
             showPauseButton: true,
             showHelpButton: this.resolvedConfig.hud_help_enabled
-        });
+        }, this.soundManager);
 
         this.hud.onPause(() => this.togglePause());
         if (this.resolvedConfig.hud_help_enabled) {
@@ -227,16 +239,19 @@ export class GrammarRunScene extends Phaser.Scene {
             .setDepth(50)
             .setScrollFactor(0);
 
-        this.promptBg = this.add.image(0, 0, 'ui_atlas', 'common-ui/panels/panel_glass')
-            .setDisplaySize(width * 0.85, 100);
+        this.promptBg = this.add.image(0, 0, 'ui_atlas', 'common-ui/panels/panel_dark')
+            .setDisplaySize(width * 0.65, 85) // Reduced from 0.85 and 120
+            .setAlpha(0.95);
 
         this.promptText = this.add.text(0, 0, 'GET READY...', {
-            fontSize: '28px',
+            fontSize: '22px', // Reduced from 28px for a more compact, pro look
             fontFamily: 'Fredoka',
-            color: '#ffffff',
+            color: '#fbbf24',
             fontStyle: 'bold',
             align: 'center',
-            wordWrap: { width: width * 0.8 }
+            stroke: '#000000',
+            strokeThickness: 3,
+            wordWrap: { width: width * 0.6 }
         }).setOrigin(0.5);
 
         this.promptContainer.add([this.promptBg, this.promptText]);
@@ -286,7 +301,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
 
         const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
-            fontSize: '48px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
+            fontSize: '48px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
         const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'CONTINUAR', () => this.togglePause(), { width: 200, height: 60 });
@@ -328,7 +343,7 @@ export class GrammarRunScene extends Phaser.Scene {
             .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
-            fontSize: '32px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 6
+            fontSize: '32px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
         }).setOrigin(0.5);
 
         const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions || 'Sigue las reglas del juego.', {
@@ -349,11 +364,11 @@ export class GrammarRunScene extends Phaser.Scene {
         let count = 3;
         const countText = this.add.text(width / 2, height / 2, `${count}`, {
             fontSize: '120px',
-            fontFamily: 'Fredoka',
+            fontFamily: 'Nunito',
             color: '#ffffff',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 8
+            strokeThickness: 2
         }).setOrigin(0.5);
 
         const timer = this.time.addEvent({
@@ -368,6 +383,7 @@ export class GrammarRunScene extends Phaser.Scene {
                     countText.setColor('#10b981');
                     this.cameras.main.flash(500);
                 } else {
+                    this.soundManager.playSfx('game_start');
                     countText.destroy();
                     timer.remove();
                     this.startGameplay();
@@ -378,25 +394,20 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private startGameplay() {
+        // Force physics and focus
+        this.physics.resume();
+        if (this.sys.game.canvas) this.sys.game.canvas.focus();
+
         this.startGameTimer();
         this.startSpeedIncrease();
         this.time.delayedCall(1000, () => this.spawnGate());
         this.startDecorativeObstacles();
+        this.soundManager.playMusic('bg_music', 0.4);
     }
 
     private createGround() {
-        const { width, height } = this.scale;
-        const groundHeight = height * 0.15;
-
-        this.ground = this.add.rectangle(
-            width / 2,
-            height - groundHeight / 2,
-            width,
-            groundHeight,
-            parseInt(GRAMMAR_RUN_CONFIG.visual.groundColor.replace('#', '0x'))
-        );
-
-        this.physics.add.existing(this.ground, true);
+        // Method kept but empty to avoid breaking legacy references if any, 
+        // as the user requested only the bg_trees image as background.
     }
 
     private createPlayer() {
@@ -420,14 +431,49 @@ export class GrammarRunScene extends Phaser.Scene {
             repeat: -1
         });
 
-        this.player.play('run');
+        this.player.play('run').setScale(1.2); // Increased base size
+
+        // Add "Juice": Bobbing effect - now relative to 1.2 scale
+        this.tweens.add({
+            targets: this.player,
+            scaleY: 1.05, // Subtle bob relative to 1.2
+            scaleX: 1.15,
+            duration: 350,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
 
         this.physics.add.existing(this.player);
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
-        body.setGravityY(GRAMMAR_RUN_CONFIG.physics.gravity);
+        // Using world bounds as floor since ground rectangle was removed
+        body.setGravityY(GRAMMAR_RUN_CONFIG.physics.gravity * 1.5); // Slightly stronger gravity for better jump feel
+        body.setSize(40, 60); // Optimize collision box
 
-        this.physics.add.collider(this.player, this.ground);
+        // --- NEW PRO EFFECTS ---
+        this.ghostGroup = this.add.group();
+
+        // Data particles for tech/modern look
+        if (!this.textures.exists('data-particle')) {
+            const dot = this.make.graphics({ x: 0, y: 0 });
+            dot.fillStyle(0x3b82f6, 1);
+            dot.fillCircle(2, 2, 2);
+            dot.generateTexture('data-particle', 4, 4);
+        }
+
+        this.trailParticles = this.add.particles(0, 0, 'data-particle', {
+            speed: { min: 20, max: 100 },
+            scale: { start: 1, end: 0 },
+            alpha: { start: 0.6, end: 0 },
+            lifespan: 600,
+            quantity: 1,
+            frequency: 50,
+            angle: { min: 80, max: 100 }, // Emitting downwards/backward
+            follow: this.player,
+            followOffset: { x: 0, y: 30 }
+        });
+        this.trailParticles.setDepth(99);
     }
 
 
@@ -437,6 +483,43 @@ export class GrammarRunScene extends Phaser.Scene {
         this.input.keyboard?.on('keydown-RIGHT', () => this.changeLane(1));
         this.input.keyboard?.on('keydown-A', () => this.changeLane(-1));
         this.input.keyboard?.on('keydown-D', () => this.changeLane(1));
+
+        // JUMP CONTROLS
+        this.input.keyboard?.on('keydown-SPACE', () => this.jump());
+        this.input.keyboard?.on('keydown-UP', () => this.jump());
+        this.input.keyboard?.on('keydown-W', () => this.jump());
+
+        // Prevent browser from scrolling
+        this.input.keyboard?.addCapture([
+            Phaser.Input.Keyboard.KeyCodes.SPACE,
+            Phaser.Input.Keyboard.KeyCodes.UP,
+            Phaser.Input.Keyboard.KeyCodes.W
+        ]);
+    }
+
+    private jump() {
+        if (this.isGameOver || this.isPaused) return;
+        const body = this.player.body as Phaser.Physics.Arcade.Body;
+
+        // Check if on floor (world bounds at bottom)
+        if (body.blocked.down || this.player.y >= this.scale.height - 80) {
+            body.setVelocityY(-650);
+            this.soundManager.playSfx('jump', 0.6);
+
+            // Squash effect for the jump
+            this.tweens.add({
+                targets: this.player,
+                scaleY: 1.15,
+                scaleX: 0.85,
+                angle: -10, // Slight tilt when jumping
+                duration: 120,
+                yoyo: true,
+                ease: 'Cubic.easeOut',
+                onComplete: () => {
+                    this.player.setAngle(0);
+                }
+            });
+        }
     }
 
     private changeLane(direction: number) {
@@ -444,13 +527,14 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const newLane = Phaser.Math.Clamp(this.currentLane + direction, 0, 2);
         if (newLane !== this.currentLane) {
+            this.soundManager.playSfx('jump', 0.5);
             this.currentLane = newLane;
-            this.movePlayerToLane();
+            this.movePlayerToLane(direction);
             this.highlightSelectedGate();
         }
     }
 
-    private movePlayerToLane() {
+    private movePlayerToLane(direction: number) {
         const { width } = this.scale;
         const laneWidth = width / 3;
         const targetX = laneWidth * this.currentLane + laneWidth / 2;
@@ -470,15 +554,40 @@ export class GrammarRunScene extends Phaser.Scene {
         // Vertical hop
         this.tweens.add({
             targets: this.player,
-            y: this.player.y - 25,
-            duration: 100,
+            y: this.player.y - 40,
+            angle: direction * 15, // Lean into the turn for "Adult/Modern" feel
+            duration: 150,
             yoyo: true,
             ease: 'Sine.easeOut',
+            onUpdate: () => {
+                // Drop ghosts during lane change for extra juice
+                this.createGhost();
+            },
             onComplete: () => {
                 if (!this.isGameOver) {
                     this.player.play('run'); // Resume running
                 }
+                this.player.setAngle(0);
+                showImpactParticles(this, this.player.x, this.player.y + 40, 0x3b82f6);
             }
+        });
+    }
+
+    private createGhost() {
+        if (!this.player || this.isGameOver) return;
+        const ghost = this.add.image(this.player.x, this.player.y, this.player.texture.key, this.player.frame.name)
+            .setScale(this.player.scaleX, this.player.scaleY)
+            .setAngle(this.player.angle)
+            .setAlpha(0.4)
+            .setTint(0x3b82f6)
+            .setDepth(98);
+
+        this.tweens.add({
+            targets: ghost,
+            alpha: 0,
+            scale: this.player.scaleX * 0.8,
+            duration: 400,
+            onComplete: () => ghost.destroy()
         });
     }
 
@@ -548,8 +657,8 @@ export class GrammarRunScene extends Phaser.Scene {
         const frame = Phaser.Math.Between(0, 1) === 0 ? 'grammar-run/obstacles/obs_box' : 'grammar-run/obstacles/obs_spike';
 
         const obstacle = this.add.image(x, -50, 'gr_atlas', frame)
-            .setAlpha(0.6)
-            .setScale(0.8);
+            .setAlpha(1) // Removed 0.6 alpha for more SOLID/PREMIUM look
+            .setScale(1.1); // Slightly larger
 
         this.physics.add.existing(obstacle);
         const body = obstacle.body as Phaser.Physics.Arcade.Body;
@@ -636,7 +745,7 @@ export class GrammarRunScene extends Phaser.Scene {
             duration: 200,
             onComplete: () => {
                 this.promptText.setText(text);
-                this.promptBg.setDisplaySize(Math.max(this.scale.width * 0.7, this.promptText.width + 80), 100);
+                this.promptBg.setDisplaySize(Math.max(this.scale.width * 0.6, this.promptText.width + 60), 85);
 
                 this.tweens.add({
                     targets: this.promptContainer,
@@ -674,12 +783,12 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const textObj = this.add.text(0, 0, option.optionText, {
             fontSize: '18px',
-            fontFamily: 'Fredoka',
+            fontFamily: 'Nunito',
             color: '#ffffff',
             fontStyle: 'bold',
             align: 'center',
             wordWrap: { width: width * 0.75 },
-            backgroundColor: '#00000088',
+            backgroundColor: '#000000cc', // Más opaco para mejor contraste
             padding: { x: 8, y: 4 }
         }).setOrigin(0.5);
 
@@ -744,6 +853,9 @@ export class GrammarRunScene extends Phaser.Scene {
         this.streak++;
         if (this.streak > this.bestStreak) this.bestStreak = this.streak;
 
+        this.soundManager.playSfx('collect', 0.6);
+        this.soundManager.playSfx('correct', 0.4);
+
         // Tint green for feedback
         gate.sprite.setTint(0x10b981);
 
@@ -760,6 +872,8 @@ export class GrammarRunScene extends Phaser.Scene {
         });
 
         this.cameras.main.flash(200, 16, 185, 129);
+        this.cameras.main.shake(150, 0.003);
+        showImpactParticles(this, gate.container.x, gate.container.y, 0x10B981);
 
         const timeSpent = this.questionStartTime > 0
             ? Math.round((Date.now() - this.questionStartTime) / 1000)
@@ -817,6 +931,10 @@ export class GrammarRunScene extends Phaser.Scene {
 
         this.wrongCount++;
         this.streak = 0;
+        this.cameras.main.shake(300, 0.015);
+        this.soundManager.playSfx('obstacle_hit', 0.7);
+        this.soundManager.playSfx('wrong', 0.6);
+        showImpactParticles(this, gate.container.x, gate.container.y, 0xEF4444);
 
         const crossIcon = this.add.image(gate.container.x, gate.container.y, 'ui_atlas', 'common-ui/fx/fx_cross')
             .setScale(3)
@@ -1026,6 +1144,9 @@ export class GrammarRunScene extends Phaser.Scene {
         if (this.isGameOver) return;
 
         this.isGameOver = true;
+        this.isPaused = true;
+        this.soundManager.stopMusic();
+        this.soundManager.playSfx('game_win');
 
         console.log(`[GrammarRun] Game ended. Reason: ${reason}`);
 
@@ -1266,6 +1387,9 @@ export class GrammarRunScene extends Phaser.Scene {
             }
         });
 
+        // Background scrolling effect (Much slower for a cinematic look)
+        this.bg.tilePositionY -= (this.currentSpeed * delta) / 4000;
+
         this.obstacles = this.obstacles.filter(obs => {
             if (obs.y > this.cameras.main.height + 100) {
                 obs.destroy();
@@ -1286,6 +1410,7 @@ export class GrammarRunScene extends Phaser.Scene {
         // Update UI periodically
         if (Math.floor(time / 100) % 5 === 0) {
             this.updateUI();
+            this.createGhost(); // Regular ghosting for "pro" look
         }
     }
 }

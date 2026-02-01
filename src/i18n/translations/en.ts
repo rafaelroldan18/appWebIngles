@@ -576,9 +576,11 @@ export const en: TranslationKeys = {
   loginEmailPlaceholder: 'your@email.com',
   loginPassword: 'Password',
   loginForgotPassword: 'Forgot your password?',
+  loginHaveCode: 'Do you have a code?',
   loginProcessing: 'Processing...',
   loginCreateAccount: 'Create Account',
-  loginFooter: 'Developed for English learning',
+  loginFooter: '© 2026 English27 - Educational Platform',
+
   loginSuccess: 'Account created successfully. Wait for approval to login.',
   loginAllFieldsRequired: 'All fields are required',
   loginError: 'Error processing request',
@@ -1291,5 +1293,10 @@ export const en: TranslationKeys = {
       sync: 'Syncing academic records...',
       empty: 'No data found for this period.',
     }
-  }
+  },
+
+  // Footer
+  footerCopyright: '© 2026 English27 – Developed by',
+  footerDeveloper: 'Rafael Roldán',
+  footerProject: 'Graduation Project - ESPOCH',
 };

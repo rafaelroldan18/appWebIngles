@@ -1,0 +1,508 @@
+================================================================================
+DATOS PARA AÑADIR A TOPIC LIBRARY
+================================================================================
+
+NOTA: Estos son los 6 temas que necesitas añadir a tu sistema.
+Cada tema incluye: Unit Title, Parallel, Brief Summary, y Theory Content
+
+================================================================================
+TEMA 1: ADJETIVOS (ADJECTIVES)
+================================================================================
+
+UNIT TITLE:
+Adjectives
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Learn to describe people, places, and things using descriptive words. Master the different types of adjectives and their correct position in sentences.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+What are Adjectives?
+
+[PARAGRAPH]
+Adjectives are words that describe or modify nouns (people, places, things, or ideas). They give us more information about the qualities or characteristics of something.
+
+[RULE]
+Position of Adjectives:
+• Before the noun: a beautiful house
+• After the verb "to be": The house is beautiful
+
+[TITLE]
+Types of Adjectives
+
+[PARAGRAPH]
+1. Descriptive: beautiful, tall, small, happy, sad
+2. Quantity: many, few, several, some
+3. Demonstrative: this, that, these, those
+4. Possessive: my, your, his, her, its, our, their
+
+[TITLE]
+Common Adjectives
+
+[PARAGRAPH]
+Size: big, small, large, tiny, huge
+Age: old, new, young, ancient, modern
+Temperature: hot, cold, warm, cool, freezing
+Speed: fast, slow, quick, rapid
+Feelings: happy, sad, angry, excited, tired
+Appearance: beautiful, ugly, pretty, handsome
+Quality: good, bad, excellent, terrible, perfect
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+• She has a red car. (Ella tiene un carro rojo)
+• The tall man is my father. (El hombre alto es mi padre)
+• This is an interesting book. (Este es un libro interesante)
+• I have two big dogs. (Tengo dos perros grandes)
+• The weather is cold today. (El clima está frío hoy)
+
+================================================================================
+TEMA 2: ADJETIVOS COMPARATIVOS (COMPARATIVE ADJECTIVES)
+================================================================================
+
+UNIT TITLE:
+Comparative Adjectives
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Compare two people, places, or things using comparative forms. Learn the rules for short, long, and irregular adjectives.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+What are Comparative Adjectives?
+
+[PARAGRAPH]
+Comparative adjectives are used to compare two people, places, or things. They show the difference in quality, quantity, or degree between them.
+
+[RULE]
+Formation Rules:
+
+1. SHORT ADJECTIVES (1 syllable):
+   Add -er + than
+   • tall → taller than
+   • old → older than
+   • fast → faster than
+
+2. ADJECTIVES ENDING IN -Y:
+   Change -y to -ier + than
+   • happy → happier than
+   • easy → easier than
+   • pretty → prettier than
+
+3. LONG ADJECTIVES (2+ syllables):
+   Use more + adjective + than
+   • beautiful → more beautiful than
+   • expensive → more expensive than
+   • interesting → more interesting than
+
+4. IRREGULAR ADJECTIVES:
+   • good → better than
+   • bad → worse than
+   • far → farther/further than
+
+[TITLE]
+Common Comparatives
+
+[PARAGRAPH]
+Short adjectives:
+• big → bigger than
+• small → smaller than
+• hot → hotter than
+• cold → colder than
+• young → younger than
+• cheap → cheaper than
+
+Long adjectives:
+• difficult → more difficult than
+• comfortable → more comfortable than
+• important → more important than
+• dangerous → more dangerous than
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+• John is taller than Mary. (John es más alto que Mary)
+• This book is more interesting than that one. (Este libro es más interesante que ese)
+• My car is faster than yours. (Mi carro es más rápido que el tuyo)
+• She is happier than before. (Ella está más feliz que antes)
+• Today is better than yesterday. (Hoy es mejor que ayer)
+
+================================================================================
+TEMA 3: ADJETIVOS SUPERLATIVOS (SUPERLATIVE ADJECTIVES)
+================================================================================
+
+UNIT TITLE:
+Superlative Adjectives
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Express the highest degree of a quality among three or more items. Master the superlative forms for different types of adjectives.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+What are Superlative Adjectives?
+
+[PARAGRAPH]
+Superlative adjectives are used to show the highest or lowest degree of a quality among three or more people, places, or things. They indicate that something is at the extreme end of a scale.
+
+[RULE]
+Formation Rules:
+
+1. SHORT ADJECTIVES (1 syllable):
+   the + adjective + -est
+   • tall → the tallest
+   • old → the oldest
+   • fast → the fastest
+
+2. ADJECTIVES ENDING IN -Y:
+   the + adjective (change -y to -iest)
+   • happy → the happiest
+   • easy → the easiest
+   • pretty → the prettiest
+
+3. LONG ADJECTIVES (2+ syllables):
+   the most + adjective
+   • beautiful → the most beautiful
+   • expensive → the most expensive
+   • interesting → the most interesting
+
+4. IRREGULAR ADJECTIVES:
+   • good → the best
+   • bad → the worst
+   • far → the farthest/furthest
+
+[TITLE]
+Common Superlatives
+
+[PARAGRAPH]
+Short adjectives:
+• big → the biggest
+• small → the smallest
+• hot → the hottest
+• cold → the coldest
+• young → the youngest
+
+Long adjectives:
+• difficult → the most difficult
+• comfortable → the most comfortable
+• important → the most important
+• beautiful → the most beautiful
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+• Mount Everest is the highest mountain in the world. (El Monte Everest es la montaña más alta del mundo)
+• She is the smartest student in the class. (Ella es la estudiante más inteligente de la clase)
+• This is the most expensive car in the store. (Este es el carro más caro de la tienda)
+• He is the best player on the team. (Él es el mejor jugador del equipo)
+• That was the worst movie I've ever seen. (Esa fue la peor película que he visto)
+
+================================================================================
+TEMA 4: PREPOSICIONES DE LUGAR (PREPOSITIONS OF PLACE)
+================================================================================
+
+UNIT TITLE:
+Prepositions of Place
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Learn to describe the location and position of objects and people using prepositions like in, on, at, under, behind, and more.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+What are Prepositions of Place?
+
+[PARAGRAPH]
+Prepositions of place are words that show the position or location of people, objects, or places in relation to other things.
+
+[RULE]
+Main Prepositions:
+
+IN - inside or within an enclosed space
+• The book is in the bag.
+• She lives in New York.
+
+ON - on a surface
+• The book is on the table.
+• The picture is on the wall.
+
+AT - at a specific point or location
+• I'm at the bus stop.
+• She is at school.
+
+UNDER - below or beneath something
+• The cat is under the table.
+• The shoes are under the bed.
+
+BEHIND - at the back of something
+• The car is behind the house.
+• He is hiding behind the door.
+
+IN FRONT OF - facing something
+• The car is in front of the house.
+• She is standing in front of me.
+
+[TITLE]
+More Prepositions
+
+[PARAGRAPH]
+NEXT TO / BESIDE - at the side of
+• The bank is next to the supermarket.
+
+BETWEEN - in the space separating two things
+• The book is between the lamp and the clock.
+
+ABOVE - higher than something
+• The plane is above the clouds.
+
+BELOW - lower than something
+• The temperature is below zero.
+
+NEAR - close to something
+• The school is near my house.
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+• The cat is sleeping on the sofa. (El gato está durmiendo en el sofá)
+• There is a park near my house. (Hay un parque cerca de mi casa)
+• The restaurant is between the bank and the pharmacy. (El restaurante está entre el banco y la farmacia)
+• Put the book on the shelf. (Pon el libro en el estante)
+• The dog is under the tree. (El perro está debajo del árbol)
+
+================================================================================
+TEMA 5: THERE IS / THERE ARE
+================================================================================
+
+UNIT TITLE:
+There is / There are
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Express the existence of things using "there is" for singular and "there are" for plural. Learn affirmative, negative, and question forms.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+What is "There is / There are"?
+
+[PARAGRAPH]
+We use "there is" and "there are" to say that something exists or to indicate the presence of people or things.
+
+• THERE IS = singular (one thing)
+• THERE ARE = plural (more than one thing)
+
+[RULE]
+AFFIRMATIVE FORMS:
+
+There is + singular noun
+• There is a book on the table.
+• There is a cat in the garden.
+• There is a teacher in the classroom.
+
+There are + plural noun
+• There are two books on the table.
+• There are many students in the school.
+• There are three apples in the basket.
+
+[RULE]
+NEGATIVE FORMS:
+
+There is not (isn't) + singular noun
+• There is not a book on the table.
+• There isn't a cat in the garden.
+• There isn't any milk in the fridge.
+
+There are not (aren't) + plural noun
+• There are not two books on the table.
+• There aren't many students in the school.
+• There aren't any apples in the basket.
+
+[RULE]
+QUESTION FORMS:
+
+Is there + singular noun + ?
+• Is there a book on the table?
+  → Yes, there is. / No, there isn't.
+• Is there any milk in the fridge?
+  → Yes, there is. / No, there isn't.
+
+Are there + plural noun + ?
+• Are there books on the table?
+  → Yes, there are. / No, there aren't.
+• Are there many students in the school?
+  → Yes, there are. / No, there aren't.
+
+[TITLE]
+Questions with "How many"
+
+[PARAGRAPH]
+• How many books are there on the table?
+  → There are three books.
+• How many students are there in the class?
+  → There are twenty students.
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+Affirmative:
+• There is a dog in the park. (Hay un perro en el parque)
+• There are three cars in the garage. (Hay tres carros en el garaje)
+
+Negative:
+• There isn't a problem. (No hay un problema)
+• There aren't any cookies. (No hay galletas)
+
+Questions:
+• Is there a supermarket near here? (¿Hay un supermercado cerca de aquí?)
+• Are there any questions? (¿Hay alguna pregunta?)
+
+================================================================================
+TEMA 6: PLACES OF THE CITY (LUGARES DE LA CIUDAD)
+================================================================================
+
+UNIT TITLE:
+Places of the City
+
+PARALLEL:
+1ro BGU B - 2025-2026
+
+BRIEF SUMMARY:
+Learn vocabulary for common places in a city and how to give and understand directions. Essential for everyday conversations and navigation.
+
+THEORY CONTENT (Visual Design):
+
+[TITLE]
+Common Places in the City
+
+[PARAGRAPH]
+Learning the names of places in a city helps you navigate, give directions, and have everyday conversations.
+
+[TITLE]
+Essential Places
+
+[PARAGRAPH]
+PUBLIC SERVICES:
+• Bank - banco
+• Hospital - hospital
+• Police Station - estación de policía
+• Fire Station - estación de bomberos
+• Post Office - oficina de correos
+• Library - biblioteca
+
+EDUCATION & CULTURE:
+• School - escuela
+• Museum - museo
+• Church - iglesia
+• Cinema / Movie Theater - cine
+
+SHOPPING:
+• Supermarket - supermercado
+• Shopping Mall - centro comercial
+• Pharmacy / Drugstore - farmacia
+• Bakery - panadería
+
+FOOD & DRINK:
+• Restaurant - restaurante
+• Cafe / Coffee Shop - cafetería
+
+[TITLE]
+More Places
+
+[PARAGRAPH]
+TRANSPORTATION:
+• Airport - aeropuerto
+• Train Station - estación de tren
+• Bus Stop - parada de autobús
+• Gas Station - gasolinera
+
+RECREATION:
+• Park - parque
+• Gym - gimnasio
+• Stadium - estadio
+• Zoo - zoológico
+• Beach - playa
+
+ACCOMMODATION:
+• Hotel - hotel
+
+CITY FEATURES:
+• Street - calle
+• Avenue - avenida
+• Bridge - puente
+• Square / Plaza - plaza
+
+[TITLE]
+Useful Phrases
+
+[PARAGRAPH]
+Asking for directions:
+• Where is the bank? (¿Dónde está el banco?)
+• How do I get to the hospital? (¿Cómo llego al hospital?)
+• Is there a supermarket near here? (¿Hay un supermercado cerca de aquí?)
+
+Giving directions:
+• Go straight. (Ve derecho)
+• Turn left/right. (Gira a la izquierda/derecha)
+• It's on the corner. (Está en la esquina)
+• It's next to the park. (Está al lado del parque)
+• It's across from the bank. (Está frente al banco)
+
+[TITLE]
+Examples
+
+[PARAGRAPH]
+• The supermarket is next to the pharmacy. (El supermercado está al lado de la farmacia)
+• There is a bank on Main Street. (Hay un banco en la calle principal)
+• The hospital is near the school. (El hospital está cerca de la escuela)
+• I need to go to the post office. (Necesito ir a la oficina de correos)
+• The museum is across from the park. (El museo está frente al parque)
+
+================================================================================
+RESUMEN DE DATOS PARA AÑADIR
+================================================================================
+
+TOTAL DE TEMAS: 6
+
+1. Adjectives
+2. Comparative Adjectives
+3. Superlative Adjectives
+4. Prepositions of Place
+5. There is / There are
+6. Places of the City
+
+PARALLEL PARA TODOS: 1ro BGU B - 2025-2026
+
+COMPONENTES DEL VISUAL EDITOR:
+- [TITLE] - Para títulos de secciones
+- [PARAGRAPH] - Para contenido de texto
+- [RULE] - Para reglas gramaticales y estructuras
+
+PRÓXIMOS PASOS:
+1. Crear cada tema en el Topic Library
+2. Copiar el contenido del Theory Content
+3. Usar el Active Visual Editor para diseñar
+4. Guardar cada tema
+
+================================================================================

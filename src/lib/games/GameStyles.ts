@@ -8,14 +8,14 @@
 // ============================================
 
 export const GAME_FONTS = {
-    // Fuente principal para títulos y UI
-    primary: 'Fredoka, Arial Black, sans-serif',
+    // Fuente principal para títulos y UI (Más profesional y limpia)
+    primary: '"Nunito", "Inter", sans-serif',
 
     // Fuente secundaria para textos largos
-    secondary: 'Baloo 2, Arial, sans-serif',
+    secondary: '"Nunito", sans-serif',
 
     // Fuente para números y scores
-    numeric: 'Fredoka, Arial Black, monospace',
+    numeric: '"Nunito", "Roboto Mono", monospace',
 } as const;
 
 export const FONT_SIZES = {
@@ -99,9 +99,9 @@ export const TEXT_STYLES = {
     title: {
         fontSize: FONT_SIZES.title,
         fontFamily: GAME_FONTS.primary,
-        color: GAME_COLORS_HEX.gold,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 6,
+        color: GAME_COLORS_HEX.white,
+        stroke: GAME_COLORS_HEX.primary,
+        strokeThickness: 2,
     },
 
     subtitle: {
@@ -109,7 +109,7 @@ export const TEXT_STYLES = {
         fontFamily: GAME_FONTS.primary,
         color: GAME_COLORS_HEX.white,
         stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 4,
+        strokeThickness: 1,
     },
 
     // HUD
@@ -117,24 +117,24 @@ export const TEXT_STYLES = {
         fontSize: FONT_SIZES.hudScore,
         fontFamily: GAME_FONTS.numeric,
         color: GAME_COLORS_HEX.gold,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 4,
+        stroke: '#000000',
+        strokeThickness: 2,
     },
 
     hudTimer: {
         fontSize: FONT_SIZES.hudTimer,
         fontFamily: GAME_FONTS.numeric,
         color: GAME_COLORS_HEX.white,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 3,
+        stroke: '#000000',
+        strokeThickness: 1,
     },
 
     hudLabel: {
         fontSize: FONT_SIZES.hudLabel,
         fontFamily: GAME_FONTS.primary,
         color: GAME_COLORS_HEX.white,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 3,
+        stroke: '#000000',
+        strokeThickness: 1,
     },
 
     // Contenido
@@ -155,16 +155,16 @@ export const TEXT_STYLES = {
         fontSize: FONT_SIZES.buttonMedium,
         fontFamily: GAME_FONTS.primary,
         color: GAME_COLORS_HEX.white,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 4,
+        stroke: '#000000',
+        strokeThickness: 1,
     },
 
     buttonLarge: {
         fontSize: FONT_SIZES.buttonLarge,
         fontFamily: GAME_FONTS.primary,
         color: GAME_COLORS_HEX.white,
-        stroke: GAME_COLORS_HEX.black,
-        strokeThickness: 5,
+        stroke: '#000000',
+        strokeThickness: 2,
     },
 } as const;
 

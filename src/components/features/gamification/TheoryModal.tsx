@@ -5,8 +5,9 @@
  * Se muestra cuando show_theory está activo en game_availability
  */
 
-import { useState } from 'react';
-import { X, BookOpen, CheckCircle } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { X, BookOpen, CheckCircle, Sparkles } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface TopicRule {
     rule_id: string;
@@ -17,9 +18,107 @@ interface TopicRule {
     order_index: number;
 }
 
+/**
+ * Simplified rendering engine for GrapesJS content inside other components
+ */
+function TheoryViewerEmbed({ content, title }: { content: any, title: string }) {
+    const { t } = useLanguage();
+    const [scale, setScale] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [contentHeight, setContentHeight] = useState(800);
+
+    const renderedContent = useMemo(() => {
+        if (!content) return { html: '', css: '' };
+        if (typeof content === 'string') {
+            try {
+                const parsed = JSON.parse(content);
+                return {
+                    html: parsed.html || '',
+                    css: parsed.css || ''
+                };
+            } catch {
+                return { html: content, css: '' };
+            }
+        }
+        return {
+            html: content.html || '',
+            css: content.css || ''
+        };
+    }, [content]);
+
+    useEffect(() => {
+        const updateHeight = () => {
+            if (contentRef.current) {
+                const children = contentRef.current.querySelectorAll('*');
+                let maxBottom = 600;
+                children.forEach((child: any) => {
+                    const rect = child.getBoundingClientRect();
+                    const parentRect = contentRef.current!.getBoundingClientRect();
+                    const bottom = (rect.bottom - parentRect.top) / scale;
+                    if (bottom > maxBottom) maxBottom = bottom;
+                });
+                setContentHeight(Math.max(maxBottom + 50, contentRef.current.scrollHeight));
+            }
+        };
+        const timer = setTimeout(updateHeight, 500);
+        return () => clearTimeout(timer);
+    }, [renderedContent, scale]);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            const containerWidth = containerRef.current.offsetWidth;
+            if (containerWidth < 850) {
+                setScale(containerWidth / 850);
+            }
+        }
+    }, []);
+
+    return (
+        <div ref={containerRef} className="w-full flex flex-col items-center bg-white">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" />
+            <div
+                style={{
+                    width: '850px',
+                    minHeight: `${contentHeight}px`,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top center',
+                    marginBottom: `${(scale - 1) * contentHeight}px`,
+                    position: 'relative'
+                }}
+            >
+                <style dangerouslySetInnerHTML={{
+                    __html: `
+                    .gjs-embed-wrapper {
+                        position: relative;
+                        width: 850px;
+                        margin: 0;
+                        background-color: white;
+                        color: #1e293b;
+                    }
+                    .gjs-embed-wrapper * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+                    ${renderedContent.css
+                            .replace(/body/g, '.gjs-embed-wrapper')
+                            .replace(/#wrapper/g, '.gjs-embed-wrapper')
+                            .replace(/html/g, '.gjs-embed-wrapper')
+                        }
+                ` }} />
+                <div
+                    ref={contentRef}
+                    className="gjs-embed-wrapper"
+                    dangerouslySetInnerHTML={{ __html: renderedContent.html }}
+                />
+            </div>
+        </div>
+    );
+}
+
 interface TheoryModalProps {
     isOpen: boolean;
-    theoryContent: TopicRule[];
+    theoryContent: {
+        rules: TopicRule[];
+        visualDesign: any;
+    };
     topicTitle: string;
     onClose: () => void;
     onContinue: () => void;
@@ -36,8 +135,10 @@ export default function TheoryModal({
 
     if (!isOpen) return null;
 
-    const totalPages = theoryContent.length;
-    const currentRule = theoryContent[currentPage];
+    // We consider pages: visualDesign (if exists) + all structured rules
+    const hasVisualDesign = !!theoryContent?.visualDesign;
+    const rules = theoryContent?.rules || [];
+    const totalPages = (hasVisualDesign ? 1 : 0) + rules.length;
 
     const handleNext = () => {
         if (currentPage < totalPages - 1) {
@@ -102,20 +203,47 @@ export default function TheoryModal({
         }
     };
 
+    // Determine what to show on current page
+    let contentToRender;
+    if (hasVisualDesign && currentPage === 0) {
+        // Show visual design as the first page using TheoryViewer
+        contentToRender = (
+            <div className="w-full overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-1">
+                <TheoryViewerEmbed
+                    content={theoryContent.visualDesign}
+                    title={topicTitle}
+                />
+            </div>
+        );
+    } else {
+        const ruleIndex = hasVisualDesign ? currentPage - 1 : currentPage;
+        const currentRule = rules[ruleIndex];
+        contentToRender = currentRule ? (
+            <div className="space-y-6">
+                {currentRule.title && (
+                    <h3 className="text-xl font-black text-slate-800 dark:text-white">
+                        {currentRule.title}
+                    </h3>
+                )}
+                {renderContent(currentRule)}
+            </div>
+        ) : null;
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-gray-800 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col m-4">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-gray-800 w-full max-w-4xl max-h-[92vh] overflow-hidden flex flex-col m-4">
                 {/* Header */}
-                <div className="flex items-center justify-between p-8 border-b border-slate-100 dark:border-gray-800">
+                <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-gray-800">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center">
-                            <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-800 dark:text-white">
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white">
                                 Repaso de Teoría
                             </h2>
-                            <p className="text-sm text-slate-500 dark:text-gray-400">
+                            <p className="text-xs text-slate-500 dark:text-gray-400">
                                 {topicTitle}
                             </p>
                         </div>
@@ -129,17 +257,8 @@ export default function TheoryModal({
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-8">
-                    {currentRule && (
-                        <div className="space-y-6">
-                            {currentRule.title && (
-                                <h3 className="text-xl font-black text-slate-800 dark:text-white">
-                                    {currentRule.title}
-                                </h3>
-                            )}
-                            {renderContent(currentRule)}
-                        </div>
-                    )}
+                <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+                    {contentToRender}
 
                     {totalPages === 0 && (
                         <div className="text-center py-12">
@@ -151,19 +270,19 @@ export default function TheoryModal({
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between p-8 border-t border-slate-100 dark:border-gray-800">
+                <div className="flex items-center justify-between p-6 border-t border-slate-100 dark:border-gray-800 bg-slate-50/50 dark:bg-slate-900/50">
                     <div className="flex items-center gap-2">
                         {Array.from({ length: totalPages }).map((_, idx) => (
                             <div
                                 key={idx}
-                                className={`h-2 rounded-full transition-all ${idx === currentPage
-                                        ? 'w-8 bg-indigo-600'
-                                        : 'w-2 bg-slate-200 dark:bg-gray-700'
+                                className={`h-1.5 rounded-full transition-all ${idx === currentPage
+                                    ? 'w-6 bg-indigo-600'
+                                    : 'w-1.5 bg-slate-200 dark:bg-gray-700'
                                     }`}
                             />
                         ))}
                         {totalPages > 0 && (
-                            <span className="text-sm text-slate-500 dark:text-gray-400 ml-2">
+                            <span className="text-[10px] font-bold text-slate-400 ml-2 uppercase tracking-widest">
                                 {currentPage + 1} / {totalPages}
                             </span>
                         )}

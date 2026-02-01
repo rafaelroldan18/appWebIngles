@@ -1,0 +1,79 @@
+=========================================================================================================================================================================
+                                                 ESPECIFICACIÓN FORMAL DE REQUERIMIENTOS FUNCIONALES - PROYECTO ENGLISH27
+=========================================================================================================================================================================
+
+Este documento presenta el desglose detallado de los requerimientos funcionales, estructurados de forma atómica y sin sub-niveles.
+Formato: INFINITIVO, CLARO, MEDIBLE y enfocado en el «QUÉ».
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+1. ROL DE ESTUDIANTE (STUDENT ROLE)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+N°     | REQUISITO                           | DESCRIPCIÓN DE FUNCIONALIDAD Y MANEJO DE DATOS                                        | RESPUESTA AUTOMÁTICA DEL SISTEMA                                     | PRIORIDAD
+-------|-------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------|-----------
+RF-E01 | Registrar mediante invitación       | Validar el enlace único recibido por email y procesar el token UUID de seguridad.     | Mostrar formulario de registro vinculado al paralelo; crear cuenta.  | CRÍTICA
+RF-E02 | Iniciar sesión                      | Autenticar al usuario mediante correo y contraseña contra la base de datos de Auth.   | Otorgar token JWT y redirigir al Dashboard del Estudiante.           | CRÍTICA
+RF-E03 | Acceder al panel de misiones        | Consultar la tabla de misiones asignadas al paralelo del estudiante autenticado.      | Listar las misiones activas y mostrar botones de acción inmediata.   | ALTA
+RF-E04 | Realizar misiones de aprendizaje    | Ejecutar el entorno de juego cargando el contenido educativo configurado.              | Cargar dinámicamente el vocabulario y gramática en el motor Phaser.  | CRÍTICA
+RF-E05 | Ejecutar juego Word Catcher         | Presentar palabras en movimiento y validar colisiones con ítems correctos.             | Sumar puntos al perfil tras capturar términos válidos del tema.      | ALTA
+RF-E06 | Ejecutar juego Grammar Run          | Controlar un personaje en avance y evaluar respuestas de opción múltiple.              | Permitir el avance del personaje ante respuestas gramaticales éxito. | ALTA
+RF-E07 | Ejecutar juego Sentence Builder     | Presentar bloques desordenados y validar el orden sintáctico de la oración.            | Confirmar la construcción lógica de la frase y otorgar puntaje.      | ALTA
+RF-E08 | Ejecutar juego Image Match         | Gestionar asociaciones entre imágenes y términos técnicos en inglés.                  | Confirmar la correspondencia visual y textual entre los pares.       | ALTA
+RF-E09 | Ejecutar juego City Explorer        | Permitir la navegación urbana y procesar retos de localización y vocabulario.         | Evaluar las respuestas según la ubicación del usuario en el mapa.    | MEDIA
+RF-E10 | Recibir puntos                      | Calcular el desempeño final basándose en aciertos, errores y tiempo empleado.          | Actualizar el puntaje acumulado en la base de datos del perfil.      | ALTA
+RF-E11 | Consultar progreso personal         | Recuperar métricas de precisión y niveles de completitud del perfil del alumno.        | Presentar tableros visuales y gráficos de rendimiento académico.      | ALTA
+RF-E12 | Visualizar retroalimentación        | Procesar resultados finales de la sesión de juego al terminar la actividad.            | Desplegar resumen de aciertos/errores y trofeos ganados en pantalla. | ALTA
+RF-E13 | Acceder al historial                | Consultar el registro cronológico de sesiones de juego finalizadas.                    | Listar actividades previas con sus respectivas fechas y notas.       | MEDIA
+RF-E14 | Visualizar información de perfil    | Recuperar datos personales, rol y paralelo asignado del almacenamiento de seguridad.   | Mostrar la ficha de información del usuario y su estado de cuenta.   | MEDIA
+RF-E15 | Cerrar sesión                       | Invalidad los tokens de acceso y limpiar el estado de la sesión local.                | Redirigir al usuario al portal de login de forma segura e inmediata. | ALTA
+RF-E16 | Ajustar preferencias de audio        | Modificar niveles de volumen de música y efectos mediante controles deslizantes.       | Aplicar cambios a través del gestor de audio central del sistema.    | MEDIA
+RF-E17 | Alternar modo visual                | Cambiar el esquema de colores de la interfaz entre modo claro y oscuro.               | Persistir preferencia en almacenamiento local y actualizar CSS.      | MEDIA
+RF-E18 | Cambiar contraseña personal         | Validar la clave vigente y procesar el nuevo registro de seguridad encriptado.        | Actualizar registro persistente y solicitar nueva autenticación.      | ALTA
+RF-E19 | Consultar teoría del tema           | Acceder al material didáctico previo diseñado por el docente para la misión.          | Renderizar el contenido visual/educativo en un modal interactivo.    | ALTA
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+2. ROL DE DOCENTE (TEACHER ROLE)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+N°     | REQUISITO                           | DESCRIPCIÓN DE FUNCIONALIDAD Y MANEJO DE DATOS                                        | RESPUESTA AUTOMÁTICA DEL SISTEMA                                     | PRIORIDAD
+-------|-------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------|-----------
+RF-D01 | Registrar mediante invitación       | Validar el token de enlace administrativo para habilitar el perfil docente.           | Activar permisos de gestión y mostrar formulario de alta.            | CRÍTICA
+RF-D02 | Iniciar sesión                      | Autenticar con credenciales y verificar privilegios de docente en la base de datos.   | Redirigir al Panel de Control con herramientas de gestión de aula.    | CRÍTICA
+RF-D03 | Gestionar actividades gamificadas   | Permitir la lectura y monitoreo de las misiones configuradas para los paralelos.      | Listar el inventario de actividades creadas por el docente.          | ALTA
+RF-D04 | Generar invitaciones                | Crear registros de invitación y generar enlaces con tokens de seguridad únicos.       | Disparar correos electrónicos automáticos a los destinatarios.       | ALTA
+RF-D05 | Eliminar estudiantes                | Desvincular un registro de alumno de un paralelo académico específico.                | Actualizar la relación en base de datos y refrescar el listado.      | ALTA
+RF-D06 | Asignar actividades                 | Configurar la unión entre un tema, juego y un paralelo académico.                     | Crear registro de disponibilidad y notificar a los estudiantes.      | CRÍTICA
+RF-D07 | Visualizar progreso                 | Procesar analíticas de rendimiento de los estudiantes del curso asignado.             | Generar tableros de control con promedios y niveles de avance.       | ALTA
+RF-D08 | Generar reportes académicos         | Extraer el histórico de calificaciones consolidadas por aula y estudiante.            | Presentar la vista resumen de la sábana de notas del paralelo.       | ALTA
+RF-D09 | Programar fechas de disponibilidad  | Establecer marcas temporales de inicio y fin para el acceso a las misiones.           | Bloquear automáticamente las misiones fuera del rango definido.       | ALTA
+RF-D10 | Configurar límite de intentos       | Definir el número máximo de ejecuciones permitidas para una misión educativa.         | Validar contador de sesiones para impedir juegos adicionales.        | ALTA
+RF-D11 | Registrar estudiantes manualmente   | Insertar datos de nuevos alumnos directamente vinculados al curso actual.             | Crear cuenta activa e informar al sistema de la nueva membresía.     | MEDIA
+RF-D12 | Importar invitaciones vía CSV       | Procesar archivos de texto delimitado para carga masiva de correos.                   | Validar estructura del archivo y enviar invitaciones en lote.        | MEDIA
+RF-D13 | Descargar reportes en PDF/Excel     | Exportar datos filtrados de rendimiento a archivos binarios descargables.             | Generar y entregar el archivo .xlsx o .pdf con la información.       | ALTA
+RF-D14 | Agregar temas y contenido           | Insertar nuevos tópicos y elementos didácticos (frases/palabras) en el sistema.       | Validar formatos de datos y persistir en las tablas de contenido.    | ALTA
+RF-D15 | Eliminar temas y contenido          | Remover registros de temas o ítems de la base de datos institucional.                 | Aplicar borrado en cascada y limpiar misiones vinculadas.            | MEDIA
+RF-D16 | Visualizar información de perfil    | Mostrar identidad, paralelos bajo gestión y estadísticas administrativas.             | Presentar el panel de información personal del docente.              | MEDIA
+RF-D17 | Consultar invitaciones realizadas   | Monitorear el estado de recepción y aceptación de las invitaciones enviadas.          | Listar registros con estados "Pendiente" o "Registrado".             | MEDIA
+RF-D18 | Cerrar sesión                       | Terminar la vigencia del token de seguridad y limpiar la sesión activa.               | Redirigir a la vista pública de la aplicación.                      | ALTA
+RF-D19 | Diseñar teoría visual               | Utilizar herramientas de edición enriquecida para crear contenido didáctico.          | Persistir el diseño visual en el campo de contenido del tema.         | ALTA
+RF-D20 | Generar contenido por IA            | Solicitar propuestas automáticas de ítems de juego basándose en un tema.              | Presentar lista de sugerencias para su aprobación y carga manual.    | MEDIA
+RF-D21 | Previsualizar misiones              | Activar modo de simulación para testear la experiencia de juego del alumno.           | Habilitar entorno de juego sin persistencia de notas académicas.     | ALTA
+RF-D22 | Editar bancos de contenido          | Modificar atributos de ítems existentes (traducciones, imágenes, textos).             | Actualizar los registros base de la biblioteca de contenidos.        | ALTA
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+3. ROL DE ADMINISTRADOR (ADMIN ROLE)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+N°     | REQUISITO                           | DESCRIPCIÓN DE FUNCIONALIDAD Y MANEJO DE DATOS                                        | RESPUESTA AUTOMÁTICA DEL SISTEMA                                     | PRIORIDAD
+-------|-------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------|-----------
+RF-A01 | Iniciar sesión                      | Validar credenciales administrativas de alto nivel para ingreso al núcleo.            | Otorgar acceso total a servicios de gestión y base de datos.         | CRÍTICA
+RF-A02 | Gestionar cuentas de usuario        | Administrar el ciclo de vida de cualquier perfil (creación a eliminación).            | Aplicar cambios jerárquicos y de estado de cuenta globalmente.       | ALTA
+RF-A03 | Asignar roles                       | Establecer la jerarquía de permisos de una cuenta específica en el sistema.           | Emitir nuevos derechos de navegación y consumo de APIs.              | CRÍTICA
+RF-A04 | Modificar roles                     | Cambiar el nivel de privilegios de cuentas existentes según necesidad.                | Reflejar cambios de seguridad instantáneamente en el middleware.     | ALTA
+RF-A05 | Acceder a estadísticas generales    | Analizar la telemetría global de uso y rendimiento de todo el ecosistema.             | Presentar indicadores clave (KPIs) de actividad de la plataforma.    | MEDIA
+RF-A06 | Descargar reportes globales         | Exportar información consolidada de todo el sistema a formatos externos.              | Generar archivo .xlsx/.pdf con estadísticas de uso global.           | ALTA
+RF-A07 | Enviar invitaciones de registro     | Crear y despachar correos para el registro de docentes y alumnos nuevos.              | Disparar el servicio de correo con tokens UUID de alta seguridad.    | ALTA
+RF-A08 | Cerrar sesión                       | Ejecutar terminación de la sesión de administración de forma segura.                  | Revocar privilegios y redirigir a la página de acceso público.       | ALTA
+RF-A09 | Gestionar paralelos académicos      | Administrar la estructura de cursos (nombre, año lectivo) del centro.                 | Actualizar la organización organizacional para docentes y alumnos.   | CRÍTICA
+RF-A10 | Monitorear actividad en tiempo real | Observar métricas dinámicas de conexiones y transacciones activas.                    | Mostrar gráficas de telemetría en vivo mediante componentes visuales.| BAJA
+
+=========================================================================================================================================================================
+                                                        FIN DEL DOCUMENTO - ESTRUCTURA ATÓMICA v1.5
+=========================================================================================================================================================================

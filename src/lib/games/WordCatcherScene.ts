@@ -3,9 +3,11 @@ import { WORD_CATCHER_CONFIG, resolveWordCatcherConfig } from './wordCatcher.con
 import { preloadCommonAndGame } from './assets/assetLoader';
 import { ASSET_MANIFEST } from './assets/manifest';
 import { GameHUD } from './GameHUD';
-import { createButton, createPanel, showGlow, showFullscreenRequest, showGameInstructions } from './UIKit';
+import { createButton, createPanel, showGlow, showImpactParticles, showFullscreenRequest, showGameInstructions } from './UIKit';
 import { buildGameDataset, type PreparedGameItem, type GameDataset } from './gameLoader.utils';
 import { AnswerTracker } from './answerTracker';
+import { loadGameAudio } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 import type { GameContent, MissionConfig } from '@/types/game.types';
 import type { GameSessionManager } from './GameSessionManager';
 
@@ -23,6 +25,7 @@ export class WordCatcherScene extends Phaser.Scene {
     private activeWords: WordSprite[] = [];
     private wordIndex: number = 0;
     private wordsCompleted: number = 0; // Track how many words have been caught or missed
+    private soundManager!: SoundManager;
 
     // Game state
     private score: number = 0;
@@ -98,12 +101,14 @@ export class WordCatcherScene extends Phaser.Scene {
 
     preload() {
         preloadCommonAndGame(this, 'word-catcher', ASSET_MANIFEST);
+        loadGameAudio(this, 'wc');
         this.load.image('wc_bg_fixed', '/assets/backgrounds/word-catcher/bg_soft.png');
     }
 
     create() {
         try {
             const { width, height } = this.cameras.main;
+            this.soundManager = new SoundManager(this);
 
             // 1) Fondo
             const bg = this.add.image(width / 2, height / 2, 'wc_bg_fixed');
@@ -158,7 +163,7 @@ export class WordCatcherScene extends Phaser.Scene {
             showHelpButton: this.resolvedConfig.hud_help_enabled,
             showPauseButton: true,
             showScore: true
-        });
+        }, this.soundManager);
 
         this.gameHUD.onPause(() => this.togglePause());
         this.gameHUD.onHelp(() => this.showHelpPanel());
@@ -187,10 +192,10 @@ export class WordCatcherScene extends Phaser.Scene {
         // Texto CAUGHT
         this.correctText = this.add.text(panelX, y, 'CAUGHT: 0', {
             fontSize: '20px',
-            fontFamily: 'Fredoka',
+            fontFamily: 'Nunito',
             color: V.correctCountColor,
             stroke: V.textShadow,
-            strokeThickness: 3
+            strokeThickness: 1
         }).setOrigin(0.5).setDepth(1001).setScrollFactor(0);
 
         // Sombra sutil (UI-only)
@@ -234,6 +239,8 @@ export class WordCatcherScene extends Phaser.Scene {
         this.isPaused = true;
         this.spawnTimer?.remove();
         this.gameTimer?.remove();
+        this.soundManager.stopMusic();
+        this.soundManager.playSfx('game_win');
 
         const payload = this.buildGamePayload();
 
@@ -265,7 +272,7 @@ export class WordCatcherScene extends Phaser.Scene {
             .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - panelH * 0.30, 'PAUSED', {
-            fontSize: '48px', fontFamily: 'Fredoka', color: V.timerColor, stroke: V.textShadow, strokeThickness: 8
+            fontSize: '48px', fontFamily: 'Nunito', color: V.timerColor, stroke: V.textShadow, strokeThickness: 2
         }).setOrigin(0.5);
 
         const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'RESUME', () => {
@@ -313,11 +320,11 @@ export class WordCatcherScene extends Phaser.Scene {
 
         const title = this.add.text(0, -panelH * 0.36, 'MISSION COMPLETE', {
             fontSize: '36px',
-            fontFamily: 'Fredoka',
+            fontFamily: 'Nunito',
             color: V.timerColor,
             align: 'center',
             stroke: V.textShadow,
-            strokeThickness: 6
+            strokeThickness: 2
         }).setOrigin(0.5);
         container.add(title);
 
@@ -329,14 +336,14 @@ export class WordCatcherScene extends Phaser.Scene {
         const lineHeight = 40;
 
         const caughtText = this.add.text(0, statsStartY, `WORDS CAUGHT: ${stats.caught}`, {
-            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', stroke: V.textShadow, strokeThickness: 3
+            fontSize: '22px', fontFamily: 'Nunito', color: '#ffffff', stroke: V.textShadow, strokeThickness: 1
         }).setOrigin(0.5);
         container.add(caughtText);
 
         const bonusStatus = stats.perfectCatch ? 'ACTIVE (+500)' : 'INACTIVE';
         const bonusColor = stats.perfectCatch ? V.wordCorrectColor : '#94a3b8';
         const bonusText = this.add.text(0, statsStartY + lineHeight, `PERFECT CATCH: ${bonusStatus}`, {
-            fontSize: '18px', fontFamily: 'Fredoka', color: bonusColor, stroke: V.textShadow, strokeThickness: 3
+            fontSize: '18px', fontFamily: 'Nunito', color: bonusColor, stroke: V.textShadow, strokeThickness: 1
         }).setOrigin(0.5);
         container.add(bonusText);
 
@@ -347,7 +354,7 @@ export class WordCatcherScene extends Phaser.Scene {
         else if (stats.accuracy >= 50) { rank = 'ROOKIE'; icon = '⭐'; }
 
         const rankText = this.add.text(0, statsStartY + lineHeight * 2, `RANK: ${icon} ${rank}`, {
-            fontSize: '26px', fontFamily: 'Fredoka', color: V.timerColor, stroke: V.textShadow, strokeThickness: 4
+            fontSize: '26px', fontFamily: 'Nunito', color: V.timerColor, stroke: V.textShadow, strokeThickness: 2
         }).setOrigin(0.5);
         container.add(rankText);
 
@@ -435,13 +442,13 @@ export class WordCatcherScene extends Phaser.Scene {
             .setTint(0x3b82f6);
 
         const title = this.add.text(width / 2, height / 2 - panelH * 0.35, 'INSTRUCTIONS', {
-            fontSize: '28px', fontFamily: 'Fredoka', color: '#ffffff', stroke: V.textShadow, strokeThickness: 4
+            fontSize: '28px', fontFamily: 'Nunito', color: '#ffffff', stroke: V.textShadow, strokeThickness: 1
         }).setOrigin(0.5);
 
         const instructions = this.add.text(width / 2, height / 2, this.missionInstructions || 'Catch the correct items!', {
-            fontSize: '20px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center',
+            fontSize: '20px', fontFamily: 'Nunito', color: '#ffffff', align: 'center',
             wordWrap: { width: Math.min(420, panelW - 80) },
-            stroke: V.textShadow, strokeThickness: 2
+            stroke: V.textShadow, strokeThickness: 1
         }).setOrigin(0.5);
 
         const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + panelH * 0.34, 'READY!', () => {
@@ -464,8 +471,10 @@ export class WordCatcherScene extends Phaser.Scene {
             callback: () => {
                 count--;
                 if (count > 0) txt.setText(count.toString());
-                else if (count === 0) txt.setText('GO!').setColor('#10b981');
-                else {
+                else if (count === 0) {
+                    txt.setText('GO!').setColor('#10b981');
+                    this.soundManager.playSfx('game_start');
+                } else {
                     txt.destroy();
                     this.startGameplay();
                 }
@@ -481,107 +490,64 @@ export class WordCatcherScene extends Phaser.Scene {
         });
         this.spawnWord();
         this.gameStartTime = Date.now();
+        this.soundManager.playMusic('bg_music', 0.4);
     }
 
     private updateTimer() {
         if (this.isPaused) return;
         this.timeElapsed++; // Count UP instead of down
         this.gameHUD.update({ timeRemaining: this.timeElapsed });
-        // Timer no longer ends the game - only completion does
     }
 
     private spawnWord() {
         if (this.isGameOver || this.isPaused) return;
 
-        // Check if all words have been spawned
         if (this.wordIndex >= this.gameDataset.totalCount) {
-            console.log('[WordCatcher] All words have been spawned.');
-            // Stop spawning more words
             if (this.spawnTimer) this.spawnTimer.remove();
-            // Game will end when last word is caught/missed (checked in handleCorrectCatch and onWordMissed)
             return;
         }
 
         const wordData = this.gameDataset.items[this.wordIndex % this.gameDataset.items.length];
         this.wordIndex++;
+        this.soundManager.playSfx('item_spawn', 0.3);
 
         const { width, height } = this.cameras.main;
         const x = Phaser.Math.Between(80, width - 80);
 
-        // Container
         const container = this.add.container(x, -100).setDepth(1) as unknown as WordSprite;
+        const baseFrame = Phaser.Math.Between(0, 100) > 85 ? 'word-catcher/tokens/token_bonus' : 'word-catcher/tokens/token_base';
 
-        const baseTexture = 'wc_atlas';
-
-        // UI-only: variedad de forma y tinte (visual)
-        const isBonusShape = Phaser.Math.Between(0, 100) > 85;
-        const baseFrame = isBonusShape ? 'word-catcher/tokens/token_bonus' : 'word-catcher/tokens/token_base';
-
-        const tints = [
-            0xbae6fd,
-            0xfed7aa,
-            0xc7d2fe,
-            0xfecaca,
-            0xd9f99d,
-            0xffffff,
-            0xe2e8f0
-        ];
+        const tints = [0xbae6fd, 0xfed7aa, 0xc7d2fe, 0xfecaca, 0xd9f99d, 0xffffff, 0xe2e8f0];
         const randomTint = Phaser.Utils.Array.GetRandom(tints);
-
-        // ✅ UI-only: tamaño responsivo (no lógica)
         const tokenSize = Phaser.Math.Clamp(Math.round(width * 0.12), 90, 130);
 
-        const sprite = this.add.image(0, 0, baseTexture, baseFrame)
-            .setDisplaySize(tokenSize, tokenSize);
+        const sprite = this.add.image(0, 0, 'wc_atlas', baseFrame)
+            .setDisplaySize(tokenSize, tokenSize)
+            .setTint(randomTint);
 
-        sprite.setTint(randomTint);
-
-        // ✅ UI-only: texto responsivo y legible
         const fontSize = Phaser.Math.Clamp(Math.round(tokenSize * 0.20), 16, 24);
-
         const wordText = this.add.text(0, 0, wordData.content_text.toUpperCase(), {
-            fontSize: `${fontSize}px`,
-            fontFamily: 'Fredoka',
-            color: '#1e293b',
-            align: 'center',
-            wordWrap: { width: tokenSize - 18 },
-            stroke: '#ffffff',
-            strokeThickness: 4
+            fontSize: `${fontSize}px`, fontFamily: 'Nunito', color: '#1e293b', align: 'center',
+            wordWrap: { width: tokenSize - 18 }, stroke: '#ffffff', strokeThickness: 1
         }).setOrigin(0.5);
 
-        // Sombra sutil (UI-only)
         wordText.setShadow(0, 2, WORD_CATCHER_CONFIG.visual.textShadow, 4, true, true);
-
         container.add([sprite, wordText]);
-
-        // Animación de entrada (UI-only)
         container.setScale(0.86);
-        this.tweens.add({
-            targets: container,
-            scale: 1.0,
-            duration: 260,
-            ease: 'Back.out'
-        });
+        this.tweens.add({ targets: container, scale: 1.0, duration: 260, ease: 'Back.out' });
 
         sprite.setInteractive({ useHandCursor: true });
-
         container.wordData = wordData;
         container.baseSprite = sprite;
         container.wordText = wordText;
 
-        sprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            this.onWordClicked(pointer, container);
-        });
+        sprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onWordClicked(pointer, container));
 
-        // NO TOCAR LÓGICA: velocidad real (sin *0.5)
         const fallSpeed = this.resolvedConfig.fall_speed;
         const fallDuration = (height + 200) / (fallSpeed / 1000);
 
         this.tweens.add({
-            targets: container,
-            y: height + 150,
-            duration: fallDuration,
-            ease: 'Linear',
+            targets: container, y: height + 150, duration: fallDuration, ease: 'Linear',
             onComplete: () => {
                 if (container.active) {
                     this.onWordMissed(container);
@@ -599,99 +565,82 @@ export class WordCatcherScene extends Phaser.Scene {
         if (!wordContainer.wordData || wordContainer.isClicked) return;
 
         wordContainer.isClicked = true;
+        this.tweens.killTweensOf(wordContainer); // Stop the falling tween
         if (wordContainer.wordData.is_correct) this.handleCorrectCatch(wordContainer);
         else this.handleWrongCatch(wordContainer);
     }
 
     private handleCorrectCatch(container: WordSprite) {
         const V = WORD_CATCHER_CONFIG.visual;
-
         const points = WORD_CATCHER_CONFIG.scoring.points_correct;
         this.score += points;
 
         this.answerTracker.recordCorrectCatch(
-            container.wordData.content_id,
-            container.wordData.content_text,
+            container.wordData.content_id, container.wordData.content_text,
             { x: container.x, y: container.y },
             container.wordData.metadata?.rule_tag ? [container.wordData.metadata.rule_tag] : []
         );
 
         this.sessionManager?.updateScore(points, true);
+        this.soundManager.playSfx('catch_correct', 0.7);
+        this.soundManager.playSfx('correct', 0.4);
 
-        // UI-only: estado visual correcto
-        container.baseSprite.setFrame('word-catcher/tokens/token_correct');
-        container.baseSprite.clearTint();
+        container.baseSprite.setFrame('word-catcher/tokens/token_correct').clearTint();
         container.wordText.setColor('#ffffff').setStroke(V.textShadow, 3);
 
-        const x = container.x;
-        const y = container.y;
-
+        const { x, y } = container;
         showGlow(this, x, y, 0x10B981, 400);
+        showImpactParticles(this, x, y, 0x10B981);
+        this.cameras.main.shake(100, 0.002);
 
         this.tweens.add({
-            targets: container,
-            scale: 1.15,
-            duration: 240,
-            yoyo: true,
-            ease: 'Sine.easeInOut',
+            targets: container, scale: 1.15, duration: 240, yoyo: true, ease: 'Sine.easeInOut',
             onComplete: () => {
                 this.tweens.add({
-                    targets: container,
-                    y: y - 80,
-                    alpha: 0,
-                    duration: 520,
-                    ease: 'Power2.easeOut',
-                    onComplete: () => container.destroy()
+                    targets: container, y: y - 80, alpha: 0, duration: 520, ease: 'Power2.easeOut',
+                    onComplete: () => {
+                        container.destroy();
+                        this.wordsCompleted++;
+                        this.checkGameCompletion();
+                    }
                 });
             }
         });
 
         this.updateUI_Stats();
-
-        // Increment completed words counter
-        this.wordsCompleted++;
-        this.checkGameCompletion();
     }
 
     private handleWrongCatch(container: WordSprite) {
         const V = WORD_CATCHER_CONFIG.visual;
-
         const points = WORD_CATCHER_CONFIG.scoring.points_wrong;
         this.score = Math.max(0, this.score + points);
 
         this.answerTracker.recordDistractorCatch(
-            container.wordData.content_id,
-            container.wordData.content_text,
+            container.wordData.content_id, container.wordData.content_text,
             { x: container.x, y: container.y },
             container.wordData.metadata?.rule_tag ? [container.wordData.metadata.rule_tag] : []
         );
 
         this.sessionManager?.updateScore(points, false);
+        this.soundManager.playSfx('catch_wrong', 0.8);
+        this.soundManager.playSfx('wrong', 0.5);
 
-        // UI-only: estado visual incorrecto
-        container.baseSprite.setFrame('word-catcher/tokens/token_wrong');
-        container.baseSprite.clearTint();
+        container.baseSprite.setFrame('word-catcher/tokens/token_wrong').clearTint();
         container.wordText.setColor('#ffffff').setStroke(V.textShadow, 3);
 
-        const y = container.y;
-
-        this.cameras.main.shake(150, 0.005);
+        this.cameras.main.shake(250, 0.012);
+        showImpactParticles(this, container.x, container.y, 0xEF4444);
 
         this.tweens.add({
-            targets: container,
-            x: '+=5',
-            duration: 50,
-            yoyo: true,
-            repeat: 4,
+            targets: container, x: '+=5', duration: 50, yoyo: true, repeat: 4,
             onComplete: () => {
                 this.tweens.add({
-                    targets: container,
-                    y: y + 50,
-                    scale: 0.9,
-                    alpha: 0,
-                    duration: 520,
-                    ease: 'Power2.easeOut',
-                    onComplete: () => container.destroy()
+                    targets: container, y: container.y + 50, scale: 0.9, alpha: 0, duration: 520, ease: 'Power2.easeOut',
+                    onComplete: () => {
+                        container.destroy();
+                        this.wordsCompleted++;
+                        this.checkGameCompletion();
+                    }
                 });
             }
         });
@@ -704,14 +653,12 @@ export class WordCatcherScene extends Phaser.Scene {
 
         if (sprite.wordData.is_correct) {
             if (this.resolvedConfig.miss_penalty_enabled) {
-                const penalty = WORD_CATCHER_CONFIG.scoring.points_wrong; // Using points_wrong for missed words
+                const penalty = WORD_CATCHER_CONFIG.scoring.points_wrong;
                 this.score = Math.max(0, this.score + penalty);
                 this.sessionManager?.updateScore(penalty, false);
             }
-
             this.answerTracker.recordMissedWord(
-                sprite.wordData.content_id,
-                sprite.wordData.content_text,
+                sprite.wordData.content_id, sprite.wordData.content_text,
                 { x: sprite.x, y: sprite.y },
                 sprite.wordData.metadata?.rule_tag ? [sprite.wordData.metadata.rule_tag] : []
             );
@@ -720,16 +667,12 @@ export class WordCatcherScene extends Phaser.Scene {
         }
 
         this.updateUI_Stats();
-
-        // Increment completed words counter
         this.wordsCompleted++;
         this.checkGameCompletion();
     }
 
     private checkGameCompletion() {
-        // End game when all words have been processed (caught or missed)
         if (this.wordsCompleted >= this.gameDataset.totalCount) {
-            console.log('[WordCatcher] All words completed! Ending game.');
             this.endGame();
         }
     }

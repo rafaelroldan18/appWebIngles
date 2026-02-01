@@ -6,6 +6,8 @@ import { AnswerTracker } from './answerTracker';
 import type { GameSessionManager } from './GameSessionManager';
 import { CityExplorerLocationItem, CityExplorerMapData } from './gameLoader.utils';
 import { CITY_EXPLORER_CONFIG } from './cityExplorer.config';
+import { loadGameAudio } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 
 interface Checkpoint {
     sprite: Phaser.GameObjects.Image;
@@ -37,6 +39,7 @@ export class CityExplorerScene extends Phaser.Scene {
     private isPaused: boolean = false;
     private missionPanel!: Phaser.GameObjects.Image; // Added for position sync
     private gameStartTime: number = 0;
+    private soundManager!: SoundManager;
     private score: number = 0;
     private locationsFound: number = 0;
     private failures: number = 0;
@@ -48,6 +51,8 @@ export class CityExplorerScene extends Phaser.Scene {
     private wasd!: any;
     private checkpoints: Checkpoint[] = [];
     private currentTarget: Checkpoint | null = null;
+    private guideArrow!: Phaser.GameObjects.Container;
+    private obstacles!: Phaser.Physics.Arcade.StaticGroup;
 
     // UI
     private gameHUD!: GameHUD;
@@ -85,16 +90,19 @@ export class CityExplorerScene extends Phaser.Scene {
 
     preload() {
         loadGameAtlases(this, 'ce');
+        loadGameAudio(this, 'ce');
         this.load.image('bg_city', '/assets/backgrounds/city-explorer/bg_lolium.png');
     }
 
     create() {
         try {
             const { width, height } = this.cameras.main;
+            this.soundManager = new SoundManager(this);
             const worldWidth = 1600;
             const worldHeight = 1200;
+            const headerHeight = 150; // Increased to protect HUD area
 
-            this.physics.world.setBounds(0, 0, worldWidth, worldHeight);
+            this.physics.world.setBounds(0, headerHeight, worldWidth, worldHeight - headerHeight);
             this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
             // 1. Background (City Map)
@@ -102,7 +110,7 @@ export class CityExplorerScene extends Phaser.Scene {
             mapBg.setDisplaySize(worldWidth, worldHeight);
             mapBg.setDepth(0);
 
-            // 2. Decoraciones fijas para llenar el mapa
+            // 2. Decorations & Obstacles (Buildings)
             this.createDecoration(worldWidth, worldHeight);
 
             // 3. Marcadores
@@ -110,6 +118,12 @@ export class CityExplorerScene extends Phaser.Scene {
 
             // 4. Player
             this.createPlayer();
+
+            // 4.5 Guidance Arrow
+            this.createGuidanceArrow();
+
+            // 5. Physics Collisions
+            this.physics.add.collider(this.player, this.obstacles);
 
             // 5. Controls
             this.setupControls();
@@ -134,6 +148,14 @@ export class CityExplorerScene extends Phaser.Scene {
 
     private showInitialFullscreen() {
         this.isPaused = true;
+
+        // Ensure input is captured when clicking anywhere on the game
+        this.input.on('pointerdown', () => {
+            if (!this.scale.isFullscreen && this.sys.game.canvas) {
+                this.sys.game.canvas.focus();
+            }
+        });
+
         showGameInstructions(this, {
             title: 'City Explorer',
             instructions: this.missionInstructions || 'Explore the map to find all the required locations. Complete the challenges at each stop!',
@@ -149,6 +171,8 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private createDecoration(worldWidth: number, worldHeight: number) {
+        this.obstacles = this.physics.add.staticGroup();
+
         const decorations = [
             { x: 150, y: 180, frame: 'city-explorer/buildings/building_house' },
             { x: 300, y: 180, frame: 'city-explorer/buildings/building_shop' },
@@ -165,9 +189,39 @@ export class CityExplorerScene extends Phaser.Scene {
         ];
 
         decorations.forEach(config => {
-            const img = this.add.image(config.x, config.y, 'ce_atlas', config.frame);
-            img.setAlpha(0.5).setScale(0.9).setDepth(10);
+            const building = this.obstacles.create(config.x, config.y, 'ce_atlas', config.frame);
+            building.setScale(0.9).setDepth(20);
+
+            // Minimal collision body at the bottom base 
+            // This leaves the center (where flags are) fully reachable
+            const body = building.body as Phaser.Physics.Arcade.StaticBody;
+            const bWidth = 40;
+            const bHeight = 30;
+            body.setSize(bWidth, bHeight);
+            body.setOffset((building.width - bWidth) / 2, building.height * 0.7);
+            body.updateFromGameObject();
         });
+    }
+
+    private createGuidanceArrow() {
+        this.guideArrow = this.add.container(0, 0);
+
+        // Simple and elegant triangle arrow using graphics
+        const arrowGfx = this.add.graphics();
+        arrowGfx.fillStyle(0xfbbf24, 0.9);
+        arrowGfx.lineStyle(2, 0xffffff, 0.8);
+
+        // Triangle pointing right (Phaser rotation 0 is right)
+        arrowGfx.beginPath();
+        arrowGfx.moveTo(15, 0);
+        arrowGfx.lineTo(-10, -10);
+        arrowGfx.lineTo(-10, 10);
+        arrowGfx.closePath();
+        arrowGfx.fillPath();
+        arrowGfx.strokePath();
+
+        this.guideArrow.add(arrowGfx);
+        this.guideArrow.setDepth(1000).setAlpha(0); // Hidden until game starts
     }
 
     private createMapMarkers() {
@@ -220,10 +274,22 @@ export class CityExplorerScene extends Phaser.Scene {
             S: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             D: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
         };
+
+        // Prevent browser from scrolling with arrows/WASD
+        this.input.keyboard?.addCapture([
+            Phaser.Input.Keyboard.KeyCodes.UP,
+            Phaser.Input.Keyboard.KeyCodes.DOWN,
+            Phaser.Input.Keyboard.KeyCodes.LEFT,
+            Phaser.Input.Keyboard.KeyCodes.RIGHT,
+            Phaser.Input.Keyboard.KeyCodes.W,
+            Phaser.Input.Keyboard.KeyCodes.A,
+            Phaser.Input.Keyboard.KeyCodes.S,
+            Phaser.Input.Keyboard.KeyCodes.D
+        ]);
     }
 
     private createHud() {
-        const { width } = this.cameras.main;
+        const { width, height } = this.cameras.main;
         // HUD (Manual Position Sync for reliably clickable buttons in panning camera)
         this.gameHUD = new GameHUD(this, {
             showTimer: true,
@@ -234,10 +300,10 @@ export class CityExplorerScene extends Phaser.Scene {
             totalItems: this.requiredCheckpoints,
             showHelpButton: true,
             showPauseButton: true
-        });
+        }, this.soundManager);
         this.gameHUD.getContainer().setScrollFactor(0).setDepth(5000);
 
-        this.progressText = this.add.text(width / 2, 78, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
+        this.progressText = this.add.text(width / 2, 75, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
             fontSize: '18px',
             fontFamily: 'Fredoka',
             color: '#ffffff',
@@ -245,16 +311,48 @@ export class CityExplorerScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
-        this.missionPanel = createPanel(this, 'common-ui/panels/panel_dark', width / 2, 115, 600, 50)
-            .setScrollFactor(0).setDepth(4999).setAlpha(0.9);
+        // --- NEW DIALOG BOX DESIGN (Bottom Side) ---
+        const dialogW = 500;
+        const dialogH = 100;
+        const dialogX = 20 + dialogW / 2;
+        const dialogY = height - 70;
 
-        this.objectiveText = this.add.text(width / 2, 115, 'initializing...', {
-            fontSize: '17px',
+        const dialogBg = this.add.graphics();
+        // Lighter glassy background (Slate-800 style)
+        dialogBg.fillStyle(0x1e293b, 0.9);
+        dialogBg.lineStyle(3, 0x3b82f6, 1);
+        dialogBg.fillRoundedRect(-dialogW / 2, -dialogH / 2, dialogW, dialogH, 20);
+        dialogBg.strokeRoundedRect(-dialogW / 2, -dialogH / 2, dialogW, dialogH, 20);
+
+        // Target Indicator Icon
+        const targetIcon = this.add.image(-dialogW / 2 + 45, 0, 'ce_atlas', 'city-explorer/markers/market_target')
+            .setScale(1).setTint(0xfbbf24);
+
+        const labelX = -dialogW / 2 + 90;
+
+        const missionLabel = this.add.text(labelX, -dialogH / 2 + 22, 'CURRENT MISSION:', {
+            fontSize: '12px',
             fontFamily: 'Fredoka',
-            color: '#fbbf24',
-            align: 'center',
-            wordWrap: { width: 580 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(5000);
+            color: '#93c5fd',
+            fontStyle: 'bold'
+        }).setOrigin(0, 0.5);
+
+        this.objectiveText = this.add.text(labelX, 10, 'initializing...', {
+            fontSize: '20px',
+            fontFamily: 'Fredoka',
+            color: '#ffffff',
+            align: 'left',
+            wordWrap: { width: dialogW - 120 }
+        }).setOrigin(0, 0.5);
+
+        const dialogContainer = this.add.container(dialogX, dialogY, [
+            dialogBg,
+            targetIcon,
+            missionLabel,
+            this.objectiveText
+        ]).setScrollFactor(0).setDepth(5000);
+
+        // Removed old missionPanel asset
 
         this.gameHUD.onPause(() => this.togglePause());
         this.gameHUD.onHelp(() => {
@@ -269,6 +367,35 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private startGame() {
+        console.log('[CityExplorer] Starting game and clearing blocks...');
+        // Ensure all movement-blocking flags are cleared
+        this.isPaused = false;
+        this.isAnswering = false;
+        this.isGameOver = false;
+
+        // Force physics and keyboard focus
+        this.physics.resume();
+        this.physics.world.resume();
+
+        if (this.input.keyboard) {
+            this.input.keyboard.enabled = true;
+            this.input.keyboard.resetKeys();
+        }
+
+        // Try to focus the game canvas multiple times to be sure
+        const focusCanvas = () => {
+            try {
+                this.sys.game.canvas.focus();
+                window.focus();
+            } catch (e) {
+                // silent fail 
+            }
+        };
+
+        focusCanvas();
+        setTimeout(focusCanvas, 100);
+        setTimeout(focusCanvas, 500);
+
         this.gameStartTime = Date.now();
         this.gameTimer = this.time.addEvent({
             delay: 1000,
@@ -280,6 +407,10 @@ export class CityExplorerScene extends Phaser.Scene {
                 // Timer no longer ends the game - only finding all checkpoints does
             }
         });
+
+        this.soundManager.playMusic('bg_music', 0.4);
+        this.soundManager.playSfx('game_start');
+        this.guideArrow.setAlpha(1);
 
         // Seleccionar primer target
         this.currentTarget = this.checkpoints[0];
@@ -299,10 +430,25 @@ export class CityExplorerScene extends Phaser.Scene {
         const rawClue = cp.data.challenge?.prompt || `Find the ${cp.data.name}`;
         const formattedClue = rawClue.charAt(0).toUpperCase() + rawClue.slice(1).toLowerCase();
         this.objectiveText.setText(formattedClue);
+        this.soundManager.playSfx('found_clue', 0.5);
     }
 
     update(time: number, delta: number) {
-        // Position sync removed as we now use ScrollFactor(0) for UI logic
+        // Update guidance arrow
+        if (this.currentTarget && !this.isGameOver && !this.isPaused) {
+            this.guideArrow.setPosition(this.player.x, this.player.y - 60);
+            const angle = Phaser.Math.Angle.Between(
+                this.player.x, this.player.y,
+                this.currentTarget.data.x, this.currentTarget.data.y
+            );
+            this.guideArrow.setRotation(angle);
+
+            // Add a little floating effect to the arrow
+            const bounce = Math.sin(time / 200) * 5;
+            this.guideArrow.setY(this.player.y - 60 + bounce);
+        } else {
+            this.guideArrow.setAlpha(0);
+        }
 
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         if (!body || this.isGameOver || this.isAnswering || this.isPaused) {
@@ -356,6 +502,7 @@ export class CityExplorerScene extends Phaser.Scene {
 
     private handleReachTarget(cp: Checkpoint) {
         this.isAnswering = true;
+        this.soundManager.playSfx('map_pin', 0.7);
         this.submitAnswer(cp, true);
     }
 
@@ -366,6 +513,8 @@ export class CityExplorerScene extends Phaser.Scene {
             this.score += points;
             this.locationsFound++;
             showGlow(this, 0, 0, 0x10b981, 600);
+            this.soundManager.playSfx('correct', 0.6);
+            this.soundManager.playSfx('unlock', 0.8);
             this.answerTracker.recordCorrectCatch(cp.data.id, cp.data.challenge?.prompt || cp.data.name, { x: cp.data.x, y: cp.data.y }, cp.data.challenge?.ruleTag ? [cp.data.challenge.ruleTag] : []);
             this.sessionManager?.updateScore(points, true);
         } else {
@@ -373,6 +522,7 @@ export class CityExplorerScene extends Phaser.Scene {
             this.score = Math.max(0, this.score + penalty);
             this.failures++;
             this.cameras.main.shake(200, 0.005);
+            this.soundManager.playSfx('wrong', 0.6);
             this.answerTracker.recordDistractorCatch(cp.data.id, cp.data.challenge?.prompt || cp.data.name, { x: cp.data.x, y: cp.data.y }, cp.data.challenge?.ruleTag ? [cp.data.challenge.ruleTag] : []);
             this.sessionManager?.updateScore(penalty, false);
         }
@@ -439,6 +589,8 @@ export class CityExplorerScene extends Phaser.Scene {
         if (this.isGameOver) return;
         this.isGameOver = true;
         if (this.gameTimer) this.gameTimer.remove();
+        this.soundManager.stopMusic();
+        this.soundManager.playSfx('game_win');
         if (this.sessionManager) await this.sessionManager.endSession().catch(e => console.error(e));
         const payload = this.buildGamePayload();
         this.createMissionCompleteModal(payload);

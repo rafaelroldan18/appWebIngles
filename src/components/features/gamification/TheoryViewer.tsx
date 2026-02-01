@@ -43,6 +43,33 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
         };
     }, [content, t]);
 
+    // Measure the actual content height to adjust the container and prevents truncation
+    const [contentHeight, setContentHeight] = useState(1200);
+    const contentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const updateHeight = () => {
+            if (contentRef.current) {
+                // For absolute layouts, scrollHeight might not be enough
+                // We calculate the max bottom position of all children
+                const children = contentRef.current.querySelectorAll('*');
+                let maxBottom = 1000; // Default minimum
+
+                children.forEach((child: any) => {
+                    const rect = child.getBoundingClientRect();
+                    const parentRect = contentRef.current!.getBoundingClientRect();
+                    const bottom = (rect.bottom - parentRect.top) / scale;
+                    if (bottom > maxBottom) maxBottom = bottom;
+                });
+
+                setContentHeight(Math.max(maxBottom + 100, contentRef.current.scrollHeight));
+            }
+        };
+
+        const timer = setTimeout(updateHeight, 600);
+        return () => clearTimeout(timer);
+    }, [renderedContent, scale]);
+
     // Adapt content scale to fix exactly in the modal width
     useEffect(() => {
         const handleResize = () => {
@@ -65,7 +92,10 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full max-h-[85vh] rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
+            {/* Load fonts used in the editor */}
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet" />
+
+            <div className="bg-white dark:bg-slate-900 w-full max-w-4xl h-full max-h-[95vh] rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white/20">
 
                 {/* Modal Header - Compact */}
                 <div className="bg-slate-900 text-white px-5 py-3 flex justify-between items-center border-b border-white/5">
@@ -99,9 +129,9 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                         className="bg-white dark:bg-white shadow-2xl relative transition-transform duration-300 origin-top mb-8"
                         style={{
                             width: '850px',
-                            minHeight: '1000px',
+                            minHeight: `${contentHeight}px`,
                             transform: `scale(${scale})`,
-                            marginBottom: `${(scale - 1) * 1000}px` // Adjust margin to prevent empty space below
+                            marginBottom: `${(scale - 1) * contentHeight}px` // Adjust margin to prevent empty space below
                         }}
                     >
                         {/* Scoped CSS to prevent leaks and handle absolute layout */}
@@ -110,25 +140,30 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                             .gjs-rendered-html {
                                 position: relative;
                                 width: 850px;
-                                min-height: 1000px;
+                                min-height: ${contentHeight}px;
                                 margin: 0;
                                 background-color: white;
                                 color: #1e293b;
-                                overflow: hidden;
+                                overflow: visible;
                             }
                             .dark .gjs-rendered-html {
-                                background-color: #1e293b;
-                                color: #f8fafc;
+                                background-color: white; /* Consistently white to match designer canvas */
+                                color: #1e293b;
                             }
                             .gjs-rendered-html * { 
                                 box-sizing: border-box; 
                                 font-family: 'Inter', sans-serif;
                             }
                             /* Inject GrapesJS CSS with scoping */
-                            ${renderedContent.css.replace(/body/g, '.gjs-rendered-html')}
+                            ${renderedContent.css
+                                    .replace(/body/g, '.gjs-rendered-html')
+                                    .replace(/#wrapper/g, '.gjs-rendered-html')
+                                    .replace(/html/g, '.gjs-rendered-html')
+                                }
                         ` }} />
 
                         <div
+                            ref={contentRef}
                             className="gjs-rendered-html"
                             dangerouslySetInnerHTML={{ __html: renderedContent.html }}
                         />
@@ -136,7 +171,7 @@ export default function TheoryViewer({ title, content, onClose }: TheoryViewerPr
                 </div>
 
                 {/* Modal Footer - Minimal */}
-                <div className="bg-white dark:bg-slate-950 px-5 py-3 border-t border-slate-100 dark:border-gray-800 flex justify-between items-center">
+                <div className="bg-white dark:bg-slate-950 px-5 py-3 border-t border-slate-100 dark:border-gray-800 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-2">
                         {scale < 1 ? (
                             <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
