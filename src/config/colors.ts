@@ -11,6 +11,8 @@ export const colors = {
         extraDark: '#132F73',
         gradient: 'from-blue-600 to-indigo-600',
         gradientDark: 'dark:from-blue-500 dark:to-indigo-500',
+        border: 'border-blue-600 dark:border-blue-500',
+        bg: 'bg-blue-50 dark:bg-blue-900/20',
     },
     secondary: {
         main: '#7C80FF',
@@ -19,6 +21,7 @@ export const colors = {
         bg: 'bg-indigo-50 dark:bg-indigo-900/20',
         gradient: 'from-purple-600 to-indigo-600',
         gradientDark: 'dark:from-purple-500 dark:to-indigo-500',
+        border: 'border-indigo-600 dark:border-indigo-500',
     },
     accent: {
         success: {
@@ -67,14 +70,17 @@ export const colors = {
     background: {
         base: 'bg-slate-50 dark:bg-slate-950',
         card: 'bg-white dark:bg-slate-900',
+        hover: 'bg-slate-100 dark:bg-slate-800',
     },
     text: {
         title: 'text-slate-900 dark:text-white',
         primary: 'text-slate-800 dark:text-slate-200',
         secondary: 'text-slate-500 dark:text-slate-400',
+        disabled: 'text-slate-400 dark:text-slate-600',
     },
     border: {
         light: 'border-slate-200 dark:border-slate-800',
+        medium: 'border-slate-300 dark:border-slate-700',
         focus: 'border-blue-500 dark:border-blue-400',
     },
     // Used in Landing and other components for indexed accessibility

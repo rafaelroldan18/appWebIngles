@@ -1,1198 +1,424 @@
 /**
- * SentenceBuilderScene - Click-to-build game for building sentences
- * Rediseñado con sistema de atlas profesional
+ * SentenceBuilderScene - Click-to-build game
+ * Rediseño "PREMIUM & POLISHED" V9: HINT moved to Left + Text Fix
  */
 
 import * as Phaser from 'phaser';
-import { SENTENCE_BUILDER_CONFIG } from './sentenceBuilder.config';
+import { gsap } from 'gsap';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
-import { createButton, createPanel, showFeedback, showModal, showToast, showFullscreenRequest, showGameInstructions } from './UIKit';
+import { createButton, showToast, showGameInstructions } from './UIKit';
 import { loadGameAudio } from './AudioLoader';
 import { SoundManager } from './SoundManager';
-import type { GameContent, MissionConfig } from '@/types';
-import { loadSentenceBuilderContent, type SentenceBuilderItem, type SentenceBuilderToken } from './gameLoader.utils';
+import { loadSentenceBuilderContent, type SentenceBuilderItem } from './gameLoader.utils';
 import type { GameSessionManager } from './GameSessionManager';
+import { createSBButton } from './SentenceBuilderTheme';
 
 interface WordCard {
-    sprite: Phaser.GameObjects.Image; // Ahora usa sprites del atlas
+    graphics: Phaser.GameObjects.Graphics;
     text: Phaser.GameObjects.Text;
     word: string;
-    container: Phaser.GameObjects.Container; // Para agrupar sprite + text
+    container: Phaser.GameObjects.Container;
 }
 
 export class SentenceBuilderScene extends Phaser.Scene {
     private gameContent: SentenceBuilderItem[] = [];
     private currentItem: SentenceBuilderItem | null = null;
     private sessionManager: GameSessionManager | null = null;
-
-    // Game state
     private currentSentenceIndex: number = 0;
     private score: number = 0;
-    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
-    private missionTitle: string = '';
+    private timeElapsed: number = 0;
     private missionInstructions: string = '';
-    private missionConfig: MissionConfig | null = null;
     private isPaused: boolean = false;
-    private currentItemAttempts: number = 0;
-    private maxItemAttempts: number = 2; // Default
-    private hintsUsed: number = 0;
-    private itemStartTime: number = 0;
-    private translations: any = null;
-
-    // Logic Arrays
     private builtTokens: WordCard[] = [];
     private bankTokens: WordCard[] = [];
-
-    // UI Elements
     private gameHUD!: GameHUD;
-    private progressText!: Phaser.GameObjects.Text;
     private instructionText!: Phaser.GameObjects.Text;
-
-    // Layout Zones (para posicionamiento)
-    private zoneB!: { x: number; y: number; width: number; height: number }; // Sentence Line
-    private zoneC!: { x: number; y: number; width: number; height: number }; // Word Bank
-    private sentenceLinePanel!: Phaser.GameObjects.Image;
+    private bgShapes: Phaser.GameObjects.Graphics[] = [];
+    private zoneB!: { x: number; y: number; width: number; height: number };
+    private zoneC!: { x: number; y: number; width: number; height: number };
+    private sentenceSlots: Array<{ graphics: Phaser.GameObjects.Graphics; x: number; y: number }> = [];
     private pauseOverlay: Phaser.GameObjects.Container | null = null;
-
-    // Sentence Slots (sistema de slots del atlas)
-    private sentenceSlots: Array<{ sprite: Phaser.GameObjects.Image; text: Phaser.GameObjects.Text; index: number }> = [];
-
-    // Buttons (ahora son contenedores del UIKit)
     private checkButton!: Phaser.GameObjects.Container;
     private undoButton!: Phaser.GameObjects.Container;
     private clearButton!: Phaser.GameObjects.Container;
     private nextButton!: Phaser.GameObjects.Container;
     private hintButton!: Phaser.GameObjects.Container;
-
-    // Timers
     private gameTimer!: Phaser.Time.TimerEvent;
-
-    private isGameOver: boolean = false;
     private soundManager!: SoundManager;
 
-    constructor() {
-        super({ key: 'SentenceBuilderScene' });
-    }
+    private hintsRemaining: number = 3;
+    private hintText!: Phaser.GameObjects.Text;
 
-    private initData: any = null;
+    constructor() { super({ key: 'SentenceBuilderScene' }); }
 
-    init(data: {
-        words: GameContent[];
-        sessionManager: GameSessionManager;
-        missionTitle?: string;
-        missionInstructions?: string;
-        missionConfig?: MissionConfig;
-        translations?: any;
-    }) {
-        this.initData = data;
-        this.translations = data.translations || null;
-
-        // Load and Prepare Content
-        this.missionConfig = data.missionConfig || null;
+    init(data: any) {
         let items = loadSentenceBuilderContent(data.words || []);
-
-        // 1. Randomize Items (if enabled)
-        if (this.missionConfig?.sentence_builder?.randomize_items !== false) {
-            items = Phaser.Utils.Array.Shuffle(items);
-        }
-
-        // 2. Apply Items Limit
-        const limit = this.missionConfig?.sentence_builder?.items_limit;
-        if (limit && limit > 0) {
-            items = items.slice(0, limit);
-        }
-
-        this.gameContent = items;
+        this.gameContent = Phaser.Utils.Array.Shuffle(items);
         this.sessionManager = data.sessionManager || null;
-        this.missionTitle = data.missionTitle || '';
         this.missionInstructions = data.missionInstructions || '';
-
         this.currentSentenceIndex = 0;
         this.score = 0;
-        const limitConfig = this.missionConfig?.time_limit_seconds;
-        this.timeElapsed = 0; // Start at 0 and count UP
-
-        this.maxItemAttempts = (this.missionConfig as any)?.attempts_per_item || 2;
-
-        this.isGameOver = false;
-        this.isPaused = false;
-        this.builtTokens = [];
-        this.bankTokens = [];
-        this.currentItem = null;
     }
 
-    preload() {
-        // Cargar atlas común (UI) + atlas específico de Sentence Builder
-        loadGameAtlases(this, 'sb');
-        loadGameAudio(this, 'sb');
-        this.load.image('bg_sentence', '/assets/backgrounds/sentence-builder/bg_streets.png');
-    }
+    preload() { loadGameAtlases(this, 'sb'); loadGameAudio(this, 'sb'); }
 
     create() {
         const { width, height } = this.cameras.main;
         this.soundManager = new SoundManager(this);
-
-        // Background
-        const bg = this.add.image(width / 2, height / 2, 'bg_sentence');
-        bg.setDisplaySize(width, height);
-        bg.setDepth(-100);
-
-        // HUD (común)
+        this.createGenerativeBackground();
         this.createHUD();
-
-        // Layout de 3 Zonas
         this.createGameLayout();
-
-        // Control Buttons
         this.createControls();
 
-        // Start Game
-        if (this.gameContent.length === 0) {
-            this.add.text(width / 2, height / 2, 'No sentences found for this topic.', {
-                fontSize: '24px', color: '#ffffff', backgroundColor: '#000000', padding: { x: 10, y: 5 }
-            }).setOrigin(0.5);
-            return;
-        }
-
-        // Combined Fullscreen + Instructions Flow
         this.isPaused = true;
         showGameInstructions(this, {
             title: 'Sentence Builder',
-            instructions: this.missionInstructions || 'Arrange the words in the correct order to build a perfect sentence! Each sentence completed earns points.',
-            controls: 'Click words in the bank to add them to your sentence.\n\n• UNDO: Remove last word\n• CLEAR: Remove all words\n• HINT: Get a clue\n• SUBMIT: Check your answer',
-            controlIcons: ['mouse'],
+            instructions: this.missionInstructions || 'Arrange words to build the sentence!',
+            controls: 'Click words to move them.',
+            buttonLabel: '➔ START',
             requestFullscreen: true,
-            buttonLabel: 'START BUILDING',
             onStart: () => {
                 this.isPaused = false;
-                this.startCountdown();
+                this.startGameTimer();
+                this.soundManager.playMusic('bg_music', 0.4);
+                this.loadNextSentence();
             }
         });
-
-        this.events.emit('scene-ready');
     }
 
-    /**
-     * Define el layout visual de 3 zonas:
-     * ZONA A (arriba): Prompt Panel
-     * ZONA B (centro): Sentence Line (área de construcción)
-     * ZONA C (abajo): Word Bank (palabras disponibles)
-     */
+    private createGenerativeBackground() {
+        const { width, height } = this.cameras.main;
+        this.add.graphics().fillGradientStyle(0xEEF2FF, 0xEEF2FF, 0xE0E7FF, 0xC7D2FE, 1).fillRect(0, 0, width, height).setDepth(-100);
+        const colors = [0x6366F1, 0x818CF8, 0x4F46E5];
+        for (let i = 0; i < 15; i++) {
+            const shape = this.add.graphics().fillStyle(colors[i % 3], 0.08);
+            const size = Phaser.Math.Between(40, 120);
+            if (i % 2 === 0) shape.fillCircle(0, 0, size); else shape.fillRoundedRect(-size / 2, -size / 2, size, size, 20);
+            shape.setPosition(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height)).setDepth(-95);
+            this.bgShapes.push(shape);
+            gsap.to(shape, { x: `+=${Phaser.Math.Between(-100, 100)}`, y: `+=${Phaser.Math.Between(-100, 100)}`, rotation: Phaser.Math.FloatBetween(-3, 3), duration: Phaser.Math.Between(15, 25), repeat: -1, yoyo: true, ease: 'sine.inOut' });
+        }
+    }
+
     private createGameLayout() {
         const { width, height } = this.cameras.main;
-
-        // Definir alturas de zonas
-        const hudHeight = 80; // Espacio del HUD
-        const controlsHeight = 100; // Espacio de botones
-        const availableHeight = height - hudHeight - controlsHeight;
-
-        const zoneAHeight = availableHeight * 0.15; // 15% - Prompt
-        const zoneBHeight = availableHeight * 0.35; // 35% - Sentence Line
-        const zoneCHeight = availableHeight * 0.50; // 50% - Word Bank
-
-        const zoneAY = hudHeight + zoneAHeight / 2;
-        const zoneBY = hudHeight + zoneAHeight + zoneBHeight / 2;
-        const zoneCY = hudHeight + zoneAHeight + zoneBHeight + zoneCHeight / 2;
-
-        // ========== ZONA A: PROMPT PANEL ==========
-        const promptPanelWidth = width * 0.85;
-        const promptPanelHeight = Math.min(zoneAHeight * 0.8, 80);
-
-        // Panel del atlas (imagen)
-        const promptPanel = this.add.image(width / 2, zoneAY, 'ui_atlas', 'common-ui/panels/panel_card');
-        promptPanel.setDisplaySize(promptPanelWidth, promptPanelHeight);
-        promptPanel.setDepth(10);
-
-        // Texto con Fredoka encima del panel
-        this.instructionText = this.add.text(width / 2, zoneAY, 'Construct the sentence...', {
-            fontSize: '22px',
-            fontFamily: 'Nunito',
-            color: '#1e293b',
-            align: 'center',
-            wordWrap: { width: promptPanelWidth - 60 }
-        }).setOrigin(0.5).setDepth(11);
-
-        // ========== ZONA B: SENTENCE LINE ==========
-        // Panel sutil para el área de construcción
-        const sentenceLineWidth = width * 0.9;
-        const sentenceLineHeight = zoneBHeight * 0.9;
-
-        const sentenceLinePanel = createPanel(
-            this,
-            'common-ui/panels/panel_card',
-            width / 2,
-            zoneBY,
-            sentenceLineWidth,
-            sentenceLineHeight
-        );
-        sentenceLinePanel.setDepth(5).setAlpha(0.3);
-        this.sentenceLinePanel = sentenceLinePanel;
-
-        // Label para la zona
-        this.add.text(width / 2, zoneBY - sentenceLineHeight / 2 + 20, 'BUILD YOUR SENTENCE', {
-            fontSize: '14px',
-            fontFamily: 'Arial',
-            color: '#64748b',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(6);
-
-        // ========== ZONA C: WORD BANK ==========
-        // Panel para el banco de palabras
-        const wordBankWidth = width * 0.9;
-        const wordBankHeight = zoneCHeight * 0.85;
-
-        const wordBankPanel = createPanel(
-            this,
-            'common-ui/panels/panel_dark',
-            width / 2,
-            zoneCY,
-            wordBankWidth,
-            wordBankHeight
-        );
-        wordBankPanel.setDepth(5).setAlpha(0.5);
-
-        // Label para la zona
-        this.add.text(width / 2, zoneCY - wordBankHeight / 2 + 20, 'WORD BANK', {
-            fontSize: '14px',
-            fontFamily: 'Arial',
-            color: '#94a3b8',
-            fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(6);
-
-        // Guardar referencias de las zonas para uso posterior
-        this.zoneB = { x: width / 2, y: zoneBY, width: sentenceLineWidth, height: sentenceLineHeight };
-        this.zoneC = { x: width / 2, y: zoneCY, width: wordBankWidth, height: wordBankHeight };
+        const availH = height - 190;
+        const zyA = 85 + (availH * 0.12) / 2;
+        const zyB = 85 + (availH * 0.12) + (availH * 0.48) / 2;
+        const zyC = 85 + (availH * 0.60) + (availH * 0.40) / 2;
+        this.instructionText = this.add.text(width / 2, zyA, '', { fontSize: '26px', fontFamily: 'Nunito', color: '#1E293B', fontStyle: '800' }).setOrigin(0.5).setDepth(10);
+        this.zoneB = { x: width / 2, y: zyB, width: width * 0.94, height: availH * 0.48 };
+        this.zoneC = { x: width / 2, y: zyC, width: width * 0.94, height: availH * 0.40 };
+        this.add.graphics().fillStyle(0xFFFFFF, 0.5).fillRoundedRect(width / 2 - this.zoneB.width / 2, zyB - this.zoneB.height / 2, this.zoneB.width, this.zoneB.height, 25).setDepth(1);
+        this.add.graphics().fillStyle(0x1E293B, 0.05).fillRoundedRect(width / 2 - this.zoneC.width / 2, zyC - this.zoneC.height / 2, this.zoneC.width, this.zoneC.height, 25).setDepth(1);
     }
 
     private createHUD() {
-        // HUD (standardized)
-        this.gameHUD = new GameHUD(this, {
-            showScore: true,
-            showTimer: true,
-            showProgress: true,
-            totalItems: this.gameContent.length,
-            showPauseButton: true,
-            showHelpButton: true
-        }, this.soundManager);
-
-        // Configurar callbacks
-        this.gameHUD.onPause(() => {
-            console.log('HUD Pause Clicked Callback Executing');
-            this.togglePause();
-        });
+        this.gameHUD = new GameHUD(this, { showScore: true, showTimer: true, showProgress: true, totalItems: this.gameContent.length, showPauseButton: true, showHelpButton: true }, this.soundManager);
+        this.gameHUD.onPause(() => this.togglePause());
         this.gameHUD.onHelp(() => this.showHelpPanel());
-
-        // Prompt / Instruction Area (específico del juego)
-        const { width } = this.cameras.main;
-        this.instructionText = this.add.text(width / 2, 140, 'Construct the sentence...', {
-            fontSize: '22px',
-            fontFamily: 'Arial Black',
-            color: '#1e293b',
-            align: 'center',
-            wordWrap: { width: width - 100 }
-        }).setOrigin(0.5).setDepth(50);
     }
 
     private createControls() {
         const { width, height } = this.cameras.main;
-        const y = height - 70; // Más espacio desde el borde
-        const buttonScale = 1.3;
+        const y = height - 55;
 
-        // Calcular posiciones según botones disponibles
-        const hasUndo = this.missionConfig?.ui?.allow_undo !== false;
-        const hasClear = this.missionConfig?.ui?.allow_clear !== false;
-        const hasHint = this.missionConfig?.ui?.show_hint_button || (this.missionConfig?.sentence_builder as any)?.show_hint_button;
+        // GRUPO IZQUIERDA (Gestión + Ayuda) - ESTILO INDIGO GLASS
+        this.undoButton = createSBButton(this, 90, y, 120, 48, '↶ UNDO', () => this.handleUndo(), false);
+        this.clearButton = createSBButton(this, 225, y, 125, 48, '🗑 CLEAR', () => this.handleClear(), false);
 
-        // Layout: [Undo] [Clear] .......... [Hint?] [SUBMIT]
-        const spacing = 120;
-        let leftX = 100; // Inicio desde la izquierda
+        // HINT ubicado al lado de CLEAR - ESTILO INDIGO GLASS
+        this.hintButton = createSBButton(this, 380, y, 155, 48, '💡 HINT (3)', () => this.handleHint(), false);
+        this.hintText = this.hintButton.getAt(1) as Phaser.GameObjects.Text;
 
-        // ========== BOTONES SECUNDARIOS (Izquierda) ==========
-
-        // UNDO
-        if (hasUndo) {
-            this.undoButton = createButton(
-                this,
-                'common-ui/buttons/btn_secondary',
-                leftX,
-                y,
-                'UNDO',
-                () => this.handleUndo(),
-                { width: 140, height: 60, fontSize: '20px', textOffsetY: -4 }
-            );
-            leftX += spacing + 30;
-        }
-
-        // CLEAR
-        if (hasClear) {
-            this.clearButton = createButton(
-                this,
-                'common-ui/buttons/btn_secondary',
-                leftX,
-                y,
-                'CLEAR',
-                () => this.handleClear(),
-                { width: 140, height: 60, fontSize: '20px', textOffsetY: -4 }
-            );
-        }
-
-        // ========== BOTONES PRINCIPALES (Derecha) ==========
-
-        let rightX = width - 110;
-
-        // SUBMIT (siempre el más visible - btn_primary)
-        this.checkButton = createButton(
-            this,
-            'common-ui/buttons/btn_primary',
-            rightX,
-            y,
-            'SUBMIT',
-            () => this.checkAnswer(),
-            { width: 180, height: 75, fontSize: '24px', fontColor: '#ffffff', textOffsetY: -4 }
-        );
-
-        // HINT (opcional - btn_small, a la izquierda del submit)
-        if (hasHint) {
-            rightX -= (spacing + 60);
-            this.hintButton = createButton(
-                this,
-                'common-ui/buttons/btn_small',
-                rightX,
-                y,
-                'HINT',
-                () => this.handleHint(),
-                { width: 120, height: 50, fontSize: '18px', textOffsetY: -2 }
-            );
-        }
-
-        // NEXT Button (Hidden)
-        this.createNextButton();
+        // GRUPO DERECHA (Acción) - ESTILO INDIGO GLASS
+        this.checkButton = createSBButton(this, width - 105, y, 175, 68, '✔ SUBMIT', () => this.checkAnswer(), true);
+        this.nextButton = createSBButton(this, width - 295, y, 195, 68, '➔ CONTINUE', () => this.loadNextSentence(), true).setVisible(false);
     }
 
-    private createNextButton() {
-        const { width, height } = this.cameras.main;
-        // Posicionado en el mismo lugar que el SUBMIT para un flujo natural
-        this.nextButton = createButton(
-            this,
-            'common-ui/buttons/btn_primary',
-            width - 110,
-            height - 70,
-            'NEXT ITEM ->',
-            () => this.loadNextSentence(),
-            { width: 220, height: 80, fontSize: '24px', textOffsetY: -4 }
-        );
-        this.nextButton.setVisible(false).setDepth(2000);
-    }
-
-    private startCountdown() {
-        // Simple start (enhance later if needed), just start logic
-        this.startGameTimer();
-        this.soundManager.playMusic('bg_music', 0.4);
-        this.loadNextSentence();
-    }
-
-    private startGameTimer() {
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.timeElapsed++; // Count UP instead of down
-                this.gameHUD.update({ timeRemaining: this.timeElapsed });
-                // Timer no longer ends the game - only completing all sentences does
-            },
-            loop: true
-        });
-    }
+    private startGameTimer() { this.gameTimer = this.time.addEvent({ delay: 1000, callback: () => { this.timeElapsed++; this.gameHUD.update({ timeRemaining: this.timeElapsed }); }, loop: true }); }
 
     private loadNextSentence() {
-        if (this.isGameOver) return;
-
-        // 1. Check end condition
-        if (this.currentSentenceIndex >= this.gameContent.length) {
-            this.endGame();
-            return;
-        }
-
-        // 2. Setup Item
+        if (this.currentSentenceIndex >= this.gameContent.length) { this.endGame(); return; }
         this.currentItem = this.gameContent[this.currentSentenceIndex];
-        this.currentItemAttempts = this.maxItemAttempts;
-        this.hintsUsed = 0;
-        this.itemStartTime = Date.now();
+        this.gameHUD.update({ progress: this.currentSentenceIndex + 1, score: this.score });
 
-        // Update HUD
-        this.gameHUD.update({
-            progress: this.currentSentenceIndex + 1,
-            score: this.score
-        });
+        this.hintsRemaining = 3;
+        if (this.hintText) this.hintText.setText(`💡 HINT (3)`).setAlpha(1);
+        if (this.hintButton) this.hintButton.setAlpha(1);
 
-        // 3. Update Prompt (with slight fade in for polish)
-        if (this.currentItem.prompt) {
-            this.instructionText.setAlpha(0);
-            this.instructionText.setText(this.currentItem.prompt);
-            this.tweens.add({
-                targets: this.instructionText,
-                alpha: 1,
-                duration: 300
-            });
-        }
+        const { height, width } = this.cameras.main;
+        const targetY = 85 + (height - 190) * 0.12 / 2;
+        gsap.fromTo(this.instructionText, { y: targetY - 20, alpha: 0 }, { y: targetY, alpha: 1, duration: 0.6, ease: 'back.out', onStart: () => { if (this.currentItem) this.instructionText.setText(this.currentItem.prompt || ''); } });
 
-        // 4. Create Word Cards (This cleans Slots, Bank and Sets tiles to tile_word)
         this.createWordCards();
-
-        // 5. Reset Controls UI
         this.nextButton.setVisible(false);
-        if (this.undoButton) {
-            this.undoButton.setAlpha(1);
-            this.undoButton.setVisible(true);
-        }
-        if (this.clearButton) {
-            this.clearButton.setAlpha(1);
-            this.clearButton.setVisible(true);
-        }
-        this.checkButton.setVisible(true);
-
-        // Advance index for next time
+        this.checkButton.setVisible(true).setX(width - 105);
         this.currentSentenceIndex++;
     }
 
     private createWordCards() {
-        // Clear existing
-        this.builtTokens.forEach(c => c.container.destroy());
         this.bankTokens.forEach(c => c.container.destroy());
-        this.builtTokens = [];
+        this.builtTokens.forEach(c => c.container.destroy());
         this.bankTokens = [];
-
-        // Limpiar slots anteriores
-        this.sentenceSlots.forEach(slot => {
-            slot.sprite.destroy();
-            slot.text.destroy();
-        });
+        this.builtTokens = [];
+        this.sentenceSlots.forEach(s => { s.graphics.destroy(); });
         this.sentenceSlots = [];
-
         if (!this.currentItem) return;
-
-        // Get tokens and shuffle logic
         const tokens = [...this.currentItem.tokens];
-        // Shuffle for bank presentation
         Phaser.Utils.Array.Shuffle(tokens);
-
-
-
-        tokens.forEach((token, idx) => {
-            const container = this.add.container(0, 0);
-
-            // Tile del atlas (base visual)
-            const sprite = this.add.image(0, 0, 'sb_atlas', 'sentence-builder/tiles/tile_word');
-
-            // Texto con Fredoka encima del tile
-            const txt = this.add.text(0, 0, token.text, {
-                fontSize: '18px',
-                color: '#0f172a',
-                fontStyle: 'bold',
-                fontFamily: 'Nunito'
-            }).setOrigin(0.5);
-
-            // Tamaño del tile (adaptado al texto)
-            const padding = 40;
-            const w = Math.max(120, txt.width + padding);
-            sprite.setDisplaySize(w, 60);
-
-            container.add([sprite, txt]);
-
-            const card: WordCard = {
-                sprite: sprite,
-                text: txt,
-                word: token.text,
-                container: container
-            };
-
-            // Interacción profesional
-            sprite.setInteractive({ useHandCursor: true })
-                .on('pointerdown', () => this.handleCardClick(card))
-                .on('pointerover', () => {
-                    // Solo hover si el tile está disponible (visible en el banco)
-                    if (this.bankTokens.includes(card)) {
-                        sprite.setFrame('sentence-builder/tiles/tile_word_active');
-                        container.setScale(1.05);
-                    }
-                })
-                .on('pointerout', () => {
-                    // Restaurar solo si está en el banco
-                    if (this.bankTokens.includes(card)) {
-                        sprite.setFrame('sentence-builder/tiles/tile_word');
-                        container.setScale(1);
-                    }
-                });
-
+        tokens.forEach((token, i) => {
+            const tempTxt = this.add.text(0, 0, token.text, { fontSize: '18px', fontFamily: 'Nunito', fontStyle: '800' });
+            const w = Math.max(90, tempTxt.width + 40);
+            const h = 48;
+            tempTxt.destroy();
+            const container = this.add.container(0, 0).setDepth(600);
+            const graphics = this.add.graphics();
+            this.drawCard(graphics, w, h, 0xFFFFFF, 0x6366F1);
+            const txt = this.add.text(0, 0, token.text, { fontSize: '18px', fontFamily: 'Nunito', color: '#0F172A', fontStyle: '800' }).setOrigin(0.5);
+            container.add([graphics, txt]).setSize(w, h);
+            container.setInteractive({ useHandCursor: true });
+            container.on('pointerdown', () => { this.soundManager.playSfx('pick_word'); gsap.to(container, { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1, onComplete: () => this.handleCardClick(card) }); });
+            container.on('pointerover', () => { gsap.to(container, { scale: 1.1, duration: 0.2, ease: 'back.out' }); this.drawCard(graphics, w, h, 0xEEF2FF, 0x4F46E5, 4); }).on('pointerout', () => { gsap.to(container, { scale: 1, duration: 0.2, ease: 'power2.out' }); this.drawCard(graphics, w, h, 0xFFFFFF, 0x6366F1, 2); });
+            gsap.from(container, { scale: 0, rotation: -0.5, duration: 0.6, delay: i * 0.08, ease: 'back.out(1.7)' });
+            const card: WordCard = { graphics, text: txt, word: token.text, container };
             this.bankTokens.push(card);
         });
+        this.updateLayouts(true);
+    }
 
-        this.updateLayouts();
+    private drawCard(g: Phaser.GameObjects.Graphics, w: number, h: number, fill: number, line: number, lw: number = 2) {
+        g.clear().fillStyle(fill, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 10).lineStyle(lw, line, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
     }
 
     private handleCardClick(card: WordCard) {
-        if (this.nextButton.visible) return; // Locked
-
-        // If in bank -> move to build (click-to-add)
-        const bankIdx = this.bankTokens.indexOf(card);
-        if (bankIdx !== -1) {
-            // Feedback visual: tile se activa momentáneamente
-            card.sprite.setFrame('sentence-builder/tiles/tile_word_active');
-
-            // Micro-animación de "pop"
-            this.tweens.add({
-                targets: card.container,
-                scale: 1.15,
-                duration: 100,
-                yoyo: true,
-                onComplete: () => {
-                    // Mover a construcción
-                    this.soundManager.playSfx('pick_word', 0.6);
-                    this.bankTokens.splice(bankIdx, 1);
-                    this.builtTokens.push(card);
-                    this.updateLayouts();
-                }
-            });
-            return;
-        }
-
-        // If in build -> move back to bank (click-to-remove from slot)
-        const buildIdx = this.builtTokens.indexOf(card);
-        if (buildIdx !== -1) {
-            // Remover de construcción y devolver al banco
-            this.builtTokens.splice(buildIdx, 1);
-            this.bankTokens.push(card);
-
-            // Restaurar frame normal
-            card.sprite.setFrame('sentence-builder/tiles/tile_word');
-            card.container.setScale(1);
-
-            this.soundManager.playSfx('place_word', 0.5);
-            this.updateLayouts();
-            return;
-        }
+        if (this.nextButton.visible && (this.nextButton.getAt(1) as Phaser.GameObjects.Text).text === '➔ CONTINUE') return;
+        const bIdx = this.bankTokens.indexOf(card);
+        if (bIdx !== -1) { this.bankTokens.splice(bIdx, 1); this.builtTokens.push(card); }
+        else { const buIdx = this.builtTokens.indexOf(card); if (buIdx !== -1) { this.builtTokens.splice(buIdx, 1); this.bankTokens.push(card); } }
+        this.updateLayouts();
     }
 
-    private handleUndo() {
-        if (this.nextButton.visible) return;
-        if (this.builtTokens.length > 0) {
-            const card = this.builtTokens.pop();
-            if (card) {
-                this.soundManager.playSfx('place_word', 0.5);
-                this.bankTokens.push(card);
-                this.updateLayouts();
+    private handleUndo() { if (this.builtTokens.length > 0) this.handleCardClick(this.builtTokens[this.builtTokens.length - 1]); }
+    private handleClear() { while (this.builtTokens.length > 0) this.handleCardClick(this.builtTokens[this.builtTokens.length - 1]); }
+
+    private updateLayouts(isFirstLoad = false) {
+        const spacing = 15;
+        const targetCount = Math.max(this.currentItem?.tokens?.length || 0, this.currentItem?.targetTokens?.length || 0);
+        let sW = 120, sH = 54;
+        const sAreaW = this.zoneB.width - 60;
+        const cols = Math.floor(sAreaW / (sW + spacing));
+        const sStartY = this.zoneB.y - this.zoneB.height / 2 + 80;
+        if (this.sentenceSlots.length === 0) {
+            for (let i = 0; i < targetCount; i++) {
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                const rowCount = Math.min(targetCount - row * cols, cols);
+                const rowW = rowCount * (sW + spacing) - spacing;
+                const sX = (this.zoneB.x - rowW / 2) + col * (sW + spacing) + sW / 2;
+                const sY = sStartY + row * (sH + 15) + sH / 2;
+                const g = this.add.graphics().setDepth(10).lineStyle(2, 0x6366F1, 0.1).strokeRoundedRect(-sW / 2, -sH / 2, sW, sH, 10);
+                g.setPosition(sX, sY);
+                this.sentenceSlots.push({ graphics: g, x: sX, y: sY });
             }
         }
-    }
-
-    private handleClear() {
-        if (this.nextButton.visible) return;
-        if (this.builtTokens.length > 0) {
-            // Move all back to bank
-            this.bankTokens.push(...this.builtTokens);
-            this.builtTokens = [];
-            this.updateLayouts();
-        }
-    }
-
-    private updateLayouts() {
-        // Usar las zonas definidas en createGameLayout
-        const spacing = 12;
-
-        // ========== ZONA B: SENTENCE LINE (Built Tokens con SLOTS) ==========
-        const sentenceAreaWidth = this.zoneB.width - 60;
-        const sentenceStartY = this.zoneB.y - this.zoneB.height / 2 + 60;
-
-        // Calcular cuántos slots necesitamos (basado en la oración objetivo)
-        const targetTokenCount = this.currentItem?.targetTokens?.length || this.builtTokens.length || 5;
-        const slotWidth = 140;
-        const slotHeight = 60;
-
-        // Crear/actualizar slots
-        const slotsPerLine = Math.floor(sentenceAreaWidth / (slotWidth + spacing));
-        const totalLines = Math.ceil(targetTokenCount / slotsPerLine);
-
-        // Limpiar slots anteriores si existen
-        if (!this.sentenceSlots) {
-            this.sentenceSlots = [];
-        }
-
-        // Crear slots si no existen o si cambió el número
-        while (this.sentenceSlots.length < targetTokenCount) {
-            const slotIndex = this.sentenceSlots.length;
-            const lineIndex = Math.floor(slotIndex / slotsPerLine);
-            const posInLine = slotIndex % slotsPerLine;
-
-            const lineWidth = Math.min(targetTokenCount - (lineIndex * slotsPerLine), slotsPerLine) * (slotWidth + spacing) - spacing;
-            const lineStartX = this.zoneB.x - lineWidth / 2;
-            const slotX = lineStartX + posInLine * (slotWidth + spacing) + slotWidth / 2;
-            const slotY = sentenceStartY + lineIndex * (slotHeight + 20);
-
-            // Slot del atlas (inicialmente vacío)
-            const slotSprite = this.add.image(slotX, slotY, 'sb_atlas', 'sentence-builder/slots/slot_empty');
-            slotSprite.setDisplaySize(slotWidth, slotHeight);
-            slotSprite.setDepth(20);
-
-            // Texto encima del slot (inicialmente vacío)
-            const slotText = this.add.text(slotX, slotY, '', {
-                fontSize: '18px',
-                fontFamily: 'Nunito',
-                color: '#1e293b',
-                align: 'center',
-                wordWrap: { width: slotWidth - 20 }
-            }).setOrigin(0.5).setDepth(21);
-
-            this.sentenceSlots.push({ sprite: slotSprite, text: slotText, index: slotIndex });
-        }
-
-        // Eliminar slots sobrantes
-        while (this.sentenceSlots.length > targetTokenCount) {
-            const slot = this.sentenceSlots.pop();
-            if (slot) {
-                slot.sprite.destroy();
-                slot.text.destroy();
-            }
-        }
-
-        // Actualizar slots con las palabras construidas
-        this.sentenceSlots.forEach((slot, index) => {
-            if (index < this.builtTokens.length) {
-                // Slot lleno
-                const card = this.builtTokens[index];
-                slot.sprite.setFrame('sentence-builder/slots/slot_filled');
-                slot.text.setText(card.word);
-
-                // Ocultar el container de la card (ya que ahora se muestra en el slot)
-                card.container.setVisible(false);
-            } else {
-                // Slot vacío
-                slot.sprite.setFrame('sentence-builder/slots/slot_empty');
-                slot.text.setText('');
-            }
+        this.builtTokens.forEach((card, i) => { const slot = this.sentenceSlots[i]; if (slot) gsap.to(card.container, { x: slot.x, y: slot.y, rotation: 0, duration: 0.4, ease: 'back.out(1.2)' }); });
+        let bX = this.zoneC.x - (this.zoneC.width - 80) / 2;
+        let bY = this.zoneC.y - (this.zoneC.height - 100) / 2 + 45;
+        this.bankTokens.forEach(card => {
+            const w = card.container.width;
+            if (bX + w > this.zoneC.x + (this.zoneC.width - 80) / 2) { bX = this.zoneC.x - (this.zoneC.width - 80) / 2; bY += 70; }
+            gsap.to(card.container, { x: bX + w / 2, y: bY, duration: 0.4, ease: 'back.out(1.2)' });
+            bX += w + 15;
         });
-
-        // ========== ZONA C: WORD BANK (Bank Tokens) ==========
-        const bankAreaWidth = this.zoneC.width - 60;
-        const bankAreaHeight = this.zoneC.height - 100;
-        const bankStartY = this.zoneC.y - this.zoneC.height / 2 + 60;
-
-        // Cálculo de escala responsiva
-        let bankScale = 1.0;
-        let bankSpacing = 15;
-        let rowHeight = 80;
-
-        // Si hay muchas palabras, reducir escala preventivamente
-        if (this.bankTokens.length > 12) {
-            bankScale = 0.85;
-            bankSpacing = 10;
-            rowHeight = 65;
-        } else if (this.bankTokens.length > 20) {
-            bankScale = 0.7;
-            bankSpacing = 8;
-            rowHeight = 55;
-        }
-
-        let bX = this.zoneC.x - bankAreaWidth / 2;
-        let bY = bankStartY;
-
-        this.bankTokens.forEach((card, i) => {
-            card.container.setScale(bankScale);
-            const w = card.sprite.displayWidth;
-
-            if (bX + w > this.zoneC.x + bankAreaWidth / 2) {
-                bX = this.zoneC.x - bankAreaWidth / 2;
-                bY += rowHeight; // New row with adjusted height
-            }
-
-            // Si aún así nos salimos de la zona, una reducción extra de emergencia
-            if (bY > this.zoneC.y + this.zoneC.height / 2 - 40) {
-                // Esto es un caso extremo, aplicamos un factor de escala global adicional
-                this.bankTokens.forEach(c => c.container.setScale(bankScale * 0.8));
-                // Recalculamos posición (simplificado: reiniciamos y aplicamos menos espacio)
-            }
-
-            card.container.x = bX + w / 2;
-            card.container.y = bY;
-            card.container.setVisible(true); // Visible en el banco
-            card.sprite.clearTint();
-
-            bX += w + bankSpacing;
-        });
-    }
-
-    private handleHint() {
-        if (!this.currentItem || this.nextButton.visible) return;
-
-        const maxHints = (this.missionConfig?.sentence_builder as any)?.max_hints_per_item || 3;
-
-        if (this.hintsUsed >= maxHints) {
-            showToast(this, 'Max hints used!', 1000, false);
-            return;
-        }
-
-        const targetTokens = this.currentItem.targetTokens || [];
-
-        // Find the first index where the built sentence diverges from the target
-        let mismatchIndex = 0;
-        while (
-            mismatchIndex < this.builtTokens.length &&
-            mismatchIndex < targetTokens.length &&
-            this.builtTokens[mismatchIndex].word === targetTokens[mismatchIndex]
-        ) {
-            mismatchIndex++;
-        }
-
-        // If the sentence is fully correct so far (or empty), hint the next word
-        // If there is a mismatch at mismatchIndex, hint the CORRECT word for that slot
-
-        if (mismatchIndex < targetTokens.length) {
-            const nextNeededWord = targetTokens[mismatchIndex];
-
-            // Deduct Score and Increment Hint Count
-            const cost = this.missionConfig?.sentence_builder?.hint_cost || 10;
-            this.score = Math.max(0, this.score - cost);
-            this.gameHUD.update({ score: this.score });
-            if (this.sessionManager) this.sessionManager.updateScore(-cost, false);
-            this.hintsUsed++;
-
-            // Strategy: Find the needed card.
-            // 1. Look in the Bank (most likely)
-            let targetCard = this.bankTokens.find(c => c.word === nextNeededWord);
-
-            // 2. If not in Bank, it might be misplaced in the Built area (after the mismatch index)
-            if (!targetCard) {
-                targetCard = this.builtTokens.find((c, idx) => c.word === nextNeededWord && idx > mismatchIndex);
-            }
-
-            // 3. Last resort: It might be the actual card at the mismatch index (if duplicates exist and we picked the wrong one?)
-            // Or if the logic above failed, just find ANY card with that word.
-            if (!targetCard) {
-                targetCard = this.builtTokens.find(c => c.word === nextNeededWord);
-            }
-
-            if (targetCard) {
-                // Visual Feedback: Pulse the card
-                this.tweens.add({
-                    targets: targetCard.sprite,
-                    scale: 1.2,
-                    duration: 200,
-                    yoyo: true,
-                    repeat: 2,
-                    onStart: () => targetCard!.sprite.setTint(0xf59e0b),
-                    onComplete: () => targetCard!.sprite.clearTint()
-                });
-
-                // Text Feedback
-                showToast(this, `Hint: Find "${nextNeededWord}"`, 2000, true);
-            } else {
-                // Should not happen if data is consistent
-                console.warn('Hint System: Could not find card for word:', nextNeededWord);
-            }
-
-            // Managed by showToast duration
-        } else if (this.builtTokens.length > targetTokens.length) {
-            // Case: User built "The cat is black extra"
-            // Mismatch index will be at 'extra'.
-            // Hint should be: "Remove extra words"
-            showToast(this, 'Hint: Too many words!', 2000, false);
-        }
     }
 
     private checkAnswer() {
-        if (!this.currentItem) return;
-
-        const builtSentence = this.builtTokens.map(c => c.word).join(' ');
-        const target = this.currentItem.targetSentence;
-
-        // Check exact match (or variants if implemented)
-        const isCorrect = builtSentence.trim() === target.trim();
-
+        const isCorrect = this.builtTokens.map(c => c.word).join(' ') === (this.currentItem?.targetTokens?.join(' ') || '');
+        const { width } = this.cameras.main;
         if (isCorrect) {
-            this.handleSuccess();
+            this.soundManager.playSfx('correct');
+            this.createExplosion(this.builtTokens[this.builtTokens.length - 1].container.x, this.builtTokens[this.builtTokens.length - 1].container.y);
+            showToast(this, '✓ EXCELLENT! ORDER COMPLETE', 1500, true);
+            this.checkButton.setVisible(false);
+            this.nextButton.setVisible(true).setX(width - 105);
+            (this.nextButton.getAt(1) as Phaser.GameObjects.Text).setText('➔ CONTINUE');
         } else {
-            this.handleFailure(builtSentence);
+            this.soundManager.playSfx('wrong');
+            this.cameras.main.shake(150, 0.006);
+            showToast(this, '✗ INCORRECT! Try again!', 1500, false);
+            this.checkButton.setVisible(true).setX(width - 105);
+            this.nextButton.setVisible(true).setX(width - 295);
+            (this.nextButton.getAt(1) as Phaser.GameObjects.Text).setText('➔ SKIP');
         }
     }
 
-    private handleSuccess() {
-        const { width, height } = this.cameras.main;
-        const attemptsUsed = (this.maxItemAttempts - this.currentItemAttempts) + 1;
-        const timeSpent = Date.now() - this.itemStartTime;
-
-        showFeedback(this, width / 2, height / 2, true, 600);
-        showToast(this, 'CORRECT!', 1000, true);
-        this.soundManager.playSfx('sentence_ok', 0.8);
-        this.soundManager.playSfx('correct', 0.5);
-        const points = SENTENCE_BUILDER_CONFIG.scoring.points_correct;
-        this.score += points;
-        this.gameHUD.update({ score: this.score });
-
-        // Record Item (Standardized)
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(points, true);
-            this.sessionManager.recordItem({
-                id: this.currentItem!.id,
-                text: this.currentItem!.prompt || 'Construct sentence',
-                result: 'correct',
-                user_input: this.builtTokens.map(t => t.word).join(' '),
-                correct_answer: this.currentItem!.targetSentence,
-                time_ms: timeSpent,
-                meta: {
-                    attempts: attemptsUsed,
-                    hints_used: this.hintsUsed,
-                    feedback: 'Correct!',
-                    tags: this.currentItem!.tags,
-                    rule_tag: this.currentItem!.tags?.[0] || 'general'
-                }
-            });
+    private createExplosion(x: number, y: number) {
+        for (let i = 0; i < 20; i++) {
+            const star = this.add.star(x, y, 5, 5, 12, 0x6366F1).setDepth(1000);
+            gsap.to(star, { x: x + Phaser.Math.Between(-200, 200), y: y + Phaser.Math.Between(-200, 200), alpha: 0, scale: 0, rotation: 6.28, duration: 1, ease: 'power2.out', onComplete: () => star.destroy() });
         }
-
-        this.checkButton.setVisible(false);
-        this.nextButton.setVisible(true);
-
-        // Optional: play sound
     }
 
-    private handleFailure(userInput: string) {
-        this.currentItemAttempts--;
-        const attemptsUsed = (this.maxItemAttempts - this.currentItemAttempts); // if start 2, current 1, used 1.
-        const timeSpent = Date.now() - this.itemStartTime;
-
-        const { width, height } = this.cameras.main;
-        showFeedback(this, width / 2, height / 2, false, 600);
-        showToast(this, this.currentItemAttempts > 0 ? 'Try Again' : 'Incorrect', 1000, false);
-        this.soundManager.playSfx('wrong', 0.6);
-
-        // Record Attempt (if configured to record every attempt, usually strictly only final or every? User said 'Cada Submit crea un registro')
-        // So we record WRONG attempts too.
-        if (this.sessionManager) {
-            this.sessionManager.recordItem({
-                id: this.currentItem!.id,
-                text: this.currentItem!.prompt || 'Construct sentence',
-                result: 'wrong', // It's an attempt
-                user_input: userInput,
-                correct_answer: this.currentItem!.targetSentence,
-                time_ms: timeSpent,
-                meta: {
-                    attempts: attemptsUsed,
-                    hints_used: this.hintsUsed,
-                    feedback: this.currentItemAttempts > 0 ? 'Try Again' : this.currentItem!.explanation || 'Incorrect',
-                    tags: this.currentItem!.tags,
-                    rule_tag: this.currentItem!.tags?.[0] || 'general'
-                }
-            });
-            // Update score for penalty? User said "si no quieres castigar, pon points_wrong: 0". 
-            // We usually don't deduct for intermediate wrongs unless configured.
+    private handleHint() {
+        if (this.hintsRemaining <= 0) {
+            showToast(this, 'NO MORE HINTS!', 1000, false);
+            gsap.to(this.hintButton, { x: '+=10', yoyo: true, repeat: 5, duration: 0.05 });
+            return;
         }
-
-        this.cameras.main.shake(100, 0.005);
-
-        // Premium Panel Shake
-        this.tweens.add({
-            targets: this.sentenceLinePanel,
-            x: this.sentenceLinePanel.x + 5,
-            duration: 50,
-            yoyo: true,
-            repeat: 3
-        });
-
-        if (this.currentItemAttempts <= 0) {
-            // Show correct answer if configured
-            const showCorrect = this.missionConfig?.ui?.show_correct_on_fail || (this.missionConfig?.sentence_builder as any)?.show_correct_on_fail;
-
-            if (showCorrect) {
-                showToast(this, `Answer: ${this.currentItem!.targetSentence}`, 3000, false);
+        const t = this.currentItem?.targetTokens || [];
+        for (let i = 0; i < t.length; i++) {
+            if (!this.builtTokens[i] || this.builtTokens[i].word !== t[i]) {
+                const card = this.bankTokens.find(c => c.word === t[i]) || this.builtTokens.find((c, idx) => c.word === t[i] && idx > i);
+                if (card) {
+                    this.hintsRemaining--;
+                    this.hintText.setText(`💡 HINT (${this.hintsRemaining})`);
+                    if (this.hintsRemaining === 0) { this.hintText.setAlpha(0.5); this.hintButton.setAlpha(0.6); }
+                    gsap.to(card.container, { scale: 1.3, duration: 0.2, yoyo: true, repeat: 3, ease: 'sine.inOut' });
+                    const fx = this.add.graphics().setDepth(1000).lineStyle(4, 0x6366F1, 1).strokeCircle(0, 0, 50).setPosition(card.container.x, card.container.y);
+                    gsap.fromTo(fx, { alpha: 1, scale: 0.8 }, { alpha: 0, scale: 2.5, duration: 0.8, ease: 'power2.out', onComplete: () => fx.destroy() });
+                }
+                break;
             }
-
-            // We should record fail
-            const penalty = SENTENCE_BUILDER_CONFIG.scoring.points_wrong;
-            this.sessionManager?.updateScore(penalty, false);
-            this.score = Math.max(0, this.score + penalty);
-            this.gameHUD.update({ score: this.score });
-            this.checkButton.setVisible(false); // Can't submit again
-            this.nextButton.setVisible(true); // Must move on
         }
     }
 
-    private async endGame() {
-        if (this.isGameOver) return;
-        this.isGameOver = true;
-
-        // Stop timers
-        if (this.gameTimer) this.gameTimer.remove();
-        this.soundManager.stopMusic();
+    private endGame() {
+        if (this.gameTimer) this.gameTimer.destroy();
         this.soundManager.playSfx('game_win');
-
-        // Submit Session Data
-        if (this.sessionManager) {
-            try {
-                await this.sessionManager.endSession();
-            } catch (error) {
-                console.error('Session save failed (proceeding to results):', error);
-            }
-        }
-
-        // Clear logic
-        this.builtTokens.forEach(c => c.container.destroy());
-        this.bankTokens.forEach(c => c.container.destroy());
-
-        // Stats
-        const sessionData = this.sessionManager?.getSessionData();
-        const duration = this.sessionManager?.getDuration() || 0;
-
-        const correct = sessionData?.correctCount || 0;
-        const totalAttempts = (sessionData?.correctCount || 0) + (sessionData?.wrongCount || 0);
-
-        const accuracy = totalAttempts > 0 ? Math.round((correct / totalAttempts) * 100) : 0;
-
-        // Speed Builder Bonus: 100% accuracy and at least 3 sentences
-        const speedBonus = accuracy === 100 && correct >= 3;
-
-        // Calcular score normalizado sobre 10 basado en precisión
-        const normalizedScore = Math.round((accuracy / 100) * 10 * 10) / 10;
-
-        // Payload
-        const gameOverPayload = {
-            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
-            scoreRaw: this.score + (speedBonus ? 500 : 0),  // Puntos brutos para estadísticas
-            correctCount: correct,
-            wrongCount: sessionData?.wrongCount || 0,
-            durationSeconds: duration,
-            answers: sessionData?.items.map(item => ({
-                item_id: item.id,
-                prompt: item.text,
-                student_answer: item.user_input || '',
-                correct_answer: item.correct_answer || '',
-                is_correct: item.result === 'correct',
-                meta: { time_ms: item.time_ms, rule_tag: item.meta?.rule_tag }
-            })) || []
-        };
-
-        const totalItemsInGame = this.gameContent.length;
-
-        this.createMissionCompleteModal({
-            sentences: correct,
-            totalSentences: totalItemsInGame,
-            accuracy: accuracy,
-            speedBonus: speedBonus,
-            eventData: gameOverPayload
-        });
+        this.createMissionCompleteModal();
     }
 
-    private createMissionCompleteModal(stats: any) {
+    private createMissionCompleteModal() {
         const { width, height } = this.cameras.main;
 
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-            .setDepth(6000).setInteractive().setScrollFactor(0);
+        // 1. Backdrop traslúcido total
+        const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive().setDepth(50000);
 
-        const container = this.add.container(width / 2, height / 2).setDepth(6001).setScrollFactor(0);
+        const container = this.add.container(width / 2, height / 2).setDepth(50001);
 
-        // Background & Border from modals_atlas (glass effect)
-        const bgWidth = 540;
-        const bgHeight = 440;
-        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
-            .setTint(0x0a1a2e).setAlpha(0.85);
-        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
-            .setTint(0x3b82f6);
+        // 2. Panel Indigo Glass
+        const panelW = 450, panelH = 340;
+        const bg = this.add.graphics();
+        bg.fillStyle(0x4338ca, 0.95); // Indigo 700
+        bg.fillRoundedRect(-panelW / 2, -panelH / 2, panelW, panelH, 20);
+        bg.lineStyle(4, 0x818CF8, 1);
+        bg.strokeRoundedRect(-panelW / 2, -panelH / 2, panelW, panelH, 20);
 
-        container.add([panelBg, panelBorder]);
+        // Brillo superior
+        bg.fillStyle(0xffffff, 0.1);
+        bg.fillRoundedRect(-panelW / 2 + 5, -panelH / 2 + 5, panelW - 10, panelH / 2.5, { tl: 15, tr: 15, bl: 5, br: 5 });
 
-        // TITLE - Reduced and repositioned
-        const title = this.add.text(0, -155, 'MISSION COMPLETE', {
-            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
-        }).setOrigin(0.5);
-
-        // MAIN STATS (Centered) - Reduced and repositioned
-        const sText = this.add.text(0, -30, `Sentences: ${stats.sentences}/${stats.totalSentences}`, {
-            fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '26px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        // RANK - Added Rank for consistency
-        let rankLabel = 'NOVICE';
-        let rankIcon = '🌱';
-        if (stats.accuracy >= 90) { rankLabel = 'MASTER'; rankIcon = '👑'; }
-        else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
-        else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
-
-        const rText = this.add.text(0, 75, `RANK: ${rankIcon} ${rankLabel}`, {
-            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
-        }).setOrigin(0.5);
-
-        // BUTTONS - Smaller and repositioned
-        const btnY = 135;
-
-        // RESULTS (Left)
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
-            if (this.scale.isFullscreen) {
-                this.scale.stopFullscreen();
-            }
-
-            if (this.sessionManager?.isActive()) {
-                this.sessionManager.endSession().catch(e => console.error(e));
-            }
-
-            this.tweens.add({
-                targets: container, scale: 0, duration: 300,
-                onComplete: () => {
-                    this.events.emit('gameOver', stats.eventData);
-                    this.events.emit('game-over', stats.eventData);
-                    this.events.emit('GAME_OVER', stats.eventData);
-                    this.game.events.emit('gameOver', stats.eventData);
-                    this.game.events.emit('game-over', stats.eventData);
-                    this.game.events.emit('GAME_OVER', stats.eventData);
-                }
-            });
-        }, { width: 190, height: 55, fontSize: '20px' });
-
-        // REPLAY (Right)
-        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, btnY, 'REPLAY', () => {
-            this.scene.restart();
-        }, { width: 190, height: 55, fontSize: '20px' });
-
-        container.add([title, sText, aText, rText, exitBtn, replayBtn]);
-
-        container.setScale(0);
-        this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
-    }
-
-    private togglePause() {
-        if (this.isGameOver) return;
-
-        // Evitar múltiples aperturas
-        if (this.isPaused && !this.pauseOverlay) return;
-
-        this.isPaused = !this.isPaused;
-
-        if (this.isPaused) {
-            console.log('DEBUG: PAUSING');
-            this.physics.pause();
-            if (this.gameTimer) this.gameTimer.paused = true;
-            // this.tweens.pauseAll();
-
-            // Create Pause UI
-            const { width, height } = this.cameras.main;
-            this.pauseOverlay = this.add.container(0, 0).setDepth(40000).setScrollFactor(0);
-
-            const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-
-            // Background & Border from modals_atlas (glass effect)
-            const pW = 600;
-            const pH = 480;
-            const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
-                .setTint(0x0a1a2e).setAlpha(0.85);
-            const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
-                .setTint(0x3b82f6);
-
-            const pTitle = this.add.text(width / 2, height / 2 - 120, 'GAME PAUSED', {
-                fontSize: '54px',
-                fontFamily: 'Fredoka',
-                color: '#fbbf24',
-                stroke: '#000000',
-                strokeThickness: 10
-            }).setOrigin(0.5).setScrollFactor(0);
-
-            const rBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 50, 'RESUME GAME', () => {
-                this.togglePause();
-            }, { width: 280, height: 75, fontSize: '26px', textOffsetY: -5 });
-
-            const eBtn = createButton(this, 'common-ui/buttons/btn_secondary', width / 2, height / 2 + 150, 'EXIT GAME', () => {
-                // Salir de pantalla completa
-                if (this.scale.isFullscreen) {
-                    this.scale.stopFullscreen();
-                }
-
-                // Generar payload parcial
-                const duration = Math.floor((Date.now() - this.itemStartTime) / 1000);
-                const payload = {
-                    scoreRaw: this.score,
-                    correctCount: this.currentSentenceIndex,
-                    durationSeconds: duration,
-                    exitedEarly: true
-                };
-
-                this.events.emit('exit', payload);
-                this.game.events.emit('exit', payload);
-            }, { width: 280, height: 75, fontSize: '26px', textOffsetY: -5 });
-
-            this.pauseOverlay.add([backdrop, panelBg, panelBorder, pTitle, rBtn, eBtn]);
-
-
-            // Force visibility immediately - no tween for debug reliability
-            this.pauseOverlay.setAlpha(1);
-            // this.tweens.add({ targets: this.pauseOverlay, alpha: 1, duration: 200 });
-        } else {
-            this.physics.resume();
-            if (this.gameTimer) this.gameTimer.paused = false;
-            this.tweens.resumeAll();
-
-            if (this.pauseOverlay) {
-                this.pauseOverlay.destroy();
-                this.pauseOverlay = null;
-            }
-        }
-    }
-
-    private showHelpPanel() {
-        if (this.isGameOver) return;
-
-        // Manually pause game logic WITHOUT triggering the "Pause Menu"
-        const wasPreviouslyPaused = this.isPaused;
-        if (!wasPreviouslyPaused) {
-            this.isPaused = true;
-            this.physics.pause();
-            if (this.gameTimer) this.gameTimer.paused = true;
-            this.tweens.pauseAll();
-        }
-
-        const { width, height } = this.cameras.main;
-        const helpOverlay = this.add.container(0, 0).setDepth(45000).setScrollFactor(0);
-
-        const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
-
-        // New standard modal style
-        const pW = 600;
-        const pH = 480;
-        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x0a1a2e).setAlpha(0.85);
-        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x3b82f6);
-
-        const title = this.add.text(width / 2, height / 2 - 180, 'INSTRUCCIONES', {
+        // 3. Textos Nítidos
+        const title = this.add.text(0, -85, 'MISSION COMPLETE!', {
             fontSize: '40px',
-            fontFamily: 'Fredoka',
-            color: '#fbbf24',
-            stroke: '#000000',
-            strokeThickness: 6
+            fontFamily: 'Nunito',
+            color: '#FFFFFF',
+            fontStyle: '900'
         }).setOrigin(0.5);
 
-        const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions || 'Build the correct sentence by selecting the words in order.', {
-            fontSize: '22px',
-            fontFamily: 'Fredoka',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 520 },
-            lineSpacing: 4
+        const scoreText = this.add.text(0, -25, `Final Score: ${this.score}`, {
+            fontSize: '24px',
+            fontFamily: 'Nunito',
+            color: '#FBBF24',
+            fontStyle: '800'
         }).setOrigin(0.5);
 
-        const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 160, 'ENTENDIDO', () => {
-            helpOverlay.destroy();
-            // Resume only if it wasn't paused before
-            if (!wasPreviouslyPaused) {
-                this.isPaused = false;
-                this.physics.resume();
-                if (this.gameTimer) this.gameTimer.paused = false;
-                this.tweens.resumeAll();
-            }
-        }, { width: 220, height: 75, fontSize: '26px', textOffsetY: -5 });
+        // 4. Botones SB PREMIUM
+        const btnReplay = createSBButton(this, -110, 80, 180, 60, '↺ REPLAY', () => this.scene.restart(), false);
+        const btnResults = createSBButton(this, 110, 80, 180, 60, '➔ RESULTS', () => this.game.events.emit('GAME_EXIT'), true);
 
-        helpOverlay.add([dim, panelBg, panelBorder, title, instructions, closeBtn]);
+        container.add([bg, title, scoreText, btnReplay, btnResults]);
+
+        // Animación Juicy
+        container.setScale(0.8).setAlpha(0);
+        this.tweens.add({ targets: container, scale: 1, alpha: 1, duration: 500, ease: 'Back.out(1.7)' });
     }
 
-    update(time: number, delta: number) {
-        // Logica de update si es necesaria
+    private togglePause(showOverlay: boolean = true) {
+        this.isPaused = !this.isPaused;
+        if (this.isPaused) {
+            if (showOverlay) this.showPauseOverlay();
+        } else {
+            this.hidePauseOverlay();
+        }
     }
+    private showPauseOverlay() {
+        const { width, height } = this.cameras.main;
+
+        // Backdrop total
+        this.pauseOverlay = this.add.container(0, 0).setDepth(45000);
+        const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.7).setOrigin(0).setInteractive();
+
+        // Contenedor del panel
+        const panelCont = this.add.container(width / 2, height / 2);
+        const pW = 400, pH = 320;
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x4338ca, 0.95); // Indigo 700
+        bg.fillRoundedRect(-pW / 2, -pH / 2, pW, pH, 20);
+        bg.lineStyle(4, 0x818CF8, 1);
+        bg.strokeRoundedRect(-pW / 2, -pH / 2, pW, pH, 20);
+
+        const title = this.add.text(0, -80, 'PAUSED', {
+            fontSize: '42px',
+            fontFamily: 'Nunito',
+            color: '#FFFFFF',
+            fontStyle: '900'
+        }).setOrigin(0.5);
+
+        const bC = createSBButton(this, 0, 15, 220, 60, '➔ CONTINUE', () => this.togglePause(), true);
+        const bE = createSBButton(this, 0, 95, 180, 50, 'EXIT', () => this.game.events.emit('GAME_EXIT'), false);
+
+        panelCont.add([bg, title, bC, bE]);
+        this.pauseOverlay.add([backdrop, panelCont]);
+
+        panelCont.setScale(0.8).setAlpha(0);
+        this.tweens.add({ targets: panelCont, scale: 1, alpha: 1, duration: 400, ease: 'Back.out' });
+    }
+    private hidePauseOverlay() { if (this.pauseOverlay) this.pauseOverlay.destroy(); }
+    private showHelpPanel() {
+        const wasPaused = this.isPaused;
+        if (!wasPaused) this.isPaused = true; // Pausa lógica sin overlay
+
+        const { width, height } = this.cameras.main;
+        const helpContainer = this.add.container(0, 0).setDepth(60000);
+
+        // 1. Backdrop traslúcido
+        const backdrop = this.add.rectangle(0, 0, width, height, 0x000000, 0.75).setOrigin(0).setInteractive();
+
+        // 2. Panel Indigo Glass
+        const pW = 500, pH = 420;
+        const panel = this.add.container(width / 2, height / 2);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x4338ca, 0.95);
+        bg.fillRoundedRect(-pW / 2, -pH / 2, pW, pH, 25);
+        bg.lineStyle(4, 0x818CF8, 1);
+        bg.strokeRoundedRect(-pW / 2, -pH / 2, pW, pH, 25);
+
+        bg.fillStyle(0xffffff, 0.1);
+        bg.fillRoundedRect(-pW / 2 + 5, -pH / 2 + 5, pW - 10, pH / 2.5, { tl: 20, tr: 20, bl: 5, br: 5 });
+
+        const title = this.add.text(0, -130, 'How to play', {
+            fontSize: '38px', fontFamily: 'Nunito', color: '#FFFFFF', fontStyle: '900'
+        }).setOrigin(0.5);
+
+        const info = this.add.text(0, 0, this.missionInstructions || 'Select words in order to build the sentence.', {
+            fontSize: '24px', fontFamily: 'Nunito', color: '#FFFFFF', align: 'center', wordWrap: { width: 420 }, fontStyle: '600'
+        }).setOrigin(0.5);
+
+        const closeBtn = createSBButton(this, 0, 140, 200, 60, '➔ GOT IT!', () => {
+            helpContainer.destroy();
+            if (!wasPaused) this.isPaused = false; // Reanudar lógica
+        }, true);
+
+        panel.add([bg, title, info, closeBtn]);
+        helpContainer.add([backdrop, panel]);
+
+        panel.setScale(0.8).setAlpha(0);
+        this.tweens.add({ targets: panel, scale: 1, alpha: 1, duration: 400, ease: 'Back.out' });
+    }
+    update() { }
 }

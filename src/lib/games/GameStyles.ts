@@ -91,6 +91,253 @@ export const GAME_COLORS_HEX = {
 } as const;
 
 // ============================================
+// PALETAS DE COLORES POR JUEGO
+// Esquemas vibrantes y motivadores específicos para cada juego
+// ============================================
+
+export const GAME_THEMES = {
+    // 🎯 GRAMMAR RUN - Energía y Velocidad
+    // Paleta de neón vibrante con tonos eléctricos
+    grammarRun: {
+        name: 'Grammar Run',
+        colors: {
+            // Colores principales - Neón eléctrico
+            primary: 0xFF00FF,          // Magenta neón brillante
+            secondary: 0x00FFFF,        // Cyan eléctrico
+            accent: 0xFFFF00,           // Amarillo neón
+
+            // Elementos del juego
+            player: 0x00D9FF,           // Cyan brillante (neutral y moderno)
+            obstacle: 0xFF4500,         // Naranja rojizo vibrante (OrangeRed)
+            ground: 0x9400D3,           // Violeta oscuro (DarkViolet)
+            background: 0x1A0033,       // Púrpura muy oscuro
+
+            // Efectos y partículas
+            trail: 0x00FF88,            // Verde neón
+            glow: 0xFF00AA,             // Rosa neón
+            spark: 0xFFFF33,            // Amarillo brillante
+
+            // UI específica
+            correctAnswer: 0x00FF00,    // Verde lima brillante
+            wrongAnswer: 0xFF0066,      // Rosa rojizo intenso
+            powerUp: 0xFFD700,          // Dorado brillante
+        },
+        hex: {
+            primary: '#FF00FF',
+            secondary: '#00FFFF',
+            accent: '#FFFF00',
+            player: '#00D9FF',
+            obstacle: '#FF4500',
+            ground: '#9400D3',
+            background: '#1A0033',
+            trail: '#00FF88',
+            glow: '#FF00AA',
+            spark: '#FFFF33',
+            correctAnswer: '#00FF00',
+            wrongAnswer: '#FF0066',
+            powerUp: '#FFD700',
+        }
+    },
+
+    // 🎪 WORD CIRCUS - Diversión y Alegría
+    // Paleta de circo vibrante con colores festivos
+    wordCircus: {
+        name: 'Word Circus',
+        colors: {
+            // Colores principales - Circo festivo
+            primary: 0xFF6B35,          // Naranja coral vibrante
+            secondary: 0xF7B801,        // Amarillo dorado brillante
+            accent: 0xE63946,           // Rojo carmesí intenso
+
+            // Elementos del juego
+            balloon: 0xFF1654,          // Rosa fucsia brillante
+            balloonAlt1: 0x4ECDC4,      // Turquesa vibrante
+            balloonAlt2: 0x9B59B6,      // Púrpura real
+            balloonAlt3: 0xF39C12,      // Naranja dorado
+            background: 0x2C3E50,       // Azul pizarra oscuro
+
+            // Efectos
+            pop: 0xFFD93D,              // Amarillo brillante
+            confetti1: 0xFF6B9D,        // Rosa chicle
+            confetti2: 0x6BCB77,        // Verde menta brillante
+            confetti3: 0xFFA07A,        // Salmón claro
+
+            // UI específica
+            correctPop: 0x2ECC71,       // Verde esmeralda
+            wrongPop: 0xE74C3C,         // Rojo brillante
+            combo: 0xF1C40F,            // Amarillo sol
+        },
+        hex: {
+            primary: '#FF6B35',
+            secondary: '#F7B801',
+            accent: '#E63946',
+            balloon: '#FF1654',
+            balloonAlt1: '#4ECDC4',
+            balloonAlt2: '#9B59B6',
+            balloonAlt3: '#F39C12',
+            background: '#2C3E50',
+            pop: '#FFD93D',
+            confetti1: '#FF6B9D',
+            confetti2: '#6BCB77',
+            confetti3: '#FFA07A',
+            correctPop: '#2ECC71',
+            wrongPop: '#E74C3C',
+            combo: '#F1C40F',
+        }
+    },
+
+    // 🧩 WORD PUZZLE - Concentración y Claridad
+    // Paleta moderna con gradientes vibrantes
+    wordPuzzle: {
+        name: 'Word Puzzle',
+        colors: {
+            // Colores principales - Gradiente moderno
+            primary: 0x667EEA,          // Azul índigo brillante
+            secondary: 0x764BA2,        // Púrpura profundo
+            accent: 0xF093FB,           // Rosa lavanda brillante
+
+            // Elementos del juego
+            tile: 0x4FACFE,             // Azul cielo brillante
+            tileSelected: 0xFF0080,     // Magenta intenso
+            tileCorrect: 0x43E97B,      // Verde menta brillante
+            tileWrong: 0xFA709A,        // Rosa coral
+            background: 0x0F2027,       // Azul marino muy oscuro
+
+            // Efectos
+            glow: 0x00F5FF,             // Cyan brillante
+            particle: 0xFFB6FF,         // Rosa pastel brillante
+            trail: 0x38EF7D,            // Verde lima brillante
+
+            // UI específica
+            hint: 0xFEAC5E,             // Naranja melocotón
+            match: 0x4BC0C8,            // Turquesa brillante
+            complete: 0xC471F5,         // Púrpura orquídea
+        },
+        hex: {
+            primary: '#667EEA',
+            secondary: '#764BA2',
+            accent: '#F093FB',
+            tile: '#4FACFE',
+            tileSelected: '#FF0080',
+            tileCorrect: '#43E97B',
+            tileWrong: '#FA709A',
+            background: '#0F2027',
+            glow: '#00F5FF',
+            particle: '#FFB6FF',
+            trail: '#38EF7D',
+            hint: '#FEAC5E',
+            match: '#4BC0C8',
+            complete: '#C471F5',
+        }
+    },
+
+    // 🎮 MEMORY MATCH - Memoria y Enfoque
+    // Paleta de neón retro gaming
+    memoryMatch: {
+        name: 'Memory Match',
+        colors: {
+            // Colores principales - Retro gaming
+            primary: 0xFF006E,          // Rosa neón intenso
+            secondary: 0x8338EC,        // Púrpura eléctrico
+            accent: 0xFFBE0B,           // Amarillo dorado brillante
+
+            // Elementos del juego
+            cardBack: 0x3A86FF,         // Azul brillante
+            cardFront: 0xFB5607,        // Naranja intenso
+            cardMatch: 0x06FFA5,        // Verde menta neón
+            cardMismatch: 0xFF006E,     // Rosa neón
+            background: 0x0D1B2A,       // Azul oscuro profundo
+
+            // Efectos
+            flip: 0xFFD60A,             // Amarillo brillante
+            match: 0x00F5D4,            // Turquesa neón
+            glow: 0xFF0A54,             // Rosa rojizo brillante
+            particle: 0x9D4EDD,         // Púrpura medio brillante
+
+            // UI específica
+            timer: 0xFF5400,            // Naranja rojizo
+            score: 0x00BBF9,            // Azul cielo brillante
+            combo: 0xFFBE0B,            // Amarillo dorado
+        },
+        hex: {
+            primary: '#FF006E',
+            secondary: '#8338EC',
+            accent: '#FFBE0B',
+            cardBack: '#3A86FF',
+            cardFront: '#FB5607',
+            cardMatch: '#06FFA5',
+            cardMismatch: '#FF006E',
+            background: '#0D1B2A',
+            flip: '#FFD60A',
+            match: '#00F5D4',
+            glow: '#FF0A54',
+            particle: '#9D4EDD',
+            timer: '#FF5400',
+            score: '#00BBF9',
+            combo: '#FFBE0B',
+        }
+    },
+
+    // 📚 SENTENCE BUILDER - Creatividad y Construcción
+    // Paleta de construcción vibrante
+    sentenceBuilder: {
+        name: 'Sentence Builder',
+        colors: {
+            // Colores principales - Constructor vibrante
+            primary: 0xFF6B6B,          // Rojo coral brillante
+            secondary: 0x4ECDC4,        // Turquesa vibrante
+            accent: 0xFFE66D,           // Amarillo pastel brillante
+
+            // Elementos del juego
+            wordBlock: 0x95E1D3,        // Verde menta claro
+            wordBlockHover: 0xF38181,   // Rosa salmón
+            wordBlockPlaced: 0xAA96DA,  // Lavanda brillante
+            wordBlockCorrect: 0x48CFAD, // Verde turquesa
+            background: 0x2C3A47,       // Gris azulado oscuro
+
+            // Zonas de construcción
+            dropZone: 0x5F27CD,         // Púrpura intenso
+            dropZoneActive: 0xEE5A6F,   // Rosa rojizo
+            dropZoneFilled: 0x00D2D3,   // Cyan brillante
+
+            // Efectos
+            snap: 0xFECA57,             // Amarillo mostaza brillante
+            complete: 0x1DD1A1,         // Verde esmeralda brillante
+            error: 0xFF6348,            // Rojo tomate brillante
+
+            // UI específica
+            hint: 0xFFA502,             // Naranja brillante
+            validation: 0x5F27CD,       // Púrpura intenso
+            success: 0x00D2D3,          // Cyan brillante
+        },
+        hex: {
+            primary: '#FF6B6B',
+            secondary: '#4ECDC4',
+            accent: '#FFE66D',
+            wordBlock: '#95E1D3',
+            wordBlockHover: '#F38181',
+            wordBlockPlaced: '#AA96DA',
+            wordBlockCorrect: '#48CFAD',
+            background: '#2C3A47',
+            dropZone: '#5F27CD',
+            dropZoneActive: '#EE5A6F',
+            dropZoneFilled: '#00D2D3',
+            snap: '#FECA57',
+            complete: '#1DD1A1',
+            error: '#FF6348',
+            hint: '#FFA502',
+            validation: '#5F27CD',
+            success: '#00D2D3',
+        }
+    },
+} as const;
+
+// Helper para obtener el tema de un juego
+export function getGameTheme(gameName: keyof typeof GAME_THEMES) {
+    return GAME_THEMES[gameName];
+}
+
+// ============================================
 // ESTILOS DE TEXTO
 // ============================================
 

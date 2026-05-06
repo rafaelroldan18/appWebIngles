@@ -411,89 +411,190 @@ export function showGameInstructions(
     const container = scene.add.container(width / 2, height / 2).setDepth(40000);
 
     // Fondo oscuro total (Dimmer)
-    const backdrop = scene.add.rectangle(0, 0, width, height, 0x000000, 0.9)
+    // Word Catcher uses a deeper, more opaque background
+    const nameLowerCheck = title.toLowerCase();
+    const isWC = nameLowerCheck.includes('word catcher');
+    const bgAlpha = isWC ? 0.98 : 0.9;
+    const bgColor = isWC ? 0x0f172a : 0x000000;
+
+    const backdrop = scene.add.rectangle(0, 0, width, height, bgColor, bgAlpha)
         .setInteractive()
         .setScrollFactor(0);
 
+    // Detectar juego para aplicar tema neón
+    const nameLower = title.toLowerCase();
+    const isGrammarRun = nameLower.includes('grammar run');
+    const isWordCatcher = nameLower.includes('word catcher');
+    const isSentenceBuilder = nameLower.includes('sentence builder');
+    const isImageMatch = nameLower.includes('image match');
+
     // Panel central usando nineslice para fondo y borde del atlas de modales
-    const panelW = Math.min(600, width * 0.90);
-    const panelH = Math.min(450, height * 0.80);
+    const panelW = isImageMatch ? Math.min(460, width * 0.85) : Math.min(600, width * 0.90);
+    const panelH = isImageMatch ? Math.min(420, height * 0.80) : Math.min(450, height * 0.80);
 
-    // Background Panel (glass effect with tint)
-    const panelBg = scene.add.nineslice(
-        0, 0,
-        'modals_atlas',
-        'Default/Panel/panel-001.png',
-        panelW, panelH,
-        20, 20, 20, 20
-    ).setTint(0x0a1a2e).setAlpha(0.85);
+    let panelBg: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Graphics;
+    let panelBorder: Phaser.GameObjects.NineSlice | undefined;
 
-    // Border Frame
-    const panelBorder = scene.add.nineslice(
-        0, 0,
-        'modals_atlas',
-        'Default/Border/panel-border-001.png',
-        panelW, panelH,
-        20, 20, 20, 20
-    ).setTint(0x3b82f6);
+    if (isGrammarRun) {
+        // Usar tema neón para Grammar Run
+        const { createGrammarRunPanel } = require('./GrammarRunTheme');
+        panelBg = createGrammarRunPanel(scene, panelW, panelH);
+    } else if (isWordCatcher) {
+        // Usar tema neón para Word Catcher
+        const { createWordCatcherPanel } = require('./WordCatcherTheme');
+        panelBg = createWordCatcherPanel(scene, panelW, panelH);
+    } else if (isSentenceBuilder) {
+        // Usar tema Indigo Glass para Sentence Builder
+        const { createSBPanel } = require('./SentenceBuilderTheme');
+        panelBg = createSBPanel(scene, panelW, panelH);
+    } else if (isImageMatch) {
+        // Usar tema Neon Pulse para Image Match
+        const { createIMPanel } = require('./ImageMatchTheme');
+        panelBg = createIMPanel(scene, panelW, panelH);
+    } else {
+        // Panel mejorado para otros juegos - más profesional
+        panelBg = scene.add.nineslice(
+            0, 0,
+            'modals_atlas',
+            'Default/Panel/panel-001.png',
+            panelW, panelH,
+            20, 20, 20, 20
+        ).setTint(0x0f172a).setAlpha(0.98); // Azul oscuro profundo (Indigo Dark)
+
+        // Border Frame con efecto de brillo
+        panelBorder = scene.add.nineslice(
+            0, 0,
+            'modals_atlas',
+            'Default/Border/panel-border-001.png',
+            panelW, panelH,
+            20, 20, 20, 20
+        ).setTint(0x6366f1).setAlpha(1); // Índigo sólido y vibrante
+
+        // Agregar efecto de brillo pulsante al borde
+        scene.tweens.add({
+            targets: panelBorder,
+            alpha: 0.7,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+    }
 
     // Título principal
     const titleText = scene.add.text(0, -panelH * 0.36, title.toUpperCase(), {
         fontSize: '32px',
-        fontFamily: 'Nunito',
-        color: '#fbbf24',
+        fontFamily: 'Orbitron, Nunito',
+        color: (isGrammarRun || isWordCatcher || isSentenceBuilder || isImageMatch) ? '#FFFFFF' : '#fbbf24',
         stroke: '#000000',
-        strokeThickness: 2,
+        strokeThickness: 5, // Trazo fuerte para el título
         align: 'center',
-        letterSpacing: 2
+        letterSpacing: 2,
+        fontStyle: '900'
     }).setOrigin(0.5);
 
-    // --- SECCIÓN: HOW TO PLAY ---
-    const sectionControls = scene.add.text(0, -panelH * 0.18, 'MISSION OBJECTIVE', {
-        fontSize: '20px',
-        fontFamily: 'Nunito',
-        color: '#FFFFFF',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 1
-    }).setOrigin(0.5);
+    if (isSentenceBuilder) titleText.setColor('#FBBF24');
+    if (isImageMatch) titleText.setColor('#1E293B'); // Dark Slate instead of Cyan for light background
 
-    // Texto de instrucciones (objetivo del juego)
-    const instructText = scene.add.text(0, -panelH * 0.04, instructions, {
-        fontSize: '17px',
+    // --- POSICIONAMIENTO DINÁMICO (TOP-DOWN) ---
+    const gap = isImageMatch ? 12 : 10;
+
+    // 1. Título (Fijo arriba)
+    titleText.setOrigin(0.5, 0).setY(-panelH * 0.40);
+
+    // 2. MISSION OBJECTIVE
+    const sectionControls = scene.add.text(0, titleText.y + titleText.height + gap, 'MISSION OBJECTIVE', {
+        fontSize: isImageMatch ? '17px' : '20px',
         fontFamily: 'Nunito',
-        color: '#cbd5e1', // Color más suave (slate-300)
+        color: isImageMatch ? '#4F46E5' : ((isGrammarRun || isWordCatcher) ? '#00D9FF' : '#FFFFFF'),
+        fontStyle: '900',
+        stroke: isImageMatch ? '#FFFFFF' : '#000000',
+        strokeThickness: isImageMatch ? 2 : 3
+    }).setOrigin(0.5, 0);
+
+    // 3. Instrucciones
+    const instructText = scene.add.text(0, sectionControls.y + sectionControls.height + gap, instructions, {
+        fontSize: isImageMatch ? '17px' : '17px',
+        fontFamily: 'Nunito',
+        color: isImageMatch ? '#1E293B' : '#ffffff',
         align: 'center',
         wordWrap: { width: panelW - 80 },
-        lineSpacing: 4
-    }).setOrigin(0.5);
+        lineSpacing: 4,
+        fontStyle: isImageMatch ? '800' : 'normal',
+        stroke: '#FFFFFF',
+        strokeThickness: isImageMatch ? 1 : 0
+    }).setOrigin(0.5, 0);
 
-    // Texto de controles (botones y teclas) - DENTRO del panel
-    const controlsText = scene.add.text(0, panelH * 0.14, controls, {
-        fontSize: '16px',
-        fontFamily: 'Fredoka',
-        color: '#ffffff',
+    // 4. Controles
+    const controlsText = scene.add.text(0, instructText.y + instructText.height + gap + 5, controls, {
+        fontSize: isImageMatch ? '15px' : '16px',
+        fontFamily: 'Nunito',
+        color: isImageMatch ? '#4F46E5' : '#ffffff',
         align: 'center',
         wordWrap: { width: panelW - 80 },
-        lineSpacing: 2
-    }).setOrigin(0.5);
+        lineSpacing: 2,
+        fontStyle: isImageMatch ? '900' : 'normal',
+        stroke: '#FFFFFF',
+        strokeThickness: isImageMatch ? 1 : 0
+    }).setOrigin(0.5, 0);
 
-    // Botón de inicio - DENTRO del panel
-    const startBtn = createButton(
-        scene,
-        'common-ui/buttons/btn_primary',
-        0,
-        panelH * 0.36,
-        buttonLabel,
-        () => {
+    // Botón para empezar
+    let startBtn: Phaser.GameObjects.Container;
+
+    if (isSentenceBuilder) {
+        const { createSBButton } = require('./SentenceBuilderTheme');
+        startBtn = createSBButton(scene, 0, Math.max(panelH * 0.35, controlsText.y + controlsText.height + gap + 20), 220, 60, buttonLabel, () => {
             if (requestFullscreen && !scene.scale.isFullscreen) {
                 try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
             }
             cleanup();
             onStart();
-        },
-        { width: 220, height: 60, fontSize: '24px' }
-    );
+        }, true);
+    } else if (isImageMatch) {
+        const { createIMButton } = require('./ImageMatchTheme');
+        // Botón más cerca del texto en Image Match
+        startBtn = createIMButton(scene, 0, Math.max(panelH * 0.30, controlsText.y + controlsText.height + gap + 10), 220, 55, buttonLabel, () => {
+            if (requestFullscreen && !scene.scale.isFullscreen) {
+                try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
+            }
+            cleanup();
+            onStart();
+        }, true);
+    } else if (isWordCatcher) {
+        const { createWCButton, WORD_CATCHER_THEME } = require('./WordCatcherTheme');
+        startBtn = createWCButton(scene, 0, panelH * 0.36, 220, 60, buttonLabel, WORD_CATCHER_THEME.colors.primary, () => {
+            if (requestFullscreen && !scene.scale.isFullscreen) {
+                try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
+            }
+            cleanup();
+            onStart();
+        });
+    } else {
+        startBtn = createButton(
+            scene,
+            'common-ui/buttons/btn_primary',
+            0,
+            panelH * 0.36,
+            buttonLabel,
+            () => {
+                if (requestFullscreen && !scene.scale.isFullscreen) {
+                    try { scene.scale.startFullscreen(); } catch (e) { console.warn(e); }
+                }
+                cleanup();
+                onStart();
+            },
+            { width: 220, height: 60, fontSize: '24px' }
+        );
+    }
+
+    // Aplicar tint neón si es Grammar Run
+    if (isGrammarRun) {
+        const { GRAMMAR_RUN_THEME } = require('./GrammarRunTheme');
+        const btnBg = startBtn.getAt(0) as Phaser.GameObjects.Image;
+        if (btnBg && btnBg.setTint) {
+            btnBg.setTint(GRAMMAR_RUN_THEME.colors.success); // Verde neón
+        }
+    }
 
     // Hint: Space to start - FUERA del panel, debajo
     const spaceHint = scene.add.text(0, panelH * 0.50 + 20, 'or press SPACE to start', {
@@ -504,7 +605,10 @@ export function showGameInstructions(
     }).setOrigin(0.5);
 
     // Agregar todos los elementos al contenedor
-    container.add([backdrop, panelBg, panelBorder, titleText, sectionControls, instructText, controlsText, startBtn, spaceHint]);
+    const elements: any[] = [backdrop, panelBg];
+    if (panelBorder) elements.push(panelBorder);
+    elements.push(titleText, sectionControls, instructText, controlsText, startBtn, spaceHint);
+    container.add(elements);
 
     // Cleanup function
     const cleanup = () => {
@@ -686,44 +790,59 @@ export function showToast(
     isSuccess: boolean = true
 ): Phaser.GameObjects.Container {
     const { width, height } = scene.cameras.main;
-    const container = scene.add.container(width / 2, height - 100);
-    container.setDepth(3500);
+    const container = scene.add.container(width / 2, height - 100).setDepth(100000);
 
-    // Panel de fondo
-    const bg = scene.add.rectangle(0, 0, 400, 60, isSuccess ? 0x10B981 : 0xEF4444, 0.95);
-
-    // Texto
-    const text = scene.add.text(0, 0, message, {
-        fontSize: '18px',
-        fontFamily: 'Fredoka',
+    const txtStyle = {
+        fontSize: '20px',
+        fontFamily: 'Nunito',
         color: '#FFFFFF',
-        stroke: '#000000',
-        strokeThickness: 3,
+        fontStyle: '800',
         align: 'center'
-    });
-    text.setOrigin(0.5);
+    };
 
-    container.add([bg, text]);
+    const tempTxt = scene.add.text(0, 0, message, txtStyle);
+    const w = Math.max(320, tempTxt.width + 80);
+    const h = 64;
+    tempTxt.destroy();
 
-    // Animación de entrada
-    container.setY(height + 50);
+    // Sombra proyectada
+    const shadow = scene.add.graphics().fillStyle(0x000000, 0.2).fillRoundedRect(-w / 2 + 4, -h / 2 + 4, w, h, 15);
+
+    // Panel principal
+    const bg = scene.add.graphics();
+    const bgColor = isSuccess ? 0x10B981 : 0xEF4444;
+    const borderColor = isSuccess ? 0x059669 : 0xB91C1C;
+
+    bg.fillStyle(bgColor, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 15)
+        .lineStyle(3, borderColor, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 15);
+
+    const text = scene.add.text(0, 0, message, txtStyle).setOrigin(0.5);
+
+    container.add([shadow, bg, text]);
+
+    // Animación Juicy
+    container.setScale(0.5).setAlpha(0);
     scene.tweens.add({
         targets: container,
-        y: height - 100,
-        duration: 300,
-        ease: 'Back.easeOut'
+        scale: 1,
+        alpha: 1,
+        y: height - 120,
+        duration: 400,
+        ease: 'Back.out(1.7)'
     });
 
-    // Animación de salida
     scene.time.delayedCall(duration, () => {
-        scene.tweens.add({
-            targets: container,
-            y: height + 50,
-            alpha: 0,
-            duration: 300,
-            ease: 'Back.easeIn',
-            onComplete: () => container.destroy()
-        });
+        if (scene && container) {
+            scene.tweens.add({
+                targets: container,
+                scale: 0.8,
+                alpha: 0,
+                y: height - 80,
+                duration: 300,
+                ease: 'Power2.in',
+                onComplete: () => container.destroy()
+            });
+        }
     });
 
     return container;

@@ -14,11 +14,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 async function run() {
     try {
-        console.log('🔍 Consultando modelos disponibles para tu API Key...');
-        // El SDK no tiene un método directo expuesto fácilmente en todas las versiones para listar, 
-        // pero podemos usar el cliente de fetch interno o simplemente probar los 3 más probables 
-        // con una configuración de seguridad mínima.
-
+ 
         const models = [
             'gemini-1.5-flash',
             'gemini-1.5-pro',

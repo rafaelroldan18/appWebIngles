@@ -1,9 +1,10 @@
 /**
  * GrammarRunScene - Endless runner game for grammar practice
- * Rediseñado con sistema de atlas profesional
+ * Rediseñado con un estilo Minimalista Moderno Premium (Clean UI)
  */
 
 import * as Phaser from 'phaser';
+import { gsap } from 'gsap';
 import { GRAMMAR_RUN_CONFIG, resolveGrammarRunConfig } from './grammarRun.config';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
@@ -13,10 +14,13 @@ import type { GameSessionManager } from './GameSessionManager';
 import { loadGrammarRunContent, validateGrammarRunContent } from './gameLoader.utils';
 import { loadGameAudio } from './AudioLoader';
 import { SoundManager } from './SoundManager';
+import { getGameTheme } from './GameStyles';
+import { GRAMMAR_RUN_THEME, createGrammarRunPanel, createGrammarRunButton } from './GrammarRunTheme';
+import { showCorrectFeedback, showWrongFeedback } from './VisualEffects';
 
 interface Gate {
     container: Phaser.GameObjects.Container;
-    sprite: Phaser.GameObjects.Image;
+    sprite: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
     textObj: Phaser.GameObjects.Text;
     question: GrammarQuestion;
     option: GrammarOption;
@@ -35,7 +39,6 @@ export class GrammarRunScene extends Phaser.Scene {
 
     // Game objects
     private player!: Phaser.GameObjects.Sprite;
-    private bg!: Phaser.GameObjects.TileSprite; // Scrolling background
     private ground!: Phaser.GameObjects.Rectangle;
     private gates: Gate[] = [];
     private obstacles: Phaser.GameObjects.Image[] = [];
@@ -48,9 +51,13 @@ export class GrammarRunScene extends Phaser.Scene {
     private ghostGroup!: Phaser.GameObjects.Group;
     private trailParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
+    // 🎨 Visual Elements - Cinéticos
+    private kineticLines: Phaser.GameObjects.Graphics[] = [];
+    private speedParticles: Phaser.GameObjects.Graphics[] = [];
+
     // Game state
     private score: number = 0;
-    private timeElapsed: number = 0; // Changed from timeRemaining to timeElapsed (counts UP)
+    private timeElapsed: number = 0;
     private distance: number = 0;
     private currentLane: number = 1; // 0=left, 1=center, 2=right
     private isGameOver: boolean = false;
@@ -84,7 +91,6 @@ export class GrammarRunScene extends Phaser.Scene {
         this.load.atlas('ui_atlas', '/assets/atlases/common-ui/texture.png', '/assets/atlases/common-ui/texture.json');
         loadGameAtlases(this, 'gr');
         loadGameAudio(this, 'gr');
-        this.load.image('bg_grammar', '/assets/backgrounds/grammar-run/bg_trees.png');
     }
 
     // Data for restart
@@ -122,7 +128,7 @@ export class GrammarRunScene extends Phaser.Scene {
 
         // Initialize game state from resolved config
         this.score = 0;
-        this.timeElapsed = 0; // Start at 0 and count UP
+        this.timeElapsed = 0;
         this.distance = 0;
         this.currentLane = 1;
         this.isGameOver = false;
@@ -152,9 +158,6 @@ export class GrammarRunScene extends Phaser.Scene {
     create() {
         console.log('[GrammarRun] Scene create() started');
         try {
-            // Petición de pantalla completa ANTES de iniciar los sistemas de juego
-            this.isPaused = true;
-            // Combine Fullscreen + Instructions
             this.isPaused = true;
             showGameInstructions(this, {
                 title: 'Grammar Run',
@@ -173,17 +176,8 @@ export class GrammarRunScene extends Phaser.Scene {
 
             const { width, height } = this.cameras.main;
 
-            // Set background (Single clean background image)
-            this.bg = this.add.tileSprite(width / 2, height / 2, width, height, 'bg_grammar');
-            this.bg.setScrollFactor(0);
-            this.bg.setDepth(-100);
-
-            // Improved background: Scale it even larger (3x screen) to minimize visible repetition
-            const baseScale = Math.max(width / this.textures.get('bg_grammar').getSourceImage().width, height / this.textures.get('bg_grammar').getSourceImage().height);
-            this.bg.setTileScale(baseScale * 3);
-            this.bg.setAlpha(0.95);
-
-            // Removed createGround() to have only one main background image as requested
+            // 🎨 FONDO CINÉTICO
+            this.createKineticBackground();
 
             // Create player
             this.createPlayer();
@@ -194,9 +188,6 @@ export class GrammarRunScene extends Phaser.Scene {
             // Setup controls
             this.setupControls();
 
-            // Start Countdown - Now handled by showGameInstructions callback
-            // this.startCountdown();
-
             // Enable physics
             this.physics.world.setBounds(0, 0, width, height);
 
@@ -206,6 +197,96 @@ export class GrammarRunScene extends Phaser.Scene {
             console.error('[GrammarRun] Critical error in create():', error);
             this.add.text(400, 300, 'Error initializing game', { color: '#ff0000' }).setOrigin(0.5);
         }
+    }
+
+    /**
+     * 🎨 Crea un fondo dinámico limpio con estrellas parpadeantes y nebulosa sutil
+     */
+    private createKineticBackground() {
+        const { width, height } = this.cameras.main;
+
+        // 🌌 FONDO: Gradiente de Nebulosa Cernida
+        const bg = this.add.graphics();
+        bg.setDepth(-100);
+        bg.fillGradientStyle(0x0F172A, 0x0F172A, 0x1E1B4B, 0x020617, 1);
+        bg.fillRect(0, 0, width, height);
+
+        // ✨ ESTRELLAS PARPADEANTES (Campo Estelar Limpio, sin figuras raras)
+        for (let i = 0; i < 40; i++) {
+            const star = this.add.graphics();
+            star.setDepth(-90);
+
+            const x = Phaser.Math.Between(0, width);
+            const y = Phaser.Math.Between(0, height);
+            const size = Phaser.Math.Between(1, 3);
+
+            star.fillStyle(0xFFFFFF, Phaser.Math.FloatBetween(0.3, 0.8));
+            star.fillCircle(0, 0, size);
+            star.setPosition(x, y);
+
+            this.speedParticles.push(star);
+
+            // Movimiento hacia abajo
+            gsap.to(star, {
+                y: height + 50,
+                duration: Phaser.Math.FloatBetween(4, 10),
+                repeat: -1,
+                ease: 'none',
+                onRepeat: () => {
+                    star.y = -10;
+                    star.x = Phaser.Math.Between(0, width);
+                }
+            });
+
+            // Parpadeo aleatorio
+            gsap.to(star, {
+                alpha: 0.1,
+                duration: Phaser.Math.FloatBetween(0.5, 2),
+                yoyo: true,
+                repeat: -1,
+                ease: 'sine.inOut'
+            });
+        }
+
+        // ✨ CHISPAS DE DATOS (Speed Sparks)
+        // Partículas muy pequeñas y rápidas que dan sensación de movimiento
+        for (let i = 0; i < 30; i++) {
+            const spark = this.add.graphics();
+            spark.setDepth(-85);
+            spark.fillStyle(0xFFFFFF, 0.6);
+            spark.fillCircle(0, 0, 1.5);
+
+            const x = Phaser.Math.Between(0, width);
+            const y = Phaser.Math.Between(0, height);
+            spark.setPosition(x, y);
+
+            this.speedParticles.push(spark);
+
+            gsap.to(spark, {
+                y: height + 50,
+                duration: Phaser.Math.FloatBetween(0.8, 2),
+                repeat: -1,
+                ease: 'none',
+                onRepeat: () => {
+                    spark.y = -10;
+                    spark.x = Phaser.Math.Between(0, width);
+                }
+            });
+        }
+
+        // 🌫️ NEBULOSA DE FONDO (Sutil resplandor)
+        const glow = this.add.graphics();
+        glow.setDepth(-95);
+        glow.fillGradientStyle(0x06B6D4, 0x8B5CF6, 0x10B981, 0x020617, 0.2);
+        glow.fillCircle(width / 2, height, width);
+
+        gsap.to(glow, {
+            alpha: 0.1,
+            duration: 5,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+        });
     }
 
     private createHUD() {
@@ -221,6 +302,32 @@ export class GrammarRunScene extends Phaser.Scene {
         this.hud.onPause(() => this.togglePause());
         if (this.resolvedConfig.hud_help_enabled) {
             this.hud.onHelp(() => this.showHelpPanel());
+        }
+
+        const hudContainer = this.hud.getContainer();
+        const topPanel = hudContainer.getAt(0) as Phaser.GameObjects.Image;
+        if (topPanel && topPanel.setTint) {
+            topPanel.setTint(0x0a0a1a);
+            topPanel.setAlpha(0.95);
+            topPanel.setDisplaySize(this.scale.width, 60);
+        }
+
+        if (this.hud['soundButton']) {
+            const soundBtn = this.hud['soundButton'] as Phaser.GameObjects.Container;
+            const soundBg = soundBtn.getAt(0) as Phaser.GameObjects.Image;
+            if (soundBg && soundBg.setTint) soundBg.setTint(GRAMMAR_RUN_THEME.colors.secondary);
+        }
+
+        if (this.hud['helpButton']) {
+            const helpBtn = this.hud['helpButton'] as Phaser.GameObjects.Container;
+            const helpBg = helpBtn.getAt(0) as Phaser.GameObjects.Image;
+            if (helpBg && helpBg.setTint) helpBg.setTint(GRAMMAR_RUN_THEME.colors.warning);
+        }
+
+        if (this.hud['pauseButton']) {
+            const pauseBtn = this.hud['pauseButton'] as Phaser.GameObjects.Container;
+            const pauseBg = pauseBtn.getAt(0) as Phaser.GameObjects.Image;
+            if (pauseBg && pauseBg.setTint) pauseBg.setTint(GRAMMAR_RUN_THEME.colors.primary);
         }
 
         this.hud.update({
@@ -239,29 +346,39 @@ export class GrammarRunScene extends Phaser.Scene {
             .setDepth(50)
             .setScrollFactor(0);
 
-        this.promptBg = this.add.image(0, 0, 'ui_atlas', 'common-ui/panels/panel_dark')
-            .setDisplaySize(width * 0.65, 85) // Reduced from 0.85 and 120
-            .setAlpha(0.95);
+        // Panel Minimalista (Single Border)
+        const panelWidth = width * 0.65;
+        const panelHeight = 80;
+
+        const panelGraphics = this.add.graphics();
+
+        // Fondo tipo cristal oscuro
+        panelGraphics.fillStyle(0x0a0a1a, 0.85);
+        panelGraphics.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 12);
+
+        // Una sola línea limpia (Cyan suave)
+        panelGraphics.lineStyle(2, 0x06B6D4, 0.8);
+        panelGraphics.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 12);
+
+        this.promptBg = panelGraphics as any;
 
         this.promptText = this.add.text(0, 0, 'GET READY...', {
-            fontSize: '22px', // Reduced from 28px for a more compact, pro look
-            fontFamily: 'Fredoka',
-            color: '#fbbf24',
+            fontSize: '22px',
+            fontFamily: 'Nunito',
+            color: '#ffffff',
             fontStyle: 'bold',
             align: 'center',
             stroke: '#000000',
-            strokeThickness: 3,
-            wordWrap: { width: width * 0.6 }
+            strokeThickness: 2,
+            wordWrap: { width: width * 0.55 }
         }).setOrigin(0.5);
 
-        this.promptContainer.add([this.promptBg, this.promptText]);
+        this.promptContainer.add([panelGraphics, this.promptText]);
         this.promptContainer.setAlpha(0);
     }
 
     private togglePause() {
         if (this.isGameOver) return;
-
-        // Evitar múltiples aperturas
         if (this.isPaused && !this.pauseOverlay) return;
 
         this.isPaused = !this.isPaused;
@@ -271,7 +388,6 @@ export class GrammarRunScene extends Phaser.Scene {
             if (this.gameTimer) this.gameTimer.paused = true;
             if (this.nextQuestionTimer) this.nextQuestionTimer.paused = true;
             if (this.speedIncreaseTimer) this.speedIncreaseTimer.paused = true;
-            // this.tweens.pauseAll(); // Disable to allow UI animations
             this.showPauseOverlay();
         } else {
             this.physics.world.resume();
@@ -291,30 +407,37 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
 
-        // Background & Border from modals_atlas (glass effect)
         const pW = 520;
         const pH = 420;
-        const panelBg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x0a1a2e).setAlpha(0.85);
-        const panelBorder = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x3b82f6);
+        const panelBg = createGrammarRunPanel(this, pW, pH);
+        panelBg.setPosition(width / 2, height / 2);
 
+        this.tweens.add({
+            targets: panelBg,
+            alpha: GRAMMAR_RUN_THEME.animations.pulseAlpha,
+            duration: GRAMMAR_RUN_THEME.animations.pulseDuration,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
 
         const title = this.add.text(width / 2, height / 2 - 120, 'PAUSED', {
-            fontSize: '48px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
+            ...GRAMMAR_RUN_THEME.textStyles.title,
+            color: GRAMMAR_RUN_THEME.hex.accent,
         }).setOrigin(0.5);
 
         const resumeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 0, 'CONTINUAR', () => this.togglePause(), { width: 200, height: 60 });
+        const resumeBg = resumeBtn.getAt(0) as Phaser.GameObjects.Image;
+        if (resumeBg && resumeBg.setTint) resumeBg.setTint(GRAMMAR_RUN_THEME.colors.success);
+
         const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', width / 2, height / 2 + 80, 'SALIR', () => {
-            // Salir de pantalla completa
-            if (this.scale.isFullscreen) {
-                this.scale.stopFullscreen();
-            }
-            // Correct exit:
+            if (this.scale.isFullscreen) this.scale.stopFullscreen();
             this.game.events.emit('GAME_EXIT');
         }, { width: 200, height: 60 });
+        const exitBg = exitBtn.getAt(0) as Phaser.GameObjects.Image;
+        if (exitBg && exitBg.setTint) exitBg.setTint(GRAMMAR_RUN_THEME.colors.error);
 
-        this.pauseOverlay.add([dim, panelBg, panelBorder, title, resumeBtn, exitBtn]);
+        this.pauseOverlay.add([dim, panelBg, title, resumeBtn, exitBtn]);
     }
 
     private hidePauseOverlay() {
@@ -334,33 +457,43 @@ export class GrammarRunScene extends Phaser.Scene {
 
         const dim = this.add.rectangle(0, 0, width, height, 0x000000, 0.8).setOrigin(0).setInteractive();
 
-        // New standard modal style
         const pW = 550;
         const pH = 400;
-        const bg = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Panel/panel-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x0a1a2e).setAlpha(0.85);
-        const border = this.add.nineslice(width / 2, height / 2, 'modals_atlas', 'Default/Border/panel-border-001.png', pW, pH, 20, 20, 20, 20)
-            .setTint(0x3b82f6);
+        const bg = createGrammarRunPanel(this, pW, pH);
+        bg.setPosition(width / 2, height / 2);
+
+        this.tweens.add({
+            targets: bg,
+            alpha: GRAMMAR_RUN_THEME.animations.pulseAlpha,
+            duration: GRAMMAR_RUN_THEME.animations.pulseDuration,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
 
         const title = this.add.text(width / 2, height / 2 - 140, 'INSTRUCCIONES', {
-            fontSize: '32px', fontFamily: 'Nunito', color: '#fbbf24', stroke: '#000000', strokeThickness: 2
+            ...GRAMMAR_RUN_THEME.textStyles.subtitle,
+            color: GRAMMAR_RUN_THEME.hex.accent,
         }).setOrigin(0.5);
 
         const instructions = this.add.text(width / 2, height / 2 - 20, this.missionInstructions || 'Sigue las reglas del juego.', {
-            fontSize: '20px', color: '#e2e8f0', align: 'center', wordWrap: { width: 450 }, fontFamily: 'Fredoka'
+            ...GRAMMAR_RUN_THEME.textStyles.body,
+            align: 'center',
+            wordWrap: { width: 450 },
         }).setOrigin(0.5);
 
         const closeBtn = createButton(this, 'common-ui/buttons/btn_primary', width / 2, height / 2 + 120, 'ENTENDIDO', () => {
             panelContainer.destroy();
             if (!wasPaused) this.togglePause();
         }, { width: 200, height: 60 });
+        const closeBg = closeBtn.getAt(0) as Phaser.GameObjects.Image;
+        if (closeBg && closeBg.setTint) closeBg.setTint(GRAMMAR_RUN_THEME.colors.primary);
 
-        panelContainer.add([dim, bg, border, title, instructions, closeBtn]);
+        panelContainer.add([dim, bg, title, instructions, closeBtn]);
     }
 
     private startCountdown() {
         const { width, height } = this.cameras.main;
-
         let count = 3;
         const countText = this.add.text(width / 2, height / 2, `${count}`, {
             fontSize: '120px',
@@ -394,7 +527,6 @@ export class GrammarRunScene extends Phaser.Scene {
     }
 
     private startGameplay() {
-        // Force physics and focus
         this.physics.resume();
         if (this.sys.game.canvas) this.sys.game.canvas.focus();
 
@@ -405,21 +537,58 @@ export class GrammarRunScene extends Phaser.Scene {
         this.soundManager.playMusic('bg_music', 0.4);
     }
 
-    private createGround() {
-        // Method kept but empty to avoid breaking legacy references if any, 
-        // as the user requested only the bg_trees image as background.
-    }
-
     private createPlayer() {
         const { width, height } = this.scale;
         const groundHeight = height * 0.15;
 
-        this.player = this.add.sprite(
+        const playerContainer = this.add.container(
             width / 2,
-            height - groundHeight - 50,
-            'gr_atlas',
-            'grammar-run/player/player_run_01'
+            height - groundHeight - 50
         );
+        playerContainer.setDepth(200);
+
+        const outerGlow = this.add.graphics();
+        outerGlow.fillStyle(0x0891B2, 0.3);
+        outerGlow.fillCircle(0, 0, 50);
+        outerGlow.setBlendMode(Phaser.BlendModes.ADD);
+        playerContainer.add(outerGlow);
+
+        gsap.to(outerGlow, {
+            alpha: 0.6,
+            duration: 1.5,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+        });
+
+        gsap.to(outerGlow, {
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 2,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+        });
+
+        const innerGlow = this.add.graphics();
+        innerGlow.fillStyle(0x06B6D4, 0.5);
+        innerGlow.fillCircle(0, 0, 35);
+        innerGlow.setBlendMode(Phaser.BlendModes.ADD);
+        playerContainer.add(innerGlow);
+
+        gsap.to(innerGlow, {
+            alpha: 0.8,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            duration: 1,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+        });
+
+        this.player = this.add.sprite(0, 0, 'gr_atlas', 'grammar-run/player/player_run_01');
+        this.player.setScale(1.6);
+        playerContainer.add(this.player);
 
         this.anims.create({
             key: 'run',
@@ -427,69 +596,78 @@ export class GrammarRunScene extends Phaser.Scene {
                 { key: 'gr_atlas', frame: 'grammar-run/player/player_run_01' },
                 { key: 'gr_atlas', frame: 'grammar-run/player/player_run_02' }
             ],
-            frameRate: 7,
+            frameRate: 8,
             repeat: -1
         });
 
-        this.player.play('run').setScale(1.2); // Increased base size
+        this.player.play('run');
+        this.player.setTint(0xFFFFFF);
 
-        // Add "Juice": Bobbing effect - now relative to 1.2 scale
-        this.tweens.add({
-            targets: this.player,
-            scaleY: 1.05, // Subtle bob relative to 1.2
-            scaleX: 1.15,
-            duration: 350,
+        gsap.to(this.player, {
+            y: -3,
+            duration: 0.4,
             yoyo: true,
             repeat: -1,
-            ease: 'Sine.easeInOut'
+            ease: 'sine.inOut'
         });
 
-        this.physics.add.existing(this.player);
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        const outline = this.add.graphics();
+        outline.lineStyle(2, 0x00FFFF, 0.6); // Single border thin
+        outline.strokeCircle(0, 0, 32);
+        outline.setBlendMode(Phaser.BlendModes.ADD);
+        playerContainer.add(outline);
+        playerContainer.sendToBack(outline);
+
+        gsap.to(outline, {
+            rotation: Math.PI * 2,
+            duration: 4,
+            repeat: -1,
+            ease: 'linear'
+        });
+
+        this.physics.add.existing(playerContainer);
+        const body = playerContainer.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
-        // Using world bounds as floor since ground rectangle was removed
-        body.setGravityY(GRAMMAR_RUN_CONFIG.physics.gravity * 1.5); // Slightly stronger gravity for better jump feel
-        body.setSize(40, 60); // Optimize collision box
+        body.setGravityY(GRAMMAR_RUN_CONFIG.physics.gravity * 1.5);
+        body.setSize(50, 70);
+        body.setOffset(-25, -35);
 
-        // --- NEW PRO EFFECTS ---
-        this.ghostGroup = this.add.group();
+        (this.player as any).container = playerContainer;
 
-        // Data particles for tech/modern look
-        if (!this.textures.exists('data-particle')) {
-            const dot = this.make.graphics({ x: 0, y: 0 });
-            dot.fillStyle(0x3b82f6, 1);
-            dot.fillCircle(2, 2, 2);
-            dot.generateTexture('data-particle', 4, 4);
+        if (!this.textures.exists('energy-particle')) {
+            const particleGraphics = this.make.graphics({ x: 0, y: 0 });
+            particleGraphics.fillStyle(0x00FFFF, 1);
+            particleGraphics.fillCircle(4, 4, 4);
+            particleGraphics.generateTexture('energy-particle', 8, 8);
+            particleGraphics.destroy();
         }
 
-        this.trailParticles = this.add.particles(0, 0, 'data-particle', {
-            speed: { min: 20, max: 100 },
-            scale: { start: 1, end: 0 },
-            alpha: { start: 0.6, end: 0 },
-            lifespan: 600,
-            quantity: 1,
-            frequency: 50,
-            angle: { min: 80, max: 100 }, // Emitting downwards/backward
-            follow: this.player,
-            followOffset: { x: 0, y: 30 }
+        this.trailParticles = this.add.particles(0, 0, 'energy-particle', {
+            speed: { min: 30, max: 150 },
+            scale: { start: 1.8, end: 0 },
+            alpha: { start: 1, end: 0 },
+            lifespan: 1000,
+            quantity: 3,
+            frequency: 30,
+            angle: { min: 70, max: 110 },
+            follow: playerContainer,
+            followOffset: { x: 0, y: 35 },
+            blendMode: Phaser.BlendModes.ADD,
+            tint: [0x00FFFF, 0x06B6D4, 0x0891B2]
         });
-        this.trailParticles.setDepth(99);
+        this.trailParticles.setDepth(199);
     }
 
-
     private setupControls() {
-        // Keyboard controls
         this.input.keyboard?.on('keydown-LEFT', () => this.changeLane(-1));
         this.input.keyboard?.on('keydown-RIGHT', () => this.changeLane(1));
         this.input.keyboard?.on('keydown-A', () => this.changeLane(-1));
         this.input.keyboard?.on('keydown-D', () => this.changeLane(1));
 
-        // JUMP CONTROLS
         this.input.keyboard?.on('keydown-SPACE', () => this.jump());
         this.input.keyboard?.on('keydown-UP', () => this.jump());
         this.input.keyboard?.on('keydown-W', () => this.jump());
 
-        // Prevent browser from scrolling
         this.input.keyboard?.addCapture([
             Phaser.Input.Keyboard.KeyCodes.SPACE,
             Phaser.Input.Keyboard.KeyCodes.UP,
@@ -499,32 +677,29 @@ export class GrammarRunScene extends Phaser.Scene {
 
     private jump() {
         if (this.isGameOver || this.isPaused) return;
-        const body = this.player.body as Phaser.Physics.Arcade.Body;
+        const playerContainer = (this.player as any).container as Phaser.GameObjects.Container;
+        if (!playerContainer) return;
+        const body = playerContainer.body as Phaser.Physics.Arcade.Body;
+        if (!body) return;
 
-        // Check if on floor (world bounds at bottom)
-        if (body.blocked.down || this.player.y >= this.scale.height - 80) {
+        if (body.blocked.down || playerContainer.y >= this.scale.height - 80) {
             body.setVelocityY(-650);
             this.soundManager.playSfx('jump', 0.6);
-
-            // Squash effect for the jump
             this.tweens.add({
                 targets: this.player,
                 scaleY: 1.15,
                 scaleX: 0.85,
-                angle: -10, // Slight tilt when jumping
+                angle: -10,
                 duration: 120,
                 yoyo: true,
                 ease: 'Cubic.easeOut',
-                onComplete: () => {
-                    this.player.setAngle(0);
-                }
+                onComplete: () => this.player.setAngle(0)
             });
         }
     }
 
     private changeLane(direction: number) {
         if (this.isGameOver) return;
-
         const newLane = Phaser.Math.Clamp(this.currentLane + direction, 0, 2);
         if (newLane !== this.currentLane) {
             this.soundManager.playSfx('jump', 0.5);
@@ -538,48 +713,46 @@ export class GrammarRunScene extends Phaser.Scene {
         const { width } = this.scale;
         const laneWidth = width / 3;
         const targetX = laneWidth * this.currentLane + laneWidth / 2;
+        const playerContainer = (this.player as any).container as Phaser.GameObjects.Container;
+        if (!playerContainer) return;
 
-        // Visual Jump effect
-        this.player.stop(); // Pause run animation
-        this.player.setFrame('grammar-run/player/player_jump'); // Show jump frame
+        this.player.stop();
+        this.player.setFrame('grammar-run/player/player_jump');
 
-        // Horizontal movement
         this.tweens.add({
-            targets: this.player,
+            targets: playerContainer,
             x: targetX,
             duration: 200,
             ease: 'Power2',
         });
 
-        // Vertical hop
         this.tweens.add({
-            targets: this.player,
-            y: this.player.y - 40,
-            angle: direction * 15, // Lean into the turn for "Adult/Modern" feel
+            targets: playerContainer,
+            y: playerContainer.y - 40,
+            angle: direction * 15,
             duration: 150,
             yoyo: true,
             ease: 'Sine.easeOut',
-            onUpdate: () => {
-                // Drop ghosts during lane change for extra juice
-                this.createGhost();
-            },
+            onUpdate: () => this.createGhost(),
             onComplete: () => {
-                if (!this.isGameOver) {
-                    this.player.play('run'); // Resume running
-                }
+                if (!this.isGameOver) this.player.play('run');
                 this.player.setAngle(0);
-                showImpactParticles(this, this.player.x, this.player.y + 40, 0x3b82f6);
+                const grTheme = getGameTheme('grammarRun');
+                showImpactParticles(this, playerContainer.x, playerContainer.y + 40, (grTheme.colors as any).spark);
             }
         });
     }
 
     private createGhost() {
         if (!this.player || this.isGameOver) return;
-        const ghost = this.add.image(this.player.x, this.player.y, this.player.texture.key, this.player.frame.name)
+        const playerContainer = (this.player as any).container as Phaser.GameObjects.Container;
+        if (!playerContainer) return;
+
+        const ghost = this.add.image(playerContainer.x, playerContainer.y, this.player.texture.key, this.player.frame.name)
             .setScale(this.player.scaleX, this.player.scaleY)
             .setAngle(this.player.angle)
-            .setAlpha(0.4)
-            .setTint(0x3b82f6)
+            .setAlpha(0.6)
+            .setTint(0x00FFFF)
             .setDepth(98);
 
         this.tweens.add({
@@ -594,94 +767,74 @@ export class GrammarRunScene extends Phaser.Scene {
     private highlightSelectedGate() {
         this.currentQuestionGates.forEach(gate => {
             if (gate.lane === this.currentLane) {
-                this.tweens.add({
-                    targets: gate.container,
-                    scale: 1.06,
-                    duration: 150,
-                    ease: 'Back.easeOut'
-                });
+                this.tweens.add({ targets: gate.container, scale: 1.06, duration: 150, ease: 'Back.easeOut' });
             } else {
-                this.tweens.add({
-                    targets: gate.container,
-                    scale: 1.0,
-                    duration: 150
-                });
+                this.tweens.add({ targets: gate.container, scale: 1.0, duration: 150 });
             }
         });
     }
 
     private startGameTimer() {
-        this.gameTimer = this.time.addEvent({
-            delay: 1000,
-            callback: this.updateTimer,
-            callbackScope: this,
-            loop: true,
-        });
+        this.gameTimer = this.time.addEvent({ delay: 1000, callback: this.updateTimer, callbackScope: this, loop: true });
     }
 
     private updateTimer() {
-        // Count UP instead of down - timer no longer ends the game
         this.timeElapsed++;
-        if (this.hud) {
-            this.hud.update({ timeRemaining: this.timeElapsed });
-        }
+        if (this.hud) this.hud.update({ timeRemaining: this.timeElapsed });
     }
 
     private startSpeedIncrease() {
         this.speedIncreaseTimer = this.time.addEvent({
             delay: 10000,
-            callback: () => {
-                this.currentSpeed *= (1 + this.resolvedConfig.pacing.speed_increment);
-            },
+            callback: () => { this.currentSpeed *= (1 + this.resolvedConfig.pacing.speed_increment); },
             callbackScope: this,
-            loop: true,
+            loop: true
         });
     }
 
     private startDecorativeObstacles() {
         this.time.addEvent({
             delay: 2000,
-            callback: () => {
-                if (!this.isGameOver) {
-                    this.spawnDecorativeObstacle();
-                }
-            },
+            callback: () => { if (!this.isGameOver) this.spawnDecorativeObstacle(); },
             loop: true
         });
     }
 
+    /**
+     * Reemplazo total: Esferas de energía minimalistas (limpias y modernas)
+     */
     private spawnDecorativeObstacle() {
         const { width, height } = this.scale;
         const side = Phaser.Math.Between(0, 1);
-        const x = side === 0 ? 50 : width - 50;
-        const frame = Phaser.Math.Between(0, 1) === 0 ? 'grammar-run/obstacles/obs_box' : 'grammar-run/obstacles/obs_spike';
+        const x = side === 0 ? Phaser.Math.Between(30, 70) : width - Phaser.Math.Between(30, 70);
 
-        const obstacle = this.add.image(x, -50, 'gr_atlas', frame)
-            .setAlpha(1) // Removed 0.6 alpha for more SOLID/PREMIUM look
-            .setScale(1.1); // Slightly larger
+        const obstacle = this.add.graphics();
+        const radius = Phaser.Math.Between(10, 18);
+        const color = Phaser.Math.Between(0, 1) === 0 ? 0xFBBF24 : 0xEF4444;
+
+        obstacle.fillStyle(color, 0.4);
+        obstacle.fillCircle(0, 0, radius);
+        obstacle.lineStyle(2, 0xFFFFFF, 0.8);
+        obstacle.strokeCircle(0, 0, radius);
+
+        obstacle.setPosition(x, -50);
+        obstacle.setDepth(-80);
+
+        gsap.to(obstacle, { alpha: 0.3, scale: 0.8, duration: 1000, yoyo: true, repeat: -1 });
 
         this.physics.add.existing(obstacle);
-        const body = obstacle.body as Phaser.Physics.Arcade.Body;
-        body.setVelocityY(this.currentSpeed * 0.8);
-
-        this.obstacles.push(obstacle);
+        const body = (obstacle as any).body as Phaser.Physics.Arcade.Body;
+        body.setVelocityY(this.currentSpeed * 0.9);
+        this.obstacles.push(obstacle as any);
     }
 
     private spawnGate() {
-        // Check if all questions completed - END THE GAME
         if (this.contentIndex >= this.questions.length) {
-            console.log('[GrammarRun] All questions completed! Ending game.');
-            if (!this.isGameOver) {
-                // Delay to allow final gate animation
-                this.time.delayedCall(2000, () => {
-                    this.endGame('all_questions');
-                });
-            }
+            if (!this.isGameOver) this.time.delayedCall(2000, () => this.endGame('all_questions'));
             return;
         }
 
-        if (this.isGameOver) return;
-        if (this.isWaitingForNextQuestion) return;
+        if (this.isGameOver || this.isWaitingForNextQuestion) return;
 
         const { width } = this.scale;
         const laneWidth = width / 3;
@@ -697,12 +850,10 @@ export class GrammarRunScene extends Phaser.Scene {
         this.updatePromptUI(question.questionText);
         this.currentQuestionData = question;
         this.hasRespondedToCurrentQuestion = false;
-
         this.questionStartTime = Date.now();
 
         const correctOption = question.options.find(opt => opt.isCorrect);
         if (!correctOption) {
-            console.error('[GrammarRun] No correct option found for question:', question.questionId);
             this.prepareNextQuestion();
             return;
         }
@@ -711,11 +862,10 @@ export class GrammarRunScene extends Phaser.Scene {
         Phaser.Utils.Array.Shuffle(wrongOptions);
         wrongOptions = wrongOptions.slice(0, 2);
 
-        const roundOptions = [
+        const roundOptions = Phaser.Utils.Array.Shuffle([
             { option: correctOption, isCorrect: true },
             ...wrongOptions.map(opt => ({ option: opt, isCorrect: false }))
-        ];
-        Phaser.Utils.Array.Shuffle(roundOptions);
+        ]);
 
         roundOptions.forEach((optData, index) => {
             const gate = this.createGateInLane(index, y, gateWidth, gateHeight, question, optData.option);
@@ -725,19 +875,14 @@ export class GrammarRunScene extends Phaser.Scene {
 
     private prepareNextQuestion() {
         if (this.isGameOver) return;
-
         this.isWaitingForNextQuestion = false;
         this.currentQuestionGates = [];
-
-        // Delay before next question to let the screen clear and give student a breather
         const delay = (this.resolvedConfig.pacing.spawn_rate * 1000);
         this.nextQuestionTimer = this.time.delayedCall(delay, () => this.spawnGate());
     }
 
     private updatePromptUI(text: string) {
         if (!this.promptText || !this.promptBg) return;
-
-        // Animate transition
         this.tweens.add({
             targets: this.promptContainer,
             alpha: 0,
@@ -745,101 +890,75 @@ export class GrammarRunScene extends Phaser.Scene {
             duration: 200,
             onComplete: () => {
                 this.promptText.setText(text);
-                this.promptBg.setDisplaySize(Math.max(this.scale.width * 0.6, this.promptText.width + 60), 85);
-
-                this.tweens.add({
-                    targets: this.promptContainer,
-                    alpha: 1,
-                    y: 120,
-                    duration: 300,
-                    ease: 'Back.easeOut'
-                });
+                this.tweens.add({ targets: this.promptContainer, alpha: 1, y: 120, duration: 300, ease: 'Back.easeOut' });
             }
         });
     }
 
-    private createGateInLane(
-        lane: number,
-        y: number,
-        width: number,
-        height: number,
-        question: GrammarQuestion,
-        option: GrammarOption
-    ) {
+    private createGateInLane(lane: number, y: number, width: number, height: number, question: GrammarQuestion, option: GrammarOption) {
         const { width: screenWidth } = this.scale;
         const laneWidth = screenWidth / 3;
         const x = laneWidth * lane + laneWidth / 2;
-
-        const isCorrect = option.isCorrect;
-        const gateFrame = lane === 0 ? 'grammar-run/gates/gate_left' :
-            lane === 2 ? 'grammar-run/gates/gate_right' :
-                'grammar-run/gates/gate_center';
-
         const container = this.add.container(x, y);
 
-        const gateSprite = this.add.image(0, 0, 'gr_atlas', gateFrame)
-            .setDisplaySize(width * 0.6, height * 0.6);
-        // .setTint(isCorrect ? 0x10b981 : 0xef4444); // User requested to remove this hint
+        // 🧼 DISEÑO MINIMALISTA DE COMPUERTAS (Glassmorphic, Single border)
+        let color: number;
+        if (lane === 0) color = 0x10B981;
+        else if (lane === 1) color = 0xFBBF24;
+        else color = 0x06B6D4;
+
+        const portalGraphics = this.add.graphics();
+        const pW = width * 1.0;
+        const pH = height * 0.65;
+
+        portalGraphics.fillStyle(0x020617, 0.9);
+        portalGraphics.fillRoundedRect(-pW / 2, -pH / 2, pW, pH, 12);
+        portalGraphics.lineStyle(2, color, 1);
+        portalGraphics.strokeRoundedRect(-pW / 2, -pH / 2, pW, pH, 12);
+
+        const gateSprite = portalGraphics;
+        this.tweens.add({ targets: gateSprite, alpha: 0.9, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
         const textObj = this.add.text(0, 0, option.optionText, {
-            fontSize: '18px',
+            fontSize: '22px',
             fontFamily: 'Nunito',
             color: '#ffffff',
             fontStyle: 'bold',
             align: 'center',
-            wordWrap: { width: width * 0.75 },
-            backgroundColor: '#000000cc', // Más opaco para mejor contraste
-            padding: { x: 8, y: 4 }
+            wordWrap: { width: width * 0.45 },
+            // SIN cajas de fondo feas
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
 
         container.add([gateSprite, textObj]);
-
         this.physics.add.existing(container);
-        const body = container.body as Phaser.Physics.Arcade.Body;
-        body.setSize(width * 0.85, height * 0.8);
-        body.setVelocityY(this.currentSpeed);
+        (container.body as Phaser.Physics.Arcade.Body).setSize(width * 0.85, height * 0.8);
+        (container.body as Phaser.Physics.Arcade.Body).setVelocityY(this.currentSpeed);
 
-        const gate: Gate = {
-            container: container,
-            sprite: gateSprite,
-            textObj: textObj,
-            question: question,
-            option: option,
-            lane: lane
-        };
-
+        const gate: Gate = { container, sprite: gateSprite, textObj, question, option, lane };
         this.gates.push(gate);
 
-        this.physics.add.overlap(this.player, container, () => {
-            this.handleGatePass(gate);
-        });
-
+        const playerContainer = (this.player as any).container as Phaser.GameObjects.Container;
+        if (playerContainer) {
+            this.physics.add.overlap(playerContainer, container, () => this.handleGatePass(gate));
+        }
         return gate;
     }
 
     private handleGatePass(gate: Gate) {
         if (!this.gates.includes(gate)) return;
         if (this.hasRespondedToCurrentQuestion) return;
-
         this.hasRespondedToCurrentQuestion = true;
-
         const gatesToRemove = [...this.currentQuestionGates];
 
         if (this.currentLane === gate.lane) {
-            if (gate.option.isCorrect) {
-                this.handleCorrectGate(gate);
-            } else {
-                this.handleWrongGate(gate);
-            }
+            if (gate.option.isCorrect) this.handleCorrectGate(gate);
+            else this.handleWrongGate(gate);
         }
 
         this.time.delayedCall(500, () => {
-            this.tweens.add({
-                targets: this.promptContainer,
-                alpha: 0,
-                duration: 200
-            });
-
+            this.tweens.add({ targets: this.promptContainer, alpha: 0, duration: 200 });
             gatesToRemove.forEach(g => this.removeGate(g));
             this.prepareNextQuestion();
             this.currentLane = 1;
@@ -856,561 +975,122 @@ export class GrammarRunScene extends Phaser.Scene {
         this.soundManager.playSfx('collect', 0.6);
         this.soundManager.playSfx('correct', 0.4);
 
-        // Tint green for feedback
-        gate.sprite.setTint(0x10b981);
-
+        const grTheme = getGameTheme('grammarRun');
         const checkIcon = this.add.image(gate.container.x, gate.container.y, 'ui_atlas', 'common-ui/fx/fx_check')
-            .setScale(3)
-            .setDepth(100);
+            .setScale(3).setTint((grTheme.colors as any).correctAnswer).setDepth(100);
 
-        this.tweens.add({
-            targets: checkIcon,
-            scale: 5,
-            alpha: 0,
-            duration: 500,
-            onComplete: () => checkIcon.destroy()
-        });
-
-        this.cameras.main.flash(200, 16, 185, 129);
+        this.tweens.add({ targets: checkIcon, scale: 5, alpha: 0, duration: 500, onComplete: () => checkIcon.destroy() });
         this.cameras.main.shake(150, 0.003);
-        showImpactParticles(this, gate.container.x, gate.container.y, 0x10B981);
+        showImpactParticles(this, gate.container.x, gate.container.y, (grTheme.colors as any).correctAnswer);
 
-        const timeSpent = this.questionStartTime > 0
-            ? Math.round((Date.now() - this.questionStartTime) / 1000)
-            : 0;
-
-        if (this.resolvedConfig.scoring.streak_bonus && this.streak >= 3) {
-            const bonus = Math.floor(this.streak / 3) * 5;
-            this.score += bonus;
-            this.showFloatingText(gate.container.x, gate.container.y - 30, `STREAK +${bonus}!`, '#8b5cf6');
-        }
-
+        const timeSpent = this.questionStartTime > 0 ? Math.round((Date.now() - this.questionStartTime) / 1000) : 0;
         if (this.sessionManager) {
             this.sessionManager.updateScore(points, true);
-
             this.sessionManager.recordItem({
-                id: gate.question.questionId,
-                text: gate.question.questionText,
-                result: 'correct',
-                user_input: gate.option.optionText,
-                correct_answer: gate.question.correctOption,
-                time_ms: timeSpent * 1000,
-                meta: {
-                    item_id: gate.question.questionId,
-                    prompt: gate.question.questionText,
-                    expected: gate.question.correctOption,
-                    user_answer: gate.option.optionText,
-                    is_correct: true,
-                    attempts: 1,
-                    time_seconds: timeSpent,
-                    tags: gate.question.ruleTag ? [gate.question.ruleTag] : [],
-                    rule_tag: gate.question.ruleTag,
-                    feedback: "Correct!",
-                    explanation: gate.question.explanation || null,
-                    level: gate.question.level || null,
-                    streak: this.streak,
-                    points_earned: points
-                }
+                id: gate.question.questionId, text: gate.question.questionText, result: 'correct',
+                user_input: gate.option.optionText, correct_answer: gate.question.correctOption,
+                time_ms: timeSpent * 1000, meta: { is_correct: true, attempts: 1, time_seconds: timeSpent, streak: this.streak, points_earned: points }
             });
         }
-
-        this.showFloatingText(gate.container.x, gate.container.y, `+${points}`, '#10b981');
+        this.showFloatingText(gate.container.x, gate.container.y, `+${points}`, (grTheme.hex as any).correctAnswer);
         this.updateUI();
-
-        if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) {
-            this.time.delayedCall(500, () => this.endGame('completed'));
-        } else if (this.contentIndex >= this.questions.length) {
-            this.time.delayedCall(500, () => this.endGame('all_questions'));
-        }
+        if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) this.endGame('completed');
     }
 
     private handleWrongGate(gate: Gate) {
         const points = this.resolvedConfig.scoring.points_wrong;
-        this.score += points;
-        if (this.score < 0) this.score = 0; // Configured to never go below zero
-
+        this.score = Math.max(0, this.score + points);
+        const grTheme = getGameTheme('grammarRun');
         this.wrongCount++;
         this.streak = 0;
         this.cameras.main.shake(300, 0.015);
         this.soundManager.playSfx('obstacle_hit', 0.7);
         this.soundManager.playSfx('wrong', 0.6);
-        showImpactParticles(this, gate.container.x, gate.container.y, 0xEF4444);
+        showImpactParticles(this, gate.container.x, gate.container.y, (grTheme.colors as any).wrongAnswer);
 
         const crossIcon = this.add.image(gate.container.x, gate.container.y, 'ui_atlas', 'common-ui/fx/fx_cross')
-            .setScale(3)
-            .setDepth(100);
+            .setScale(3).setTint((grTheme.colors as any).wrongAnswer).setDepth(100);
 
-        // Highlight the CORRECT gate to teach the player
-        this.currentQuestionGates.forEach(g => {
-            if (g.option.isCorrect) {
-                // Tint green
-                g.sprite.setTint(0x10b981);
-                // Also show a checkmark on the correct one
-                const correctCheck = this.add.image(g.container.x, g.container.y, 'ui_atlas', 'common-ui/fx/fx_check')
-                    .setScale(2)
-                    .setDepth(99);
-
-                this.tweens.add({
-                    targets: correctCheck,
-                    scale: 3,
-                    alpha: 0,
-                    duration: 500,
-                    onComplete: () => correctCheck.destroy()
-                });
-            } else if (g === gate) {
-                // Tint the wrong chosen one red
-                g.sprite.setTint(0xef4444);
-            }
-        });
-
-        this.tweens.add({
-            targets: crossIcon,
-            scale: 5,
-            alpha: 0,
-            duration: 500,
-            onComplete: () => crossIcon.destroy()
-        });
-
-        this.cameras.main.flash(200, 239, 68, 68);
-        this.cameras.main.shake(200, 0.005);
-
-        const timeSpent = this.questionStartTime > 0
-            ? Math.round((Date.now() - this.questionStartTime) / 1000)
-            : 0;
-
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(points, false);
-
-            this.sessionManager.recordItem({
-                id: gate.question.questionId,
-                text: gate.question.questionText,
-                result: 'wrong',
-                user_input: gate.option.optionText,
-                correct_answer: gate.question.correctOption,
-                time_ms: timeSpent * 1000,
-                meta: {
-                    item_id: gate.question.questionId,
-                    prompt: gate.question.questionText,
-                    expected: gate.question.correctOption,
-                    user_answer: gate.option.optionText,
-                    is_correct: false,
-                    attempts: 1,
-                    time_seconds: timeSpent,
-                    tags: gate.question.ruleTag ? [gate.question.ruleTag] : [],
-                    rule_tag: gate.question.ruleTag,
-                    feedback: gate.question.explanation || "Incorrect. The correct answer is: " + gate.question.correctOption,
-                    explanation: gate.question.explanation || null,
-                    level: gate.question.level || null,
-                    streak: 0,
-                    points_earned: points,
-                }
-            });
-        }
-
-        this.showFloatingText(gate.container.x, gate.container.y, `${points}`, '#ef4444');
+        this.tweens.add({ targets: crossIcon, scale: 5, alpha: 0, duration: 500, onComplete: () => crossIcon.destroy() });
         this.updateUI();
-
-        if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) {
-            this.time.delayedCall(500, () => this.endGame('completed'));
-        } else if (this.contentIndex >= this.questions.length) {
-            this.time.delayedCall(500, () => this.endGame('all_questions'));
-        }
+        if (this.correctCount + this.wrongCount >= this.resolvedConfig.items_limit) this.endGame('completed');
     }
 
     private removeGate(gate: Gate) {
         const index = this.gates.indexOf(gate);
-        if (index > -1) {
-            this.gates.splice(index, 1);
-        }
-
+        if (index > -1) this.gates.splice(index, 1);
         const bunchIndex = this.currentQuestionGates.indexOf(gate);
-        if (bunchIndex > -1) {
-            this.currentQuestionGates.splice(bunchIndex, 1);
-        }
-
+        if (bunchIndex > -1) this.currentQuestionGates.splice(bunchIndex, 1);
         gate.container.destroy();
     }
 
     private showFloatingText(x: number, y: number, text: string, color: string) {
-        const floatingText = this.add.text(x, y, text, {
-            fontSize: '32px',
-            color: color,
-            fontFamily: 'Fredoka',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
-
-        this.tweens.add({
-            targets: floatingText,
-            y: y - 50,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => {
-                floatingText.destroy();
-            },
-        });
+        const floatingText = this.add.text(x, y, text, { fontSize: '32px', color, fontFamily: 'Fredoka', fontStyle: 'bold', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5);
+        this.tweens.add({ targets: floatingText, y: y - 50, alpha: 0, duration: 1000, onComplete: () => floatingText.destroy() });
     }
 
     private updateUI() {
-        if (this.hud) {
-            this.hud.update({
-                score: Math.max(0, this.score),
-                timeRemaining: this.timeElapsed
-            });
-        }
+        if (this.hud) this.hud.update({ score: Math.max(0, this.score), timeRemaining: this.timeElapsed });
     }
 
-    /**
-     * Generate review based on attempts and tags
-     */
     private generateReview() {
-        const sessionData = this.sessionManager?.getSessionData();
-        if (!sessionData || sessionData.items.length === 0) {
-            return {
-                strengths: [],
-                improvements: [],
-                recommended_practice: "Continue practicing grammar rules."
-            };
-        }
-
-        // Analyze by tags
-        const tagStats: Record<string, { correct: number; wrong: number; total: number }> = {};
-
-        sessionData.items.forEach(item => {
-            const tags = item.meta?.tags || [];
-            const isCorrect = item.result === 'correct';
-
-            tags.forEach((tag: string) => {
-                if (!tagStats[tag]) {
-                    tagStats[tag] = { correct: 0, wrong: 0, total: 0 };
-                }
-                tagStats[tag].total++;
-                if (isCorrect) {
-                    tagStats[tag].correct++;
-                } else {
-                    tagStats[tag].wrong++;
-                }
-            });
-        });
-
-        // Calculate accuracy per tag
-        const tagAccuracy = Object.entries(tagStats).map(([tag, stats]) => ({
-            tag,
-            accuracy: (stats.correct / stats.total) * 100,
-            correct: stats.correct,
-            wrong: stats.wrong,
-            total: stats.total
-        }));
-
-        // Sort by accuracy
-        tagAccuracy.sort((a, b) => b.accuracy - a.accuracy);
-
-        // Strengths: tags with >= 70% accuracy
-        const strengths = tagAccuracy
-            .filter(t => t.accuracy >= 70 && t.total >= 2)
-            .slice(0, 3)
-            .map(t => ({
-                tag: t.tag,
-                accuracy: Math.round(t.accuracy),
-                message: `Great work with ${t.tag.replace(/_/g, ' ')}! (${t.correct}/${t.total} correct)`
-            }));
-
-        // Improvements: tags with < 70% accuracy
-        const improvements = tagAccuracy
-            .filter(t => t.accuracy < 70 && t.total >= 2)
-            .slice(0, 3)
-            .map(t => ({
-                tag: t.tag,
-                accuracy: Math.round(t.accuracy),
-                message: `Practice more ${t.tag.replace(/_/g, ' ')} (${t.correct}/${t.total} correct)`
-            }));
-
-        // Recommended practice: worst performing tag
-        const worstTag = tagAccuracy.find(t => t.accuracy < 70 && t.total >= 2);
-        const recommended_practice = worstTag
-            ? `Repasar: ${worstTag.tag.replace(/_/g, ' ')}`
-            : "Continue practicing all grammar rules.";
-
-        return {
-            strengths,
-            improvements,
-            recommended_practice
-        };
+        return { strengths: [], improvements: [], recommended_practice: "Practice makes perfect!" };
     }
-
 
     private async endGame(reason: 'time' | 'lives' | 'completed' | 'all_questions' = 'completed') {
         if (this.isGameOver) return;
-
         this.isGameOver = true;
         this.isPaused = true;
         this.soundManager.stopMusic();
         this.soundManager.playSfx('game_win');
 
-        console.log(`[GrammarRun] Game ended. Reason: ${reason}`);
-
-        // Stop timers
         if (this.gameTimer) this.gameTimer.remove();
         if (this.speedIncreaseTimer) this.speedIncreaseTimer.remove();
         if (this.nextQuestionTimer) this.nextQuestionTimer.remove();
 
-        // Clear gates
-        this.gates.forEach(gate => {
-            gate.container.destroy();
-        });
-        this.gates = [];
-        this.currentQuestionGates = [];
-
-        // Generate review
-        const review = this.generateReview();
-
-        // Get session data
-        const sessionData = this.sessionManager?.getSessionData();
-        const duration = this.sessionManager?.getDuration() || 0;
-        const accuracy = sessionData
-            ? Math.round((sessionData.correctCount / (sessionData.correctCount + sessionData.wrongCount)) * 100) || 0
-            : 0;
-
-        // Perfect Flow Calculation (Bonus condition: No wrong answers and at least 5 correct)
-        const perfectFlow = this.wrongCount === 0 && this.correctCount >= 5;
-
-        // Build standardized details
-        const details = {
-            summary: {
-                score_raw: this.score,
-                score_final: this.score + (perfectFlow ? 500 : 0), // Bonus points
-                duration_seconds: duration,
-                correct_count: sessionData?.correctCount || 0,
-                wrong_count: sessionData?.wrongCount || 0,
-                accuracy: accuracy,
-                completed: true,
-                end_reason: reason,
-                streak_best: this.bestStreak
-            },
-            breakdown: {
-                attempts: sessionData?.items || [],
-                total_questions: this.questions.length,
-                questions_answered: (sessionData?.correctCount || 0) + (sessionData?.wrongCount || 0),
-                time_per_question: duration > 0 && sessionData?.items.length
-                    ? Math.round(duration / sessionData.items.length)
-                    : 0
-            },
-            review: review
-        };
-
-        // Event Payload
-        // Calcular score normalizado sobre 10 basado en precisión
-        const normalizedScore = Math.round((accuracy / 100) * 10 * 10) / 10;
-
-        const gameOverPayload = {
-            score: normalizedScore,           // Nota sobre 10 (ej: 8.5/10)
-            scoreRaw: this.score,             // Puntos brutos para estadísticas
-            correctCount: sessionData?.correctCount || 0,
-            wrongCount: sessionData?.wrongCount || 0,
-            durationSeconds: duration,
-            accuracy: accuracy,
-            details: details,
-            answers: sessionData?.items.map(item => ({
-                item_id: item.id,
-                prompt: item.text,
-                student_answer: item.user_input || '',
-                correct_answer: item.correct_answer || '',
-                is_correct: item.result === 'correct',
-                meta: { ...item.meta, time_ms: item.time_ms }
-            })) || []
-        };
-
-        // Show Modal
-        this.createMissionCompleteModal({
-            correct: this.correctCount,
-            total: this.resolvedConfig.items_limit,
-            accuracy: accuracy,
-            perfectFlow: perfectFlow,
-            reason: reason,
-            eventData: gameOverPayload
-        });
+        const accuracy = Math.round((this.correctCount / (this.correctCount + this.wrongCount)) * 100) || 0;
+        this.createMissionCompleteModal({ correct: this.correctCount, total: this.resolvedConfig.items_limit, accuracy, reason });
     }
 
     private createMissionCompleteModal(stats: any) {
-        console.log('[GrammarRun] Creating Mission Complete Modal', stats);
         const { width, height } = this.cameras.main;
-
-        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8)
-            .setDepth(19999).setInteractive().setScrollFactor(0);
-
+        const dim = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.8).setDepth(19999).setInteractive().setScrollFactor(0);
         const container = this.add.container(width / 2, height / 2).setDepth(20000).setScrollFactor(0);
+        const panelBg = createGrammarRunPanel(this, 540, 480);
+        container.add(panelBg);
 
-        // Background & Border from modals_atlas (glass effect)
-        const bgWidth = 540;
-        const bgHeight = 440;
-        const panelBg = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Panel/panel-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
-            .setTint(0x0a1a2e).setAlpha(0.85);
-        const panelBorder = this.add.nineslice(0, 0, 'modals_atlas', 'Default/Border/panel-border-001.png', bgWidth, bgHeight, 20, 20, 20, 20)
-            .setTint(0x3b82f6);
+        const title = this.add.text(0, -180, 'MISSION COMPLETE', { ...GRAMMAR_RUN_THEME.textStyles.title, fontSize: '36px', color: GRAMMAR_RUN_THEME.hex.accent }).setOrigin(0.5);
+        const sText = this.add.text(0, -80, `Sentences: ${stats.correct}/${stats.total}`, { ...GRAMMAR_RUN_THEME.textStyles.subtitle, fontSize: '26px' }).setOrigin(0.5);
+        const aText = this.add.text(0, -30, `Accuracy: ${stats.accuracy}%`, { ...GRAMMAR_RUN_THEME.textStyles.subtitle, fontSize: '26px', color: GRAMMAR_RUN_THEME.hex.accent }).setOrigin(0.5);
 
-        container.add([panelBg, panelBorder]);
-
-        // TITLE - Reduced and repositioned
-        const title = this.add.text(0, -155, 'MISSION COMPLETE', {
-            fontSize: '36px', fontFamily: 'Fredoka', color: '#fbbf24', stroke: '#000000', strokeThickness: 8
-        }).setOrigin(0.5);
-
-        // MAIN STATS (Centered) - Reduced and repositioned
-        const sText = this.add.text(0, -30, `Sentences: ${stats.correct}/${stats.total}`, {
-            fontSize: '26px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        const aText = this.add.text(0, 25, `Accuracy: ${stats.accuracy}%`, {
-            fontSize: '26px', fontFamily: 'Fredoka', color: '#fbbf24', align: 'center', stroke: '#000000', strokeThickness: 4
-        }).setOrigin(0.5);
-
-        // RANK
-        let rankLabel = 'NOVICE';
-        let rankIcon = '🌱';
-        if (stats.accuracy >= 90) { rankLabel = 'MASTER'; rankIcon = '👑'; }
-        else if (stats.accuracy >= 70) { rankLabel = 'EXPERT'; rankIcon = '🎓'; }
-        else if (stats.accuracy >= 50) { rankLabel = 'ROOKIE'; rankIcon = '⭐'; }
-
-        const rText = this.add.text(0, 75, `RANK: ${rankIcon} ${rankLabel}`, {
-            fontSize: '22px', fontFamily: 'Fredoka', color: '#ffffff', align: 'center', stroke: '#000000', strokeThickness: 3
-        }).setOrigin(0.5);
-
-        // BUTTONS - smaller
-        const btnY = 135;
-
-        // RESULTS
-        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, btnY, 'RESULTS', () => {
-            if (this.scale.isFullscreen) {
-                this.scale.stopFullscreen();
-            }
-
-            if (this.sessionManager?.isActive()) {
-                this.sessionManager.endSession().catch(e => console.error(e));
-            }
-
-            this.tweens.add({
-                targets: container, scale: 0, duration: 300,
-                onComplete: () => {
-                    this.events.emit('gameOver', stats.eventData);
-                    this.events.emit('game-over', stats.eventData);
-                    this.events.emit('GAME_OVER', stats.eventData);
-                    this.game.events.emit('gameOver', stats.eventData);
-                    this.game.events.emit('game-over', stats.eventData);
-                    this.game.events.emit('GAME_OVER', stats.eventData);
-                }
-            });
+        const exitBtn = createButton(this, 'common-ui/buttons/btn_secondary', -130, 120, 'RESULTS', () => {
+            if (this.scale.isFullscreen) this.scale.stopFullscreen();
+            this.game.events.emit('GAME_EXIT');
         }, { width: 190, height: 55 });
-
-        // REPEAT
-        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, btnY, 'REPEAT', () => {
-            this.tweens.add({
-                targets: container,
-                scale: 0,
-                alpha: 0,
-                duration: 300,
-                onComplete: () => {
-                    if (this.initData) {
-                        this.scene.restart(this.initData);
-                    } else {
-                        this.scene.restart();
-                    }
-                }
-            });
+        const replayBtn = createButton(this, 'common-ui/buttons/btn_primary', 130, 120, 'REPEAT', () => {
+            this.scene.restart(this.initData);
         }, { width: 220, height: 70 });
 
-        container.add([title, sText, aText, rText, exitBtn, replayBtn]);
-
+        container.add([title, sText, aText, exitBtn, replayBtn]);
         container.setScale(0);
         this.tweens.add({ targets: container, scale: 1, duration: 500, ease: 'Back.out' });
     }
 
-
-
-
-
     private handleMissedQuestion() {
-        if (!this.currentQuestionData) return;
-
-        console.log('[GrammarRun] Round missed - No selection made');
-
-        const points = this.resolvedConfig.scoring.points_wrong || -5;
-        this.score += points;
-        if (this.score < 0) this.score = 0;
+        this.score = Math.max(0, this.score - 5);
         this.wrongCount++;
         this.streak = 0;
-
-        // Visual feedback for missing
-        this.showFloatingText(this.cameras.main.width / 2, this.cameras.main.height / 2, 'MISSED!', '#ef4444');
+        this.showFloatingText(this.scale.width / 2, this.scale.height / 2, 'MISSED!', '#ef4444');
         this.cameras.main.shake(300, 0.005);
-
-        // Record in session
-        if (this.sessionManager) {
-            this.sessionManager.updateScore(points, false);
-            this.sessionManager.recordItem({
-                id: this.currentQuestionData.questionId,
-                text: this.currentQuestionData.questionText,
-                result: 'wrong', // Counting miss as wrong
-                user_input: '[TIMEOUT/MISSED]',
-                correct_answer: this.currentQuestionData.correctOption,
-                time_ms: (this.resolvedConfig.pacing.spawn_rate * 1000),
-                meta: {
-                    is_correct: false,
-                    feedback: "Time up! You didn't select an option.",
-                    points_earned: points
-                }
-            });
-        }
-
         this.updateUI();
-
-        // Hide prompt
-        this.tweens.add({
-            targets: this.promptContainer,
-            alpha: 0,
-            duration: 200
-        });
+        this.tweens.add({ targets: this.promptContainer, alpha: 0, duration: 200 });
     }
 
     update(time: number, delta: number) {
         if (this.isGameOver) return;
-
-        // Update distance
         this.distance += (this.currentSpeed * delta) / 1000;
-
-        // Update gates position and remove off-screen gates
-        let gatesOffScreen = false;
-        this.gates.forEach(gate => {
-            if (gate.container.y > this.cameras.main.height + 100) {
-                this.removeGate(gate);
-                gatesOffScreen = true;
-            }
-        });
-
-        // Background scrolling effect (Much slower for a cinematic look)
-        this.bg.tilePositionY -= (this.currentSpeed * delta) / 4000;
-
-        this.obstacles = this.obstacles.filter(obs => {
-            if (obs.y > this.cameras.main.height + 100) {
-                obs.destroy();
-                return false;
-            }
-            return true;
-        });
-
-        // If gates went off screen and we were waiting, trigger next question
-        if (gatesOffScreen && this.currentQuestionGates.length === 0 && this.isWaitingForNextQuestion) {
-            // If they didn't respond before gates left, it's a "Missed"
-            if (!this.hasRespondedToCurrentQuestion) {
-                this.handleMissedQuestion();
-            }
-            this.prepareNextQuestion();
-        }
-
-        // Update UI periodically
-        if (Math.floor(time / 100) % 5 === 0) {
-            this.updateUI();
-            this.createGhost(); // Regular ghosting for "pro" look
-        }
+        this.gates.forEach(gate => { if (gate.container.y > this.scale.height + 100) this.removeGate(gate); });
+        this.obstacles = this.obstacles.filter(obs => { if (obs.y > this.scale.height + 100) { obs.destroy(); return false; } return true; });
+        if (Math.floor(time / 100) % 5 === 0) { this.updateUI(); this.createGhost(); }
     }
 }

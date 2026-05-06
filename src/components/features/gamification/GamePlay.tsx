@@ -530,8 +530,8 @@ export default function GamePlay({
 
     // 5. Game Canvas State (Playing)
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-8">
+        <div className="max-w-6xl mx-auto px-4 py-2">
+            <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
                         <Gamepad2 className="w-7 h-7" />
@@ -548,7 +548,19 @@ export default function GamePlay({
 
             </div>
 
-            <div className="bg-slate-900 rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] border-8 border-slate-800 relative ring-1 ring-white/10">
+            <div
+                className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-xl overflow-hidden shadow-2xl ring-[3px] ring-indigo-500/70 hover:ring-indigo-400/80 transition-all duration-300 relative"
+                style={{
+                    boxShadow: '0 0 60px rgba(99, 102, 241, 0.5), 0 30px 80px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                }}
+            >
+                {/* Borde interior brillante */}
+                <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10 pointer-events-none z-10" />
+
+                {/* Efecto de esquinas brillantes */}
+                <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-indigo-500/20 to-transparent rounded-xl pointer-events-none z-10" />
+                <div className="absolute bottom-0 right-0 w-20 h-20 bg-gradient-to-tl from-purple-500/20 to-transparent rounded-xl pointer-events-none z-10" />
+
                 <UniversalGameCanvas
                     gameType={getGameType(gameTypeName)}
                     topicId={topicId}

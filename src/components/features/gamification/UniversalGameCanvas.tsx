@@ -211,7 +211,7 @@ export default function UniversalGameCanvas({
                     backgroundColor: gameConfig.config.visual.backgroundColor,
                     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 }, debug: false } },
                     scale: {
-                        mode: Phaser.Scale.FIT,
+                        mode: (gameType === 'word-catcher' || gameType === 'image-match') ? Phaser.Scale.RESIZE : Phaser.Scale.FIT,
                         autoCenter: Phaser.Scale.CENTER_BOTH,
                         width: gameConfig.config.width,
                         height: gameConfig.config.height,
@@ -308,7 +308,10 @@ export default function UniversalGameCanvas({
         <div className="relative flex flex-col items-center justify-center w-full">
             {/* WRAPPER: Limita el tamaño en la página web normal */}
             <div
-                className={`w-full max-w-[1200px] rounded-xl overflow-hidden shadow-2xl transition-all duration-500 ${status === 'playing' ? 'opacity-100 visible h-auto' : 'opacity-0 invisible h-0'}`}
+                className={`w-full max-w-[1200px] rounded-2xl overflow-hidden shadow-2xl ring-4 ring-indigo-500/50 hover:ring-indigo-400/60 transition-all duration-500 ${status === 'playing' ? 'opacity-100 visible h-auto' : 'opacity-0 invisible h-0'}`}
+                style={{
+                    boxShadow: '0 0 40px rgba(99, 102, 241, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
+                }}
             >
                 {/* TARGET: Este es el elemento que entra en pantalla completa (ahora sin max-width) */}
                 <div

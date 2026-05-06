@@ -208,8 +208,11 @@ export default function PhaserGameCanvas({
         <div className="flex flex-col items-center justify-center w-full">
             <div
                 ref={gameContainerRef}
-                className="rounded-xl overflow-hidden shadow-2xl border-4 border-slate-700"
-                style={{ maxWidth: '100%' }}
+                className="rounded-2xl overflow-hidden shadow-2xl ring-4 ring-indigo-500/50 hover:ring-indigo-400/60 transition-all duration-300"
+                style={{
+                    maxWidth: '100%',
+                    boxShadow: '0 0 40px rgba(99, 102, 241, 0.3), 0 20px 60px rgba(0, 0, 0, 0.5)'
+                }}
             />
             <div className="mt-4 text-center text-sm text-slate-400">
                 <p>Click on the <span className="text-green-400 font-bold">correct words</span> as they fall!</p>

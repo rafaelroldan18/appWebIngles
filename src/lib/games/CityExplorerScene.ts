@@ -1,6 +1,8 @@
 import * as Phaser from 'phaser';
 import { loadGameAtlases } from './AtlasLoader';
 import { GameHUD } from './GameHUD';
+import { createCEHUDBg, CE_THEME } from './CityExplorerUI';
+import RoundRectangle from 'phaser3-rex-plugins/plugins/roundrectangle';
 import { createButton, createPanel, showModal, showFeedback, showGlow, showFullscreenRequest, showGameInstructions } from './UIKit';
 import { AnswerTracker } from './answerTracker';
 import type { GameSessionManager } from './GameSessionManager';
@@ -100,24 +102,30 @@ export class CityExplorerScene extends Phaser.Scene {
             this.soundManager = new SoundManager(this);
             const worldWidth = 1600;
             const worldHeight = 1200;
-            const headerHeight = 150; // Increased to protect HUD area
+            const headerHeight = 150;
 
+            // Physics Bounds
             this.physics.world.setBounds(0, headerHeight, worldWidth, worldHeight - headerHeight);
             this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
-            // 1. Background (City Map)
-            const mapBg = this.add.image(0, 0, 'bg_city').setOrigin(0);
-            mapBg.setDisplaySize(worldWidth, worldHeight);
+            // 0. Base Background (Full Black to cover everything)
+            this.add.rectangle(0, 0, worldWidth, worldHeight, 0x01040a).setOrigin(0).setDepth(-100);
+
+            // 1. Background (Digital Grid)
+            const { createDigitalGrid, createRestrictedZone, createHoloMarker, createNavCursor, CE_THEME } = require('./CityExplorerUI');
+            // Offset Grid to start below header
+            const mapBg = createDigitalGrid(this, worldWidth, worldHeight - headerHeight);
+            mapBg.setPosition(0, headerHeight);
             mapBg.setDepth(0);
 
-            // 2. Decorations & Obstacles (Buildings)
-            this.createDecoration(worldWidth, worldHeight);
+            // 2. Obstacles (Restricted Zones)
+            this.createDecoration(worldWidth, worldHeight, createRestrictedZone);
 
-            // 3. Marcadores
-            this.createMapMarkers();
+            // 3. Marcadores Holográficos
+            this.createMapMarkers(createHoloMarker);
 
-            // 4. Player
-            this.createPlayer();
+            // 4. Player (Nav Cursor)
+            this.createPlayer(createNavCursor);
 
             // 4.5 Guidance Arrow
             this.createGuidanceArrow();
@@ -131,11 +139,8 @@ export class CityExplorerScene extends Phaser.Scene {
             // 6. HUD
             this.createHud();
 
-            // 7. Camera follow
-            this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-
-            // 8. Start Game - Now handled by showInitialFullscreen -> showGameInstructions
-            // this.startGame();
+            // 7. Camera follow (Smooth Lerp)
+            this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
 
             // 9. Fullscreen Request
             this.showInitialFullscreen();
@@ -146,123 +151,96 @@ export class CityExplorerScene extends Phaser.Scene {
         }
     }
 
-    private showInitialFullscreen() {
-        this.isPaused = true;
-
-        // Ensure input is captured when clicking anywhere on the game
-        this.input.on('pointerdown', () => {
-            if (!this.scale.isFullscreen && this.sys.game.canvas) {
-                this.sys.game.canvas.focus();
-            }
-        });
-
-        showGameInstructions(this, {
-            title: 'City Explorer',
-            instructions: this.missionInstructions || 'Explore the map to find all the required locations. Complete the challenges at each stop!',
-            controls: 'Use Arrow Keys (↑ ↓ ← →) or W-A-S-D to navigate.\n\n• PAUSE (⏸): Pause the game\n• HELP (?): View instructions',
-            controlIcons: ['arrows'],
-            requestFullscreen: true,
-            buttonLabel: 'START EXPLORING',
-            onStart: () => {
-                this.isPaused = false;
-                this.startGame();
-            }
-        });
-    }
-
-    private createDecoration(worldWidth: number, worldHeight: number) {
+    private createDecoration(worldWidth: number, worldHeight: number, zoneFactory: any) {
         this.obstacles = this.physics.add.staticGroup();
 
-        const decorations = [
-            { x: 150, y: 180, frame: 'city-explorer/buildings/building_house' },
-            { x: 300, y: 180, frame: 'city-explorer/buildings/building_shop' },
-            { x: 700, y: 180, frame: 'city-explorer/buildings/building_house' },
-            { x: 1100, y: 250, frame: 'city-explorer/buildings/building_house' },
-            { x: 1400, y: 150, frame: 'city-explorer/buildings/building_shop' },
-            { x: 150, y: worldHeight - 150, frame: 'city-explorer/buildings/building_shop' },
-            { x: 400, y: worldHeight - 250, frame: 'city-explorer/buildings/building_house' },
-            { x: 900, y: worldHeight - 180, frame: 'city-explorer/buildings/building_shop' },
-            { x: 1300, y: worldHeight - 200, frame: 'city-explorer/buildings/building_house' },
-            { x: 400, y: 600, frame: 'city-explorer/buildings/building_shop' },
-            { x: 1000, y: 550, frame: 'city-explorer/buildings/building_house' },
-            { x: 1200, y: 800, frame: 'city-explorer/buildings/building_shop' }
+        const zones = [
+            { x: 150, y: 180, w: 120, h: 100 },
+            { x: 300, y: 180, w: 100, h: 80 },
+            { x: 700, y: 180, w: 150, h: 120 },
+            { x: 1100, y: 250, w: 180, h: 150 },
+            { x: 1400, y: 150, w: 120, h: 120 },
+            { x: 150, y: worldHeight - 150, w: 120, h: 100 },
+            { x: 400, y: worldHeight - 250, w: 150, h: 150 },
+            { x: 900, y: worldHeight - 180, w: 140, h: 100 },
+            { x: 1300, y: worldHeight - 200, w: 160, h: 120 },
+            { x: 400, y: 600, w: 100, h: 100 },
+            { x: 1000, y: 550, w: 200, h: 150 },
+            { x: 1200, y: 800, w: 150, h: 150 }
         ];
 
-        decorations.forEach(config => {
-            const building = this.obstacles.create(config.x, config.y, 'ce_atlas', config.frame);
-            building.setScale(0.9).setDepth(20);
+        zones.forEach(config => {
+            // Visual
+            const zone = zoneFactory(this, config.x, config.y, config.w, config.h);
+            zone.setDepth(20);
 
-            // Minimal collision body at the bottom base 
-            // This leaves the center (where flags are) fully reachable
-            const body = building.body as Phaser.Physics.Arcade.StaticBody;
-            const bWidth = 40;
-            const bHeight = 30;
-            body.setSize(bWidth, bHeight);
-            body.setOffset((building.width - bWidth) / 2, building.height * 0.7);
+            // Invisible Physics Block
+            const block = this.obstacles.create(config.x, config.y, null);
+            block.setVisible(false);
+            const body = block.body as Phaser.Physics.Arcade.StaticBody;
+            body.setSize(config.w, config.h);
             body.updateFromGameObject();
         });
     }
 
-    private createGuidanceArrow() {
-        this.guideArrow = this.add.container(0, 0);
-
-        // Simple and elegant triangle arrow using graphics
-        const arrowGfx = this.add.graphics();
-        arrowGfx.fillStyle(0xfbbf24, 0.9);
-        arrowGfx.lineStyle(2, 0xffffff, 0.8);
-
-        // Triangle pointing right (Phaser rotation 0 is right)
-        arrowGfx.beginPath();
-        arrowGfx.moveTo(15, 0);
-        arrowGfx.lineTo(-10, -10);
-        arrowGfx.lineTo(-10, 10);
-        arrowGfx.closePath();
-        arrowGfx.fillPath();
-        arrowGfx.strokePath();
-
-        this.guideArrow.add(arrowGfx);
-        this.guideArrow.setDepth(1000).setAlpha(0); // Hidden until game starts
-    }
-
-    private createMapMarkers() {
+    private createMapMarkers(markerFactory: any) {
         if (!this.mapData || !this.mapData.checkpoints) return;
-        this.mapData.checkpoints.forEach(loc => this.createCheckpointMarker(loc));
-    }
 
-    private createCheckpointMarker(loc: CityExplorerLocationItem) {
-        const glow = this.add.image(loc.x, loc.y, 'ui_atlas', 'common-ui/fx/fx_glow')
-            .setScale(1.2).setAlpha(0).setDepth(18);
+        // Si no se pasó factory, importar (safeguard)
+        if (!markerFactory) {
+            const { createHoloMarker } = require('./CityExplorerUI');
+            markerFactory = createHoloMarker;
+        }
 
-        const marker = this.add.image(loc.x, loc.y, 'ce_atlas', 'city-explorer/markers/market_target')
-            .setScale(1.5).setTint(0x94a3b8).setDepth(20);
+        this.mapData.checkpoints.forEach(loc => {
+            // Holo Marker Visual
+            const marker = markerFactory(this, loc.x, loc.y);
+            marker.setDepth(25);
 
-        const checkIcon = this.add.image(loc.x, loc.y - 15, 'ui_atlas', 'common-ui/fx/fx_check')
-            .setScale(0.8).setDepth(25).setAlpha(0);
+            // Icono eliminado por solicitud de limpieza visual
+            // const checkIcon = ...
 
-        const label = this.add.text(loc.x, loc.y + 42, loc.name.toLowerCase(), {
-            fontSize: '14px', fontFamily: 'Fredoka', color: '#ffffff', backgroundColor: '#1e293b', padding: { x: 10, y: 5 }
-        }).setOrigin(0.5, 0).setDepth(30);
+            // Etiqueta Holográfica
+            const label = this.add.text(loc.x, loc.y + 35, loc.name.toUpperCase(), {
+                fontSize: '12px', fontFamily: 'Orbitron, monospace', color: '#93c5fd', backgroundColor: '#0f172aAA', padding: { x: 6, y: 2 }
+            }).setOrigin(0.5, 0).setDepth(30).setAlpha(0.8);
 
-        const debugCircle = this.add.circle(loc.x, loc.y, loc.radius || 70, 0x3b82f6, 0.03)
-            .setStrokeStyle(1, 0x3b82f6, 0.1).setDepth(15);
+            // Hitbox invisible para lógica
+            const debugCircle = this.add.circle(loc.x, loc.y, loc.radius || 70, 0x000000, 0).setDepth(0);
 
-        this.checkpoints.push({
-            sprite: marker, glowSprite: glow, checkIcon: checkIcon, data: loc,
-            isTarget: false, isCompleted: false, label: label, debugCircle: debugCircle
+            // Sprite fake para compatibilidad con la lógica existente que espera 'sprite'
+            const logicSprite = this.add.image(loc.x, loc.y, 'ui_atlas', 'common-ui/fx/fx_glow')
+                .setAlpha(0).setScale(0).setVisible(false).setActive(false); // TOTALMENTE INVISIBLE
+
+            this.checkpoints.push({
+                sprite: logicSprite, // Mantenemos ref para lógica antigua
+                glowSprite: marker,  // Usaremos el contenedor visual aquí
+                // checkIcon: checkIcon, // Removed from visual
+                data: loc,
+                isTarget: false,
+                isCompleted: false,
+                label: label,
+                debugCircle: debugCircle
+            });
         });
     }
 
-    private createPlayer() {
+    private createPlayer(cursorFactory: any) {
         const { width, height } = this.cameras.main;
-        this.player = this.add.image(width / 2, height / 2, 'ce_atlas', 'city-explorer/player/player_topdown');
-        this.player.setScale(0.85).setDepth(100);
+
+        // Visual Container
+        const cursorValues = cursorFactory ? cursorFactory(this, width / 2, height / 2) : this.add.container(width / 2, height / 2);
+        this.player = cursorValues; // TypeScript amigable hacking
+        (this.player as any).body = null; // Prepare for physics enable
+
         this.physics.add.existing(this.player);
+        this.player.setDepth(100);
 
         const body = this.player.body as Phaser.Physics.Arcade.Body;
         if (body) {
             body.setCollideWorldBounds(true);
-            body.setSize(40, 25);
-            body.setOffset(10, 65);
+            body.setCircle(15);
+            body.setOffset(-15, -15); // Centrar collider en contenedor
         }
     }
 
@@ -288,9 +266,40 @@ export class CityExplorerScene extends Phaser.Scene {
         ]);
     }
 
+    private createGuidanceArrow() {
+        this.guideArrow = this.add.container(0, 0);
+        // Solo un punto simple, como pidió el usuario
+        const dot = this.add.circle(0, 0, 5, 0xfbbf24, 1);
+        this.guideArrow.add(dot);
+        this.guideArrow.setDepth(1001).setAlpha(0);
+    }
+
+    private showInitialFullscreen() {
+        this.isPaused = true;
+
+        // Ensure input is captured when clicking anywhere on the game
+        this.input.on('pointerdown', () => {
+            if (!this.scale.isFullscreen && this.sys.game.canvas) {
+                this.sys.game.canvas.focus();
+            }
+        });
+
+        showGameInstructions(this, {
+            title: 'DATA RETRIEVAL',
+            instructions: this.missionInstructions || 'Navigate the digital grid to locate and decrypt data nodes.',
+            controls: 'Use Arrow Keys or WASD to navigate.\n• Follow the yellow indicator arrow.\n• Avoid restricted zones.',
+            controlIcons: ['arrows'],
+            requestFullscreen: true,
+            buttonLabel: 'INITIALIZE',
+            onStart: () => {
+                this.isPaused = false;
+                this.startGame();
+            }
+        });
+    }
+
     private createHud() {
         const { width, height } = this.cameras.main;
-        // HUD (Manual Position Sync for reliably clickable buttons in panning camera)
         this.gameHUD = new GameHUD(this, {
             showTimer: true,
             showScore: true,
@@ -303,63 +312,57 @@ export class CityExplorerScene extends Phaser.Scene {
         }, this.soundManager);
         this.gameHUD.getContainer().setScrollFactor(0).setDepth(5000);
 
-        this.progressText = this.add.text(width / 2, 75, `CHECKPOINTS: 0/${this.requiredCheckpoints}`, {
-            fontSize: '18px',
-            fontFamily: 'Fredoka',
-            color: '#ffffff',
-            stroke: '#000000',
-            strokeThickness: 3
+        this.progressText = this.add.text(width / 2, 75, `NODES: 0/${this.requiredCheckpoints}`, {
+            fontSize: '16px',
+            fontFamily: 'Orbitron, monospace',
+            color: '#3b82f6',
         }).setOrigin(0.5).setScrollFactor(0).setDepth(5001);
 
-        // --- NEW DIALOG BOX DESIGN (Bottom Side) ---
-        const dialogW = 500;
+        // --- NEW DIALOG BOX DESIGN (Digital Panel) ---
+        const dialogW = 600;
         const dialogH = 100;
-        const dialogX = 20 + dialogW / 2;
+        const dialogX = width / 2;
         const dialogY = height - 70;
 
-        const dialogBg = this.add.graphics();
-        // Lighter glassy background (Slate-800 style)
-        dialogBg.fillStyle(0x1e293b, 0.9);
-        dialogBg.lineStyle(3, 0x3b82f6, 1);
-        dialogBg.fillRoundedRect(-dialogW / 2, -dialogH / 2, dialogW, dialogH, 20);
-        dialogBg.strokeRoundedRect(-dialogW / 2, -dialogH / 2, dialogW, dialogH, 20);
+        // Background with Glass effect
+        const glass = new RoundRectangle(this, 0, 0, dialogW, dialogH, 15, 0x010409, 0.85);
+        glass.setStrokeStyle(2, 0x38bdf8, 0.4);
+        this.add.existing(glass);
 
-        // Target Indicator Icon
-        const targetIcon = this.add.image(-dialogW / 2 + 45, 0, 'ce_atlas', 'city-explorer/markers/market_target')
-            .setScale(1).setTint(0xfbbf24);
+        // Sidebar Accent
+        const sidebar = new RoundRectangle(this, -dialogW / 2 + 10, 0, 8, dialogH - 20, 4, 0x38bdf8, 1);
+        this.add.existing(sidebar);
 
-        const labelX = -dialogW / 2 + 90;
-
-        const missionLabel = this.add.text(labelX, -dialogH / 2 + 22, 'CURRENT MISSION:', {
-            fontSize: '12px',
-            fontFamily: 'Fredoka',
-            color: '#93c5fd',
-            fontStyle: 'bold'
+        const labelX = -dialogW / 2 + 35;
+        const missionLabel = this.add.text(labelX, -dialogH / 2 + 25, 'SYSTEM ASSIGNMENT:', {
+            fontSize: '11px',
+            fontFamily: 'Orbitron, monospace',
+            color: '#38bdf8',
+            letterSpacing: 2
         }).setOrigin(0, 0.5);
 
-        this.objectiveText = this.add.text(labelX, 10, 'initializing...', {
-            fontSize: '20px',
-            fontFamily: 'Fredoka',
+        this.objectiveText = this.add.text(labelX, 15, 'WAITING FOR DATA...', {
+            fontSize: '19px',
+            fontFamily: 'Nunito',
             color: '#ffffff',
             align: 'left',
-            wordWrap: { width: dialogW - 120 }
+            fontStyle: 'bold',
+            wordWrap: { width: dialogW - 80 }
         }).setOrigin(0, 0.5);
 
         const dialogContainer = this.add.container(dialogX, dialogY, [
-            dialogBg,
-            targetIcon,
-            missionLabel,
-            this.objectiveText
+            glass, sidebar, missionLabel, this.objectiveText
         ]).setScrollFactor(0).setDepth(5000);
-
-        // Removed old missionPanel asset
 
         this.gameHUD.onPause(() => this.togglePause());
         this.gameHUD.onHelp(() => {
-            showModal(this, {
-                title: 'HOW TO PLAY',
-                message: this.missionInstructions,
-                buttons: [{ label: 'OK', onClick: () => { }, isPrimary: true }]
+            showGameInstructions(this, {
+                title: 'Data Retrieval',
+                instructions: this.missionInstructions,
+                controls: 'Navigate with Arrows/WASD to find data nodes.',
+                controlIcons: ['arrows'],
+                buttonLabel: 'RESUME MISSION',
+                onStart: () => { }
             });
         });
 
@@ -410,42 +413,52 @@ export class CityExplorerScene extends Phaser.Scene {
 
         this.soundManager.playMusic('bg_music', 0.4);
         this.soundManager.playSfx('game_start');
-        this.guideArrow.setAlpha(1);
 
-        // Seleccionar primer target
-        this.currentTarget = this.checkpoints[0];
+        // --- NEW: Initialize First Target ---
+        this.currentTarget = this.checkpoints.find(c => !c.isCompleted);
         if (this.currentTarget) {
-            this.currentTarget.isTarget = true;
             this.setupTargetGlow(this.currentTarget);
+            if (this.guideArrow) this.guideArrow.setAlpha(1);
         }
     }
 
     private setupTargetGlow(cp: Checkpoint) {
-        if (!cp.sprite) return;
-        cp.sprite.setTint(0x3b82f6);
-        this.tweens.add({
-            targets: cp.sprite, scale: 1.6, duration: 800, yoyo: true, repeat: -1
-        });
+        if (!cp.glowSprite) return;
 
+        // Limpiar animaciones previas
+        this.tweens.killTweensOf(cp.glowSprite);
+        cp.glowSprite.setScale(1).setAlpha(1);
+
+        // Actualizar Texto Inmediatamente
         const rawClue = cp.data.challenge?.prompt || `Find the ${cp.data.name}`;
-        const formattedClue = rawClue.charAt(0).toUpperCase() + rawClue.slice(1).toLowerCase();
-        this.objectiveText.setText(formattedClue);
+        const formattedClue = `> ${rawClue.toUpperCase()}`;
+
+        if (this.objectiveText) {
+            this.objectiveText.setText(formattedClue);
+        }
+
         this.soundManager.playSfx('found_clue', 0.5);
     }
 
     update(time: number, delta: number) {
         // Update guidance arrow
         if (this.currentTarget && !this.isGameOver && !this.isPaused) {
-            this.guideArrow.setPosition(this.player.x, this.player.y - 60);
-            const angle = Phaser.Math.Angle.Between(
-                this.player.x, this.player.y,
-                this.currentTarget.data.x, this.currentTarget.data.y
-            );
-            this.guideArrow.setRotation(angle);
+            // Actualizar Satélite de Guía
+            if (this.currentTarget && this.guideArrow && this.guideArrow.alpha > 0) {
+                const targetAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.currentTarget.data.x, this.currentTarget.data.y);
 
-            // Add a little floating effect to the arrow
-            const bounce = Math.sin(time / 200) * 5;
-            this.guideArrow.setY(this.player.y - 60 + bounce);
+                // Distancia de orbita fija
+                const orbitDist = 60;
+                const satelliteX = this.player.x + Math.cos(targetAngle) * orbitDist;
+                const satelliteY = this.player.y + Math.sin(targetAngle) * orbitDist;
+
+                // Lerp para suavidad
+                this.guideArrow.x = Phaser.Math.Linear(this.guideArrow.x, satelliteX, 0.1);
+                this.guideArrow.y = Phaser.Math.Linear(this.guideArrow.y, satelliteY, 0.1);
+
+                // Rotación local del satélite
+                this.guideArrow.rotation += 0.05;
+            }
         } else {
             this.guideArrow.setAlpha(0);
         }
@@ -468,8 +481,19 @@ export class CityExplorerScene extends Phaser.Scene {
         }
 
         body.setVelocity(moveX, moveY);
-        if (moveX > 0) this.player.setFlipX(false);
-        else if (moveX < 0) this.player.setFlipX(true);
+
+        // Rotación suave hacia la dirección de movimiento
+        if (moveX !== 0 || moveY !== 0) {
+            const targetAngle = Math.atan2(moveY, moveX) + Math.PI / 2; // +90deg porque el gráfico apunta arriba (0, -15)
+            // Lerp angle for smoothness
+            const currentAngle = this.player.rotation;
+            let diff = targetAngle - currentAngle;
+            // Normalizar diferencia a -PI a +PI
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+
+            this.player.rotation += diff * 0.15;
+        }
 
         this.checkProximityFeedback();
         this.checkCollisions();
@@ -483,11 +507,12 @@ export class CityExplorerScene extends Phaser.Scene {
         const dist = Phaser.Math.Distance.Between(body.center.x, body.center.y, this.currentTarget.data.x, this.currentTarget.data.y);
         const radius = this.currentTarget.data.radius || 70;
 
-        if (dist < radius * 2 && this.currentTarget.glowSprite?.alpha === 0) {
-            this.tweens.add({ targets: this.currentTarget.glowSprite, alpha: 0.6, duration: 300 });
-            this.tweens.add({ targets: this.currentTarget.sprite, scale: 2.2, duration: 200, yoyo: true, ease: 'Quad.easeInOut' });
-        } else if (dist >= radius * 2 && this.currentTarget.glowSprite?.alpha! > 0) {
-            this.tweens.add({ targets: this.currentTarget.glowSprite, alpha: 0, duration: 300 });
+        if (dist < radius * 2) {
+            // Cerca: Aumentar brillo/rotacion
+            if (this.currentTarget.glowSprite) {
+                this.currentTarget.glowSprite.setAlpha(1);
+                this.currentTarget.glowSprite.rotation += 0.05;
+            }
         }
     }
 
@@ -507,12 +532,11 @@ export class CityExplorerScene extends Phaser.Scene {
     }
 
     private submitAnswer(cp: Checkpoint, isCorrect: boolean) {
-        showFeedback(this, 0, 0, isCorrect, 800);
         if (isCorrect) {
             const points = CITY_EXPLORER_CONFIG.scoring.points_correct;
             this.score += points;
             this.locationsFound++;
-            showGlow(this, 0, 0, 0x10b981, 600);
+            // Eliminado el bloom verde excesivo (showGlow)
             this.soundManager.playSfx('correct', 0.6);
             this.soundManager.playSfx('unlock', 0.8);
             this.answerTracker.recordCorrectCatch(cp.data.id, cp.data.challenge?.prompt || cp.data.name, { x: cp.data.x, y: cp.data.y }, cp.data.challenge?.ruleTag ? [cp.data.challenge.ruleTag] : []);
@@ -533,14 +557,11 @@ export class CityExplorerScene extends Phaser.Scene {
     private handleChallengeComplete(cp: Checkpoint, success: boolean) {
         this.isAnswering = false;
         cp.isCompleted = true;
-        this.tweens.killTweensOf(cp.sprite);
 
-        if (success) {
-            cp.sprite.setTint(0x10b981).setScale(1.5).setAlpha(0.8);
-            if (cp.checkIcon) cp.checkIcon.setTexture('ui_atlas', 'common-ui/fx/fx_check').setAlpha(1).setScale(1);
-        } else {
-            cp.sprite.setTint(0xef4444).setScale(1.5).setAlpha(0.8);
-            if (cp.checkIcon) cp.checkIcon.setTexture('ui_atlas', 'common-ui/fx/fx_cross').setAlpha(1);
+        if (cp.glowSprite) {
+            this.tweens.killTweensOf(cp.glowSprite);
+            // Efecto minimalista: El marcador simplemente se apaga (desaparece)
+            this.tweens.add({ targets: cp.glowSprite, alpha: 0, scale: 0.5, duration: 400 });
         }
 
         if (this.locationsFound >= this.requiredCheckpoints) {

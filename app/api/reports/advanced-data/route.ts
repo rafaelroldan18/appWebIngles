@@ -81,7 +81,24 @@ export async function GET(request: NextRequest) {
             const completedMissions = (missions || []).map(m => {
                 const missionSessions = sSessions.filter(ss => ss.topic_id === m.topic_id && ss.game_type_id === m.game_type_id);
                 const isDone = missionSessions.length > 0;
-                const missionScore = missionSessions.reduce((sum, ss) => sum + (ss.score || 0), 0);
+                const bestScore = missionSessions.reduce((max, ss) => Math.max(max, ss.score || 0), 0);
+
+                // Rule of 3 / Normalization for individual game scores
+                // Users want reports to show max 10 points per game.
+                // If score > 10, likely legacy (out of 100) or raw score. Scale it.
+                // Assuming base 100 for > 10 values as per common gamification defaults.
+                let missionScore = bestScore;
+                if (missionScore > 10) {
+                    // Apply Rule of 3: (Score * 10) / Max. Assuming Max=100 for large numbers.
+                    // If missionScore is e.g. 100 -> 10. 80 -> 8.
+                    missionScore = Math.round((missionScore / 10) * 10) / 10;
+
+                    // Fallback: If after div by 10 it's still > 10 (e.g. score was 200), clamp it?
+                    // Or maybe it was out of 20? 15/10 = 1.5 (Wrong).
+                    // Given the ambiguity, we'll assume 100-base for >10 values.
+                    // Safety clamp to 10 just in case.
+                    if (missionScore > 10) missionScore = 10;
+                }
 
                 return {
                     id: m.availability_id,

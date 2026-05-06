@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+// Force refresh
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}', './app/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
