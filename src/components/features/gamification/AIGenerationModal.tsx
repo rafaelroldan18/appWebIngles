@@ -2,6 +2,8 @@
  * Modal de configuración para generar contenido con IA
  */
 
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -28,11 +30,16 @@ export default function AIGenerationModal({
     onConfigChange
 }: AIModalProps) {
     const { t } = useLanguage();
+    const [mounted, setMounted] = useState(false);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    if (!isOpen || !mounted) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
             <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 border border-slate-200 dark:border-gray-800 animate-in zoom-in-95 duration-200">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center">
@@ -120,6 +127,7 @@ export default function AIGenerationModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

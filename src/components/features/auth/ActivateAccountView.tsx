@@ -8,6 +8,7 @@ import { useFormValidation } from '@/hooks/useFormValidation';
 import { commonValidations } from '@/lib/utils/formValidation';
 import { CheckCircle, Eye, EyeOff, Lock, Mail, User, CreditCard, Users } from 'lucide-react';
 import type { Invitation } from '@/types/invitation.types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function ActivateAccountView() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export function ActivateAccountView() {
   const [invitation, setInvitation] = useState<Invitation | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [code, setCode] = useState('');
+  const { t } = useLanguage();
 
   const validation = useFormValidation({
     initialValues: {
@@ -65,7 +67,7 @@ export function ActivateAccountView() {
         setStep('form');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Código de invitación inválido');
+      setError(err instanceof Error ? err.message : t.activate.errors.invalidCode);
     } finally {
       setLoading(false);
     }
@@ -74,7 +76,7 @@ export function ActivateAccountView() {
   const handleCodeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) {
-      setError('Por favor ingresa el código de invitación');
+      setError(t.activate.errors.emptyCode);
       return;
     }
     validateCode(code.trim().toUpperCase());
@@ -89,7 +91,7 @@ export function ActivateAccountView() {
     }
 
     if (validation.values.password !== validation.values.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t.activate.errors.passwordMismatch);
       return;
     }
 
@@ -112,7 +114,7 @@ export function ActivateAccountView() {
         }, 3000);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al activar cuenta');
+      setError(err instanceof Error ? err.message : t.activate.errors.activationError);
     } finally {
       setLoading(false);
     }
@@ -126,12 +128,12 @@ export function ActivateAccountView() {
             <Mail className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
-            Activar Cuenta
+            {t.activate.title}
           </h1>
           <p className="text-slate-600 dark:text-gray-300">
-            {step === 'code' && 'Ingresa tu código de invitación'}
-            {step === 'form' && 'Completa tu información'}
-            {step === 'success' && '¡Tu cuenta ha sido activada!'}
+            {step === 'code' && t.activate.steps.code}
+            {step === 'form' && t.activate.steps.form}
+            {step === 'success' && t.activate.steps.success}
           </p>
         </div>
 
@@ -140,7 +142,7 @@ export function ActivateAccountView() {
             <form onSubmit={handleCodeSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
-                  Código de Invitación
+                  {t.activate.codeForm.label}
                 </label>
                 <input
                   type="text"
@@ -149,7 +151,7 @@ export function ActivateAccountView() {
                     setCode(e.target.value);
                     setError('');
                   }}
-                  placeholder="XXXXXXXX"
+                  placeholder={t.activate.codeForm.placeholder}
                   className="w-full px-4 py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 dark:text-white text-center text-2xl font-mono tracking-wider"
                   maxLength={8}
                 />
@@ -166,7 +168,7 @@ export function ActivateAccountView() {
                 disabled={loading}
                 className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Verificando...' : 'Continuar'}
+                {loading ? t.activate.codeForm.verifying : t.activate.codeForm.continue}
               </button>
 
               <div className="text-center pt-2">
@@ -174,7 +176,7 @@ export function ActivateAccountView() {
                   href="/login"
                   className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Volver al inicio de sesión
+                  {t.activate.codeForm.backToLogin}
                 </a>
               </div>
             </form>
@@ -184,20 +186,20 @@ export function ActivateAccountView() {
             <form onSubmit={handleActivate} className="space-y-5">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 mb-4">
                 <p className="text-xs text-blue-800 dark:text-blue-300">
-                  Activando cuenta como <span className="font-bold">{invitation.role === 'docente' ? 'Docente' : 'Estudiante'}</span>
+                  {t.activate.personalData.activatingAs} <span className="font-bold">{invitation.role === 'docente' ? t.activate.personalData.teacher : t.activate.personalData.student}</span>
                 </p>
               </div>
 
               {/* Datos de la invitación - Solo lectura como texto */}
               <div className="bg-slate-50 dark:bg-gray-800 rounded-lg p-4 space-y-3 border border-slate-200 dark:border-gray-700">
                 <h3 className="text-sm font-bold text-slate-700 dark:text-gray-300 mb-3">
-                  Tus datos personales:
+                  {t.activate.personalData.title}
                 </h3>
 
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">Nombre</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t.activate.personalData.firstName}</p>
                     <p className="text-base font-semibold text-slate-800 dark:text-white">
                       {validation.values.first_name}
                     </p>
@@ -207,7 +209,7 @@ export function ActivateAccountView() {
                 <div className="flex items-center gap-3">
                   <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">Apellido</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t.activate.personalData.lastName}</p>
                     <p className="text-base font-semibold text-slate-800 dark:text-white">
                       {validation.values.last_name}
                     </p>
@@ -217,7 +219,7 @@ export function ActivateAccountView() {
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">Cédula</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t.activate.personalData.idCard}</p>
                     <p className="text-base font-semibold text-slate-800 dark:text-white">
                       {validation.values.id_card}
                     </p>
@@ -227,7 +229,7 @@ export function ActivateAccountView() {
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-500 dark:text-gray-400">Correo Electrónico</p>
+                    <p className="text-xs text-slate-500 dark:text-gray-400">{t.activate.personalData.email}</p>
                     <p className="text-base font-semibold text-slate-800 dark:text-white">
                       {validation.values.email}
                     </p>
@@ -239,7 +241,7 @@ export function ActivateAccountView() {
                   <div className="flex items-center gap-3 pt-2 border-t border-slate-200 dark:border-gray-600">
                     <Users className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-gray-400">Paralelo Asignado</p>
+                      <p className="text-xs text-slate-500 dark:text-gray-400">{t.activate.personalData.assignedParallel}</p>
                       <p className="text-base font-semibold text-orange-600 dark:text-orange-400">
                         {(invitation as any).parallels.name} - {(invitation as any).parallels.academic_year}
                       </p>
@@ -252,7 +254,7 @@ export function ActivateAccountView() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
                   <Lock className="w-4 h-4 inline-block mr-1" />
-                  Contraseña
+                  {t.activate.passwordForm.password}
                 </label>
                 <div className="relative">
                   <input
@@ -260,7 +262,7 @@ export function ActivateAccountView() {
                     value={validation.values.password}
                     onChange={(e) => validation.handleChange('password', e.target.value)}
                     onBlur={() => validation.handleBlur('password')}
-                    placeholder="Ingresa tu contraseña"
+                    placeholder={t.activate.passwordForm.passwordPlaceholder}
                     className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white pr-10 ${validation.errors.password && validation.touched.password
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                       : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
@@ -284,14 +286,14 @@ export function ActivateAccountView() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2">
                   <Lock className="w-4 h-4 inline-block mr-1" />
-                  Confirmar Contraseña
+                  {t.activate.passwordForm.confirmPassword}
                 </label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={validation.values.confirmPassword}
                   onChange={(e) => validation.handleChange('confirmPassword', e.target.value)}
                   onBlur={() => validation.handleBlur('confirmPassword')}
-                  placeholder="Confirma tu contraseña"
+                  placeholder={t.activate.passwordForm.confirmPlaceholder}
                   className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:outline-none transition-all bg-white dark:bg-gray-700 dark:text-white ${validation.errors.confirmPassword && validation.touched.confirmPassword
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                     : 'border-slate-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
@@ -315,7 +317,7 @@ export function ActivateAccountView() {
                 disabled={loading}
                 className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Activando cuenta...' : 'Activar Cuenta'}
+                {loading ? t.activate.passwordForm.activating : t.activate.passwordForm.activateBtn}
               </button>
             </form>
           )}
@@ -326,13 +328,13 @@ export function ActivateAccountView() {
                 <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
-                ¡Cuenta Activada!
+                {t.activate.successMessage.title}
               </h3>
               <p className="text-slate-600 dark:text-gray-300 mb-4">
-                Tu cuenta ha sido activada exitosamente.
+                {t.activate.successMessage.desc}
               </p>
               <p className="text-sm text-slate-500 dark:text-gray-400">
-                Redirigiendo al inicio de sesión...
+                {t.activate.successMessage.redirecting}
               </p>
             </div>
           )}

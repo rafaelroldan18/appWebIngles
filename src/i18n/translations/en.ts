@@ -522,6 +522,8 @@ export const en: TranslationKeys = {
         completada: 'Completed',
         bloqueada: 'Locked',
         disponible: 'Available',
+        dominado: 'Mastered',
+        'en progreso': 'In Progress',
       },
     },
   },
@@ -603,6 +605,52 @@ export const en: TranslationKeys = {
   accountPasswordError: 'Error changing password',
   accountChangePassword: 'Change Password',
   accountHide: 'Hide',
+
+  activate: {
+    title: 'Activate Account',
+    steps: {
+      code: 'Enter your invitation code',
+      form: 'Complete your information',
+      success: 'Your account has been activated!',
+    },
+    codeForm: {
+      label: 'Invitation Code',
+      placeholder: 'XXXXXXXX',
+      verifying: 'Verifying...',
+      continue: 'Continue',
+      backToLogin: 'Back to login',
+    },
+    personalData: {
+      activatingAs: 'Activating account as',
+      teacher: 'Teacher',
+      student: 'Student',
+      title: 'Your personal data:',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      idCard: 'ID Card',
+      email: 'Email',
+      assignedParallel: 'Assigned Parallel',
+    },
+    passwordForm: {
+      password: 'Password',
+      passwordPlaceholder: 'Enter your password',
+      confirmPassword: 'Confirm Password',
+      confirmPlaceholder: 'Confirm your password',
+      activating: 'Activating account...',
+      activateBtn: 'Activate Account',
+    },
+    successMessage: {
+      title: 'Account Activated!',
+      desc: 'Your account has been activated successfully.',
+      redirecting: 'Redirecting to login...',
+    },
+    errors: {
+      invalidCode: 'Invalid invitation code',
+      emptyCode: 'Please enter the invitation code',
+      passwordMismatch: 'Passwords do not match',
+      activationError: 'Error activating account',
+    }
+  },
 
   // Form validation messages
   validation: {
@@ -1194,6 +1242,10 @@ export const en: TranslationKeys = {
       fileSelected: 'File selected',
       changeFile: 'Change file',
       emailNote: 'An email with an invitation code will be sent to the student to activate their account.',
+      step1: 'Download the template in your preferred format',
+      step2: 'Fill in the student data',
+      step3: 'Save the file',
+      step4: 'Upload the completed file',
     },
     messages: {
       successIndividual: 'Invitation sent successfully!',

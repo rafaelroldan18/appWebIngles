@@ -23,16 +23,16 @@ export default function Landing({ onGetStarted }: LandingProps) {
         <div className={`absolute top-1/2 left-1/3 w-64 h-64 ${colors.accent.success.gradient} bg-opacity-10 rounded-full blur-3xl animate-pulse`} style={{ animationDelay: '2s' }} />
         
         <div className="absolute top-32 right-1/4 animate-float">
-          <Trophy className={`w-8 h-8 ${colors.secondary.main} opacity-30`} />
+          <Trophy className="w-8 h-8 opacity-30" style={{ color: colors.secondary.main }} />
         </div>
         <div className="absolute bottom-40 left-1/4 animate-float" style={{ animationDelay: '1s' }}>
-          <Target className={`w-10 h-10 ${colors.primary.main} opacity-30`} />
+          <Target className="w-10 h-10 opacity-30" style={{ color: colors.primary.main }} />
         </div>
         <div className="absolute top-1/3 right-20 animate-float" style={{ animationDelay: '2s' }}>
-          <Award className={`w-7 h-7 ${colors.accent.info.main} opacity-30`} />
+          <Award className="w-7 h-7 opacity-30" style={{ color: colors.accent.info.main }} />
         </div>
         <div className="absolute bottom-1/3 left-20 animate-float" style={{ animationDelay: '1.5s' }}>
-          <Sparkles className={`w-6 h-6 ${colors.accent.danger.main} opacity-30`} />
+          <Sparkles className="w-6 h-6 opacity-30" style={{ color: colors.accent.danger.main }} />
         </div>
       </div>
 
@@ -94,21 +94,23 @@ export default function Landing({ onGetStarted }: LandingProps) {
                   
                   <div className={`${colors.background.base} rounded-2xl p-6 shadow-lg transform -rotate-2`}>
                     <div className="flex items-center justify-between mb-4">
-                      <Trophy className={`w-8 h-8 ${colors.secondary.main}`} />
-                      <div className="text-right">
-                        <p className={`text-2xl font-bold ${colors.text.title}`}>1,250</p>
-                        <p className={`text-xs ${colors.text.secondary}`}>Puntos</p>
+                      <Trophy className="w-8 h-8" style={{ color: colors.secondary.main }} />
+                      <div className="flex items-end gap-1.5 h-10 pt-2">
+                        <div className={`w-2.5 bg-blue-400/50 rounded-t-sm h-4 animate-pulse`} />
+                        <div className={`w-2.5 bg-blue-500/70 rounded-t-sm h-6 animate-pulse`} style={{ animationDelay: '0.2s' }} />
+                        <div className={`w-2.5 ${colors.secondary.main} rounded-t-sm h-8 opacity-80 animate-pulse`} style={{ animationDelay: '0.4s' }} />
+                        <div className={`w-2.5 ${colors.secondary.main} rounded-t-sm h-10 animate-pulse`} style={{ animationDelay: '0.6s' }} />
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <div className={`w-8 h-8 ${colors.secondary.bg} rounded-lg flex items-center justify-center`}>
-                        <Award className={`w-5 h-5 ${colors.secondary.main}`} />
+                        <Award className="w-5 h-5" style={{ color: colors.secondary.main }} />
                       </div>
                       <div className={`w-8 h-8 ${colors.accent.success.bg} rounded-lg flex items-center justify-center`}>
-                        <Target className={`w-5 h-5 ${colors.accent.success.main}`} />
+                        <Target className="w-5 h-5" style={{ color: colors.accent.success.main }} />
                       </div>
                       <div className={`w-8 h-8 ${colors.accent.info.bg} rounded-lg flex items-center justify-center`}>
-                        <Sparkles className={`w-5 h-5 ${colors.accent.info.main}`} />
+                        <Sparkles className="w-5 h-5" style={{ color: colors.accent.info.main }} />
                       </div>
                     </div>
                   </div>

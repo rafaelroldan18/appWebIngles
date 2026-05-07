@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
 
         // Usamos el modelo que tienes disponible con alta cuota
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -131,8 +131,21 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+
+        // Detectar error de cuota/rate-limit de la API de Gemini
+        if (message.includes('429') || message.includes('Too Many Requests') || message.includes('Quota exceeded')) {
+            return NextResponse.json(
+                {
+                    error: 'Límite de uso de IA alcanzado. Por favor, espera unos minutos antes de intentar de nuevo.',
+                    details: message
+                },
+                { status: 429 }
+            );
+        }
+
         return NextResponse.json(
-            { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+            { error: 'Error interno del servidor', details: message },
             { status: 500 }
         );
     }

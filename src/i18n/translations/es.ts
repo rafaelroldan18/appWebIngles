@@ -520,6 +520,8 @@ export const es = {
         completada: 'Completada',
         bloqueada: 'Bloqueada',
         disponible: 'Disponible',
+        dominado: 'Dominado',
+        'en progreso': 'En Progreso',
       },
     },
   },
@@ -601,6 +603,52 @@ export const es = {
   accountPasswordError: 'Error al cambiar contraseña',
   accountChangePassword: 'Cambiar Contraseña',
   accountHide: 'Ocultar',
+
+  activate: {
+    title: 'Activar Cuenta',
+    steps: {
+      code: 'Ingresa tu código de invitación',
+      form: 'Completa tu información',
+      success: '¡Tu cuenta ha sido activada!',
+    },
+    codeForm: {
+      label: 'Código de Invitación',
+      placeholder: 'XXXXXXXX',
+      verifying: 'Verificando...',
+      continue: 'Continuar',
+      backToLogin: 'Volver al inicio de sesión',
+    },
+    personalData: {
+      activatingAs: 'Activando cuenta como',
+      teacher: 'Docente',
+      student: 'Estudiante',
+      title: 'Tus datos personales:',
+      firstName: 'Nombre',
+      lastName: 'Apellido',
+      idCard: 'Cédula',
+      email: 'Correo Electrónico',
+      assignedParallel: 'Paralelo Asignado',
+    },
+    passwordForm: {
+      password: 'Contraseña',
+      passwordPlaceholder: 'Ingresa tu contraseña',
+      confirmPassword: 'Confirmar Contraseña',
+      confirmPlaceholder: 'Confirma tu contraseña',
+      activating: 'Activando cuenta...',
+      activateBtn: 'Activar Cuenta',
+    },
+    successMessage: {
+      title: '¡Cuenta Activada!',
+      desc: 'Tu cuenta ha sido activada exitosamente.',
+      redirecting: 'Redirigiendo al inicio de sesión...',
+    },
+    errors: {
+      invalidCode: 'Código de invitación inválido',
+      emptyCode: 'Por favor ingresa el código de invitación',
+      passwordMismatch: 'Las contraseñas no coinciden',
+      activationError: 'Error al activar cuenta',
+    }
+  },
 
   // Mensajes de validación de formularios
   validation: {
@@ -1192,6 +1240,10 @@ export const es = {
       fileSelected: 'Archivo seleccionado',
       changeFile: 'Cambiar archivo',
       emailNote: 'Se enviará un correo electrónico con un código de invitación al estudiante para que active su cuenta.',
+      step1: 'Descarga la plantilla en el formato que prefieras',
+      step2: 'Completa los datos de los estudiantes',
+      step3: 'Guarda el archivo',
+      step4: 'Sube el archivo completado',
     },
     messages: {
       successIndividual: '¡Invitación enviada con éxito!',

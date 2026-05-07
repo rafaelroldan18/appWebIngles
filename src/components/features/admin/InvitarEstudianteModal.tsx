@@ -543,10 +543,10 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       <div className="text-xs text-blue-800 dark:text-blue-300">
                         <p className="font-semibold mb-1">{t.invitations.form.instructions}</p>
                         <ol className="list-decimal list-inside space-y-1">
-                          <li>Descarga la plantilla en el formato que prefieras</li>
-                          <li>Completa los datos de los estudiantes</li>
-                          <li>Guarda el archivo</li>
-                          <li>Sube el archivo completado</li>
+                          <li>{t.invitations.form.step1}</li>
+                          <li>{t.invitations.form.step2}</li>
+                          <li>{t.invitations.form.step3}</li>
+                          <li>{t.invitations.form.step4}</li>
                         </ol>
                       </div>
                     </div>
@@ -638,7 +638,7 @@ export default function InvitarEstudianteModal({ onClose, onSuccess }: InvitarEs
                       onClick={onClose}
                       className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-200 rounded-lg font-semibold hover:bg-slate-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-4 focus:ring-slate-300"
                     >
-                      Cancelar
+                      {t.common.cancel}
                     </button>
                     <button
                       onClick={handleBulkUpload}

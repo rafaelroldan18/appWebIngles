@@ -99,7 +99,7 @@ export default function Login({ onBack }: LoginProps) {
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
             <div>
-              <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-200 mb-1.5">
                 {t.loginEmail}
               </label>
               <div className="relative">
@@ -124,7 +124,7 @@ export default function Login({ onBack }: LoginProps) {
             </div>
 
             <div>
-              <label className={`block text-sm font-semibold ${colors.text.secondary} mb-1.5`}>
+              <label className="block text-sm font-semibold text-slate-600 dark:text-slate-200 mb-1.5">
                 {t.loginPassword}
               </label>
               <div className="relative">
@@ -159,14 +159,14 @@ export default function Login({ onBack }: LoginProps) {
               <button
                 type="button"
                 onClick={() => window.location.href = '/activate'}
-                className={`text-sm ${colors.primary.main} hover:${colors.primary.dark} font-semibold transition-colors`}
+                className="text-sm text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors"
               >
                 {t.loginHaveCode}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className={`text-sm ${colors.primary.main} hover:${colors.primary.dark} font-semibold transition-colors`}
+                className="text-sm text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors"
               >
                 {t.loginForgotPassword}
               </button>
