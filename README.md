@@ -1,4 +1,4 @@
-w# 🎓 English27 - Sistema Educativo Gamificado
+# English27 - Sistema Educativo Gamificado
 
 > Plataforma web para el aprendizaje de inglés con gamificación, desarrollada con Next.js, TypeScript y Supabase.
 
@@ -9,51 +9,51 @@ w# 🎓 English27 - Sistema Educativo Gamificado
 
 ---
 
-## 📋 Tabla de Contenidos
+## Tabla de Contenidos
 
-- [Características](#-características)
-- [Arquitectura](#-arquitectura)
-- [Instalación](#-instalación)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Tecnologías](#-tecnologías)
-- [Documentación](#-documentación)
-- [Desarrollo](#-desarrollo)
-
----
-
-## ✨ Características
-
-### 👨‍🎓 Para Estudiantes
-- 📊 Dashboard personalizado con progreso
-- 🎯 Sistema de niveles y puntos
-- 📚 Actividades asignadas por docentes
-- 🏆 Sistema de recompensas
-- 📈 Seguimiento de progreso en tiempo real
-
-### 👨‍🏫 Para Docentes
-- 📝 Creación de actividades gamificadas
-- 👥 Gestión de estudiantes
-- 📊 Reportes de progreso
-- 🎯 Asignación de actividades
-- 💬 Sistema de mensajería
-
-### 👨‍💼 Para Administradores
-- 🔐 Gestión completa de usuarios
-- 📊 Estadísticas del sistema
-- ✅ Aprobación de cuentas
-- 🛡️ Control de roles y permisos
-- 📈 Métricas y analytics
-
-### 🌍 Características Generales
-- 🌐 Multiidioma (Español/Inglés)
-- 🎨 Interfaz moderna y responsive
-- 🔒 Autenticación segura
-- ⚡ Rendimiento optimizado
-- 📱 Mobile-friendly
+- [Características](#características)
+- [Arquitectura](#arquitectura)
+- [Instalación](#instalación)
+- [Estructura del Proyecto](#estructura-del-proyecto)
+- [Tecnologías](#tecnologías)
+- [Documentación](#documentación)
+- [Desarrollo](#desarrollo)
 
 ---
 
-## 🏗️ Arquitectura
+## Características
+
+### Para Estudiantes
+- Dashboard personalizado con progreso
+- Sistema de niveles y puntos
+- Actividades asignadas por docentes
+- Sistema de recompensas
+- Seguimiento de progreso en tiempo real
+
+### Para Docentes
+- Creación de actividades gamificadas
+- Gestión de estudiantes
+- Reportes de progreso
+- Asignación de actividades
+- Sistema de mensajería
+
+### Para Administradores
+- Gestión completa de usuarios
+- Estadísticas del sistema
+- Aprobación de cuentas
+- Control de roles y permisos
+- Métricas y analytics
+
+### Características Generales
+- Multiidioma (Español/Inglés)
+- Interfaz moderna y responsive
+- Autenticación segura
+- Rendimiento optimizado
+- Compatible con dispositivos móviles
+
+---
+
+## Arquitectura
 
 ### Clean Architecture
 ```
@@ -102,15 +102,15 @@ graph LR
 ```
 
 ### Patrones Implementados
-- ✅ **Service Layer Pattern** - Capa de servicios para API
-- ✅ **Custom Hooks Pattern** - Lógica reutilizable
-- ✅ **Component Composition** - Componentes pequeños y enfocados
-- ✅ **Repository Pattern** - Abstracción de datos
-- ✅ **Provider Pattern** - Contextos de React
+- **Service Layer Pattern** — Capa de servicios para API
+- **Custom Hooks Pattern** — Lógica reutilizable
+- **Component Composition** — Componentes pequeños y enfocados
+- **Repository Pattern** — Abstracción de datos
+- **Provider Pattern** — Contextos de React
 
 ---
 
-## 🚀 Instalación
+## Instalación
 
 ### Prerrequisitos
 - Node.js 18+ 
@@ -155,7 +155,7 @@ http://localhost:3000
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 appWebIngles/
@@ -221,45 +221,45 @@ appWebIngles/
 
 ---
 
-## 🛠️ Tecnologías
+## Tecnologías
 
 ### Frontend
-- **Next.js 15** - Framework React con App Router
-- **React 19** - Librería UI
-- **TypeScript 5.5** - Type safety
-- **Tailwind CSS 3.4** - Estilos
-- **Lucide React** - Iconos
+- **Next.js 15** — Framework React con App Router
+- **React 19** — Librería UI
+- **TypeScript 5.5** — Type safety
+- **Tailwind CSS 3.4** — Estilos
+- **Lucide React** — Iconos
 
 ### Backend
-- **Supabase** - Backend as a Service
+- **Supabase** — Backend as a Service
   - PostgreSQL Database
   - Authentication
   - Row Level Security (RLS)
   - Real-time subscriptions
 
 ### Herramientas
-- **ESLint** - Linting
-- **Prettier** - Formateo de código
-- **Git** - Control de versiones
+- **ESLint** — Linting
+- **Prettier** — Formateo de código
+- **Git** — Control de versiones
 
 ---
 
-## 📚 Documentación
+## Documentación
 
 ### Documentación Técnica
-- [REFACTORIZACION.md](./REFACTORIZACION.md) - Arquitectura y patrones
-- [GUIA_MIGRACION.md](./GUIA_MIGRACION.md) - Guía de migración
-- [EJEMPLOS_CODIGO.md](./EJEMPLOS_CODIGO.md) - Ejemplos prácticos
-- [RESUMEN_EJECUTIVO.md](./RESUMEN_EJECUTIVO.md) - Resumen del proyecto
-- [API_REST_ESTANDAR.md](./docs/API_REST_ESTANDAR.md) - ✅ Estándar API REST
+- [REFACTORIZACION.md](./REFACTORIZACION.md) — Arquitectura y patrones
+- [GUIA_MIGRACION.md](./GUIA_MIGRACION.md) — Guía de migración
+- [EJEMPLOS_CODIGO.md](./EJEMPLOS_CODIGO.md) — Ejemplos prácticos
+- [RESUMEN_EJECUTIVO.md](./RESUMEN_EJECUTIVO.md) — Resumen del proyecto
+- [API_REST_ESTANDAR.md](./docs/API_REST_ESTANDAR.md) — Estándar API REST
 
 ### Documentación de Migración
-- [MIGRACION_NEXTJS.md](./MIGRACION_NEXTJS.md) - Migración a Next.js
-- [INTEGRACION_I18N.md](./INTEGRACION_I18N.md) - Internacionalización
+- [MIGRACION_NEXTJS.md](./MIGRACION_NEXTJS.md) — Migración a Next.js
+- [INTEGRACION_I18N.md](./INTEGRACION_I18N.md) — Internacionalización
 
 ---
 
-## 💻 Desarrollo
+## Desarrollo
 
 ### Scripts Disponibles
 
@@ -310,36 +310,29 @@ export function Component({ title, onAction }: Props) {
 
 ---
 
-## 🔐 Roles y Permisos
+## Roles y Permisos
 
-### Estudiante
-- ✅ Ver su propio progreso
-- ✅ Acceder a actividades asignadas
-- ✅ Completar actividades
-- ❌ No puede crear actividades
-- ❌ No puede ver otros estudiantes
-
-### Docente
-- ✅ Crear actividades
-- ✅ Asignar actividades a estudiantes
-- ✅ Ver progreso de sus estudiantes
-- ✅ Generar reportes
-- ❌ No puede gestionar usuarios
-
-### Administrador
-- ✅ Gestión completa de usuarios
-- ✅ Aprobar/rechazar cuentas
-- ✅ Ver estadísticas globales
-- ✅ Acceso a todas las funcionalidades
-- ✅ Gestionar roles y permisos
+| Permiso | Estudiante | Docente | Administrador |
+|---|:---:|:---:|:---:|
+| Ver su propio progreso | Si | Si | Si |
+| Acceder a actividades asignadas | Si | Si | Si |
+| Completar actividades | Si | — | — |
+| Crear actividades | No | Si | Si |
+| Asignar actividades | No | Si | Si |
+| Ver progreso de estudiantes | No | Si | Si |
+| Generar reportes | No | Si | Si |
+| Gestión de usuarios | No | No | Si |
+| Aprobar/rechazar cuentas | No | No | Si |
+| Ver estadísticas globales | No | No | Si |
+| Gestionar roles y permisos | No | No | Si |
 
 ---
 
-## 🌐 Internacionalización
+## Internacionalización
 
 El sistema soporta múltiples idiomas:
-- 🇪🇸 Español (por defecto)
-- 🇬🇧 Inglés
+- **Español** (por defecto)
+- **Inglés**
 
 ### Agregar nuevas traducciones
 ```typescript
@@ -356,7 +349,7 @@ export const translations = {
 
 ---
 
-## 🧪 Testing (Próximamente)
+## Testing (Próximamente)
 
 ```bash
 # Tests unitarios
@@ -371,9 +364,9 @@ npm run test:e2e
 
 ---
 
-## 📈 Roadmap
+## Roadmap
 
-### ✅ Fase 1 - Completada
+### Fase 1 — Completada
 - [x] Arquitectura base
 - [x] Tipos centralizados
 - [x] Capa de servicios REST 100% consistente
@@ -382,13 +375,13 @@ npm run test:e2e
 - [x] Dashboard Estudiante
 - [x] Cliente Supabase estandarizado
 
-### 🚧 Fase 2 - En Progreso
+### Fase 2 — En Progreso
 - [ ] Dashboard Docente refactorizado
 - [ ] Dashboard Admin refactorizado
 - [ ] Componentes de autenticación
 - [ ] Optimización de imágenes
 
-### 📅 Fase 3 - Planificada
+### Fase 3 — Planificada
 - [ ] Validación de formularios
 - [ ] Tests unitarios
 - [ ] Tests E2E
@@ -397,7 +390,7 @@ npm run test:e2e
 
 ---
 
-## 🤝 Contribuir
+## Contribuir
 
 ### Flujo de Trabajo
 1. Fork el proyecto
@@ -414,28 +407,28 @@ npm run test:e2e
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto es privado y está desarrollado para uso educativo.
 
 ---
 
-## 👥 Equipo
+## Equipo
 
-Desarrollado para la Unidad Educativa Delice
+Desarrollado para la Unidad Educativa Delice.
 
 ---
 
-## 📞 Soporte
+## Soporte
 
 Para soporte y preguntas:
-- 📧 Email: [contacto]
-- 📚 Documentación: Ver carpeta `/docs`
-- 🐛 Issues: [GitHub Issues]
+- **Email**: [contacto]
+- **Documentación**: Ver carpeta `/docs`
+- **Issues**: [GitHub Issues]
 
 ---
 
-## 🙏 Agradecimientos
+## Agradecimientos
 
 - Next.js Team
 - Supabase Team
@@ -444,6 +437,6 @@ Para soporte y preguntas:
 
 ---
 
-**Última actualización**: 2024
-**Versión**: 2.0.0
-**Estado**: 🟢 Activo
+**Última actualización**: 2024  
+**Versión**: 2.0.0  
+**Estado**: Activo
